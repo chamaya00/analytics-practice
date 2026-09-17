@@ -7,41 +7,32 @@ beginner through to senior-level technical ability.
 
 ## Stack
 
-No framework chosen yet - this repository was provisioned before any product
-code landed. Hosting: Vercel.
+Astro (static output, no server adapter), TypeScript, Vitest, ESLint.
+Hosting: Vercel, zero-configuration static detection. See ADR 0001
+(`docs/decisions/0001-framework-choice.md`) for why.
 
 ## Commands
 
-- Install: none yet - no framework chosen
-- Dev: none yet - no framework chosen
-- Checks CI runs: none yet. `.github/workflows/ci.yml` ships a placeholder
-  gate (job `scaffolding`) that only checks the provisioning scaffolding is
-  intact; it fails the moment product code lands, on purpose. Once a
-  framework is chosen, replace `commands` in that file with the real
-  `typecheck`/`lint`/`test`/`build` commands (or a project's own equivalent),
-  re-point branch protection at the new check name in the same sitting, and
-  fill in the commands above.
+- Install: `npm ci`
+- Dev: `npm run dev`
+- Checks CI runs: `npm run typecheck` (`astro check`), `npm run lint`
+  (`eslint .`), `npm run test` (`vitest run`), `npm run build`
+  (`astro build`).
 
-The checks above are what CI runs once the gate is real. Until then it is
-not: `.github/workflows/ci.yml` ships a placeholder that checks the scaffolding
-is intact and fails the moment product code lands, because a project gets its
-gate before it gets its stack and a gate that goes green on untested code is
-worse than no gate. Replacing it is a step in building this project, not a
-chore to do later - the comment at the top of that file says how.
+The checks above are what CI runs. `.github/workflows/ci.yml` calls the
+factory's reusable Node path with the defaults (`checks:
+'typecheck,lint,test,build'`), so the required check reports as
+`ci / typecheck, lint, test, build`.
 
 Whatever the gate runs, the rule is the same. If a check is renamed here,
 rename it in `.github/workflows/ci.yml` in the same commit, and re-point the
 branch protection rule in the same sitting, or the gate silently stops checking
 that thing.
 
-**Publishing gap.** This site is meant to be hosted on Vercel, and Vercel's own
-build is a different program from whatever `ci.yml` ends up running. Nothing
-in this repository yet measures the distance between them, because there is no
-build to compare against - once a framework is chosen, either point the gate's
-`commands` at the same build Vercel runs, or write an ADR in `docs/decisions/`
-saying how they differ and what covers the gap. Leaving this unanswered is not
-an option; see the note in `.github/workflows/ci.yml`'s template comment for
-why.
+**Publishing gap.** Closed - see ADR 0001. Vercel auto-detects Astro and runs
+`npm run build` (`astro build`) with no adapter for this static site, so the
+local build command and Vercel's are the same program. No divergence to
+document.
 
 <!-- agent-factory:begin -->
 <!-- Everything from here to the agent-factory:end marker describes the shared
