@@ -1,0 +1,72 @@
+---
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const links = [
+  { href: '/', label: 'Swipe poll' },
+  { href: '/results/', label: 'Results' },
+];
+---
+
+<header class="site-header">
+  <p class="site-name">Analytics practice</p>
+  <nav aria-label="Primary" class="site-nav">
+    {
+      links.map((link) => {
+        const isCurrent = currentPath === link.href;
+        return (
+          <a href={link.href} aria-current={isCurrent ? 'page' : undefined} class:list={{ current: isCurrent }}>
+            {link.label}
+          </a>
+        );
+      })
+    }
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    min-height: var(--space-xxl);
+    padding: var(--space-sm) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-name {
+    margin: 0;
+    font-size: var(--font-size-nav-title);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: var(--space-md);
+  }
+
+  .site-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: var(--font-size-body);
+    text-decoration: none;
+  }
+
+  .site-nav a.current {
+    text-decoration: underline;
+    pointer-events: none;
+  }
+
+  @media (max-width: 480px) {
+    .site-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
