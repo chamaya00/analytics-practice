@@ -93,43 +93,30 @@ function renderSwipeCardEnd(root: HTMLElement): void {
   root.append(wrapper);
 }
 
+function statRow(labelText: string, valueText: string, valueClass: string): HTMLLIElement {
+  const row = document.createElement('li');
+  row.className = 'stat-row';
+  const label = document.createElement('span');
+  label.className = 'stat-label';
+  label.textContent = labelText;
+  const value = document.createElement('span');
+  value.className = valueClass;
+  value.textContent = valueText;
+  row.append(label, value);
+  return row;
+}
+
 export function renderDogfoodingView(root: HTMLElement, storage: Storage): void {
   root.innerHTML = '';
 
   const stats = computeStats(getEvents(storage));
   const variant = getVariant(storage);
+  const hasVotes = stats.total > 0;
+  const valueClass = hasVotes ? 'stat-value' : 'stat-value stat-value--muted';
 
-  const total = document.createElement('p');
-  total.setAttribute('data-testid', 'total-votes');
-  total.textContent = `Total votes cast: ${stats.total}`;
-
-  const yourVariant = document.createElement('p');
-  yourVariant.setAttribute('data-testid', 'your-variant');
-  yourVariant.textContent = `Your variant: ${variant ? variant.toUpperCase() : 'unknown'}`;
-
-  const perOption = document.createElement('ul');
-  perOption.setAttribute('data-testid', 'votes-per-option');
-  for (const option of OPTIONS) {
-    const item = document.createElement('li');
-    item.setAttribute('data-option', option);
-    item.textContent = `${option}: ${stats.perOption[option]}`;
-    perOption.append(item);
-  }
-
-  const perVariant = document.createElement('ul');
-  perVariant.setAttribute('data-testid', 'votes-per-variant');
-  const variantA = document.createElement('li');
-  variantA.setAttribute('data-variant', 'a');
-  variantA.textContent = `A: ${stats.perVariant.a}`;
-  const variantB = document.createElement('li');
-  variantB.setAttribute('data-variant', 'b');
-  variantB.textContent = `B: ${stats.perVariant.b}`;
-  perVariant.append(variantA, variantB);
-
-  root.append(total, yourVariant, perOption, perVariant);
-
-  if (stats.total === 0) {
+  if (!hasVotes) {
     const prompt = document.createElement('p');
+    prompt.className = 'stat-prompt';
     prompt.setAttribute('data-testid', 'no-votes-prompt');
     prompt.textContent = 'No votes yet — go vote on a pair.';
     const link = document.createElement('a');
@@ -138,6 +125,42 @@ export function renderDogfoodingView(root: HTMLElement, storage: Storage): void 
     prompt.append(' ', link);
     root.append(prompt);
   }
+
+  const total = document.createElement('p');
+  total.className = 'stat-total';
+  total.setAttribute('data-testid', 'total-votes');
+  const totalNumber = document.createElement('span');
+  totalNumber.className = 'stat-total-number';
+  totalNumber.textContent = String(stats.total);
+  const totalLabel = document.createElement('span');
+  totalLabel.className = 'stat-total-label';
+  totalLabel.textContent = 'total votes cast';
+  total.append(totalNumber, totalLabel);
+
+  const yourVariant = document.createElement('p');
+  yourVariant.className = 'stat-row stat-row--meta';
+  yourVariant.setAttribute('data-testid', 'your-variant');
+  yourVariant.textContent = `Your variant: ${variant ? variant.toUpperCase() : 'unknown'}`;
+
+  const perOption = document.createElement('ul');
+  perOption.className = 'stat-list';
+  perOption.setAttribute('data-testid', 'votes-per-option');
+  for (const option of OPTIONS) {
+    const item = statRow(option, String(stats.perOption[option]), valueClass);
+    item.setAttribute('data-option', option);
+    perOption.append(item);
+  }
+
+  const perVariant = document.createElement('ul');
+  perVariant.setAttribute('data-testid', 'votes-per-variant');
+  perVariant.className = 'stat-list';
+  const variantA = statRow('A', String(stats.perVariant.a), hasVotes ? 'stat-value accent-a' : valueClass);
+  variantA.setAttribute('data-variant', 'a');
+  const variantB = statRow('B', String(stats.perVariant.b), hasVotes ? 'stat-value accent-b' : valueClass);
+  variantB.setAttribute('data-variant', 'b');
+  perVariant.append(variantA, variantB);
+
+  root.append(total, yourVariant, perOption, perVariant);
 }
 
 export function initSwipePage(root: HTMLElement, storage: Storage = window.localStorage): void {
