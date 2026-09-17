@@ -1,0 +1,38 @@
+{
+  "name": "analytics-practice",
+  "version": "1.0.0",
+  "description": "A hands-on introduction to product analytics work.",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamaya00/analytics-practice.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chamaya00/analytics-practice/issues"
+  },
+  "homepage": "https://github.com/chamaya00/analytics-practice#readme",
+  "dependencies": {
+    "astro": "^7.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@eslint/js": "^10.0.1",
+    "astro-eslint-parser": "^1.4.0",
+    "eslint": "^10.10.0",
+    "eslint-plugin-astro": "^1.7.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1"
+  }
+}
