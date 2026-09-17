@@ -7,7 +7,6 @@ import {
   type Direction,
   type Variant,
   OPTIONS,
-  PAIRS,
   assignVariant,
   castVote,
   computeStats,
@@ -26,11 +25,12 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
   root.classList.remove('accent-a', 'accent-b');
   root.classList.add(ACCENT_CLASS[variant]);
 
-  const pair = getCurrentPair(getEvents(storage));
-  if (!pair) {
+  const maybePair = getCurrentPair(getEvents(storage));
+  if (!maybePair) {
     renderSwipeCardEnd(root);
     return;
   }
+  const pair = maybePair;
 
   let voting = false;
 
