@@ -12,36 +12,90 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const root = document.getElementById('swipe-card-root');
     if (root) initSwipePage(root);
   </script>
-  <style>
+  <style is:global>
+    /* The elements these rules target (.swipe-card, .option-panel,
+       .vote-confirmation, the accent classes, the end-state panel) are all
+       created by src/lib/poll-dom.ts at runtime, not by this template, so
+       Astro's scoped-style attribute never lands on them - this block has
+       to be global or none of it would ever match in a browser. */
+
+    .swipe-card {
+      display: flex;
+      gap: var(--space-md);
+      padding: var(--space-lg);
+      background: var(--color-surface);
+    }
+
+    .option-panel {
+      flex: 1;
+      min-width: 0;
+      padding: var(--space-lg) var(--space-md);
+      font-size: var(--font-size-body);
+      font-family: inherit;
+      text-align: center;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+
     .accent-a .option-panel:hover,
     .accent-a .option-panel:focus-visible,
     .accent-a .option-panel.voted {
       border-color: #2b6cb0;
       color: #2b6cb0;
     }
+
     .accent-b .option-panel:hover,
     .accent-b .option-panel:focus-visible,
     .accent-b .option-panel.voted {
       border-color: #c05621;
       color: #c05621;
     }
-    .swipe-card {
-      display: flex;
-      gap: 1rem;
-    }
-    .option-panel {
-      flex: 1;
-      padding: 2rem 1rem;
-      font-size: 1.1rem;
-      border: 2px solid #ccc;
-      background: white;
-      cursor: pointer;
-    }
+
     .swipe-out-left {
       transform: translateX(-120%);
     }
+
     .swipe-out-right {
       transform: translateX(120%);
+    }
+
+    .vote-confirmation {
+      margin: var(--space-sm) 0 0;
+      padding: var(--space-sm);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: var(--font-size-muted);
+    }
+
+    [data-testid="swipe-card-end"] {
+      padding: var(--space-lg);
+      background: var(--color-surface);
+    }
+
+    [data-testid="swipe-card-end"] p {
+      margin: 0 0 var(--space-md);
+      color: var(--color-text);
+    }
+
+    [data-testid="swipe-card-end"] a {
+      display: inline-block;
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      text-decoration: none;
+    }
+
+    @media (max-width: 480px) {
+      .swipe-card {
+        padding: var(--space-md);
+        gap: var(--space-sm);
+      }
+
+      .option-panel {
+        padding: var(--space-md) var(--space-sm);
+      }
     }
   </style>
 </BaseLayout>
