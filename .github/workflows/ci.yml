@@ -10,9 +10,10 @@ name: ci
 # ---------------------------------------------------------------------------
 # Real gate, replacing the provisioning placeholder now that the stack is
 # chosen (ADR 0001, docs/decisions/0001-framework-choice.md): Astro, static
-# output, npm. No `with:` block - the reusable workflow's Node-path defaults
-# (node 20, `checks: 'typecheck,lint,test,build'`) are exactly this
-# repository's four scripts, so the required check reports as
+# output, npm. `node-version` is pinned to 22 because Astro 7 and Vitest 5
+# both require Node >=22.12, above the reusable workflow's default of 20.
+# `checks` is left at the default (`typecheck,lint,test,build`), which is
+# exactly this repository's four scripts, so the required check reports as
 # `ci / typecheck, lint, test, build`. Branch protection is re-pointed at
 # that name in the same commit as this change.
 # ---------------------------------------------------------------------------
@@ -25,3 +26,5 @@ on:
 jobs:
   ci:
     uses: chamaya00/agent-factory/.github/workflows/ci.yml@v1.26.0
+    with:
+      node-version: '22'
