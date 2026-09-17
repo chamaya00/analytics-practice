@@ -1,21 +1,14 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Results — analytics-practice</title>
-  </head>
-  <body>
-    <h1>Dogfooding: how everyone voted</h1>
-    <p><a href="/">← Back to the swipe poll</a></p>
-    <div id="dogfooding-root" data-testid="dogfooding-root"></div>
-    <script>
-      import { initResultsPage } from '../lib/poll-dom';
+<BaseLayout title="Results — analytics-practice">
+  <h1>Dogfooding: how everyone voted</h1>
+  <div id="dogfooding-root" data-testid="dogfooding-root"></div>
+  <script>
+    import { initResultsPage } from '../lib/poll-dom';
 
-      const root = document.getElementById('dogfooding-root');
-      if (root) initResultsPage(root);
-    </script>
-  </body>
-</html>
+    const root = document.getElementById('dogfooding-root');
+    if (root) initResultsPage(root);
+  </script>
+</BaseLayout>

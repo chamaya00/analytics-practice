@@ -1,0 +1,68 @@
+/* Global stylesheet: typography, spacing, and base palette from
+   docs/design/4-design-refresh.md. Applied via BaseLayout to every page. */
+
+:root {
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --font-size-h1: 2rem;
+  --font-size-h2: 1.25rem;
+  --font-size-nav-title: 1.125rem;
+  --font-size-body: 1rem;
+  --font-size-muted: 0.875rem;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-xxl: 3rem;
+
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f8;
+  --color-text: #1a1a1a;
+  --color-text-muted: #6b6b6b;
+  --color-border: #d9d9d9;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 var(--space-md);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 var(--space-sm);
+}
+
+p {
+  margin: 0 0 var(--space-md);
+}
+
+a {
+  color: var(--color-text);
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+}

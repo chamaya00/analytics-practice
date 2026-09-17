@@ -1,53 +1,47 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Swipe poll — analytics-practice</title>
-  </head>
-  <body>
-    <h1>Swipe poll</h1>
-    <p>Tap (or swipe) an option to vote. <a href="/results/">See how everyone voted →</a></p>
-    <div id="swipe-card-root" data-testid="swipe-card-root"></div>
-    <script>
-      import { initSwipePage } from '../lib/poll-dom';
+<BaseLayout title="Swipe poll — analytics-practice">
+  <h1>Swipe poll</h1>
+  <p>Tap (or swipe) an option to vote.</p>
+  <div id="swipe-card-root" data-testid="swipe-card-root"></div>
+  <script>
+    import { initSwipePage } from '../lib/poll-dom';
 
-      const root = document.getElementById('swipe-card-root');
-      if (root) initSwipePage(root);
-    </script>
-    <style>
-      .accent-a .option-panel:hover,
-      .accent-a .option-panel:focus-visible,
-      .accent-a .option-panel.voted {
-        border-color: #2b6cb0;
-        color: #2b6cb0;
-      }
-      .accent-b .option-panel:hover,
-      .accent-b .option-panel:focus-visible,
-      .accent-b .option-panel.voted {
-        border-color: #c05621;
-        color: #c05621;
-      }
-      .swipe-card {
-        display: flex;
-        gap: 1rem;
-      }
-      .option-panel {
-        flex: 1;
-        padding: 2rem 1rem;
-        font-size: 1.1rem;
-        border: 2px solid #ccc;
-        background: white;
-        cursor: pointer;
-      }
-      .swipe-out-left {
-        transform: translateX(-120%);
-      }
-      .swipe-out-right {
-        transform: translateX(120%);
-      }
-    </style>
-  </body>
-</html>
+    const root = document.getElementById('swipe-card-root');
+    if (root) initSwipePage(root);
+  </script>
+  <style>
+    .accent-a .option-panel:hover,
+    .accent-a .option-panel:focus-visible,
+    .accent-a .option-panel.voted {
+      border-color: #2b6cb0;
+      color: #2b6cb0;
+    }
+    .accent-b .option-panel:hover,
+    .accent-b .option-panel:focus-visible,
+    .accent-b .option-panel.voted {
+      border-color: #c05621;
+      color: #c05621;
+    }
+    .swipe-card {
+      display: flex;
+      gap: 1rem;
+    }
+    .option-panel {
+      flex: 1;
+      padding: 2rem 1rem;
+      font-size: 1.1rem;
+      border: 2px solid #ccc;
+      background: white;
+      cursor: pointer;
+    }
+    .swipe-out-left {
+      transform: translateX(-120%);
+    }
+    .swipe-out-right {
+      transform: translateX(120%);
+    }
+  </style>
+</BaseLayout>
