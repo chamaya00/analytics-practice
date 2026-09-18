@@ -19,11 +19,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
        Astro's scoped-style attribute never lands on them - this block has
        to be global or none of it would ever match in a browser. */
 
+    /* Field Notebook: two "page" panels with a dashed rule between them
+       standing in for a hand-kept divider. poll-dom.ts applies .voted
+       synchronously with the confirmation text and the swipe-out class, so
+       the spec's separate "casting" wash and "post-vote" rule collapse into
+       one transition here, same as the Ledger preview's approach. */
+
     .swipe-card {
       display: flex;
-      gap: var(--space-md);
-      padding: var(--space-lg);
-      background: var(--color-surface);
+      gap: 0;
+      padding: var(--space-lg) var(--space-lg) 0;
+      background: transparent;
     }
 
     .option-panel {
@@ -32,46 +38,62 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       padding: var(--space-lg) var(--space-md);
       font-size: var(--font-size-body);
       font-family: inherit;
+      font-style: italic;
       text-align: center;
-      border: 1px solid var(--color-border);
+      border: none;
+      border-radius: var(--space-xs) var(--space-xs) 0 0;
       background: var(--color-surface);
       color: var(--color-text);
       cursor: pointer;
+      box-shadow: 0 2px 6px rgba(58, 46, 31, 0.15);
+      transition: color 150ms ease-out;
+    }
+
+    .option-panel--left {
+      border-right: 1px dashed var(--color-border);
     }
 
     .accent-a .option-panel:hover,
     .accent-a .option-panel:focus-visible,
     .accent-a .option-panel.voted {
-      border-color: #2b6cb0;
-      color: #2b6cb0;
+      color: var(--color-accent-a);
     }
 
     .accent-b .option-panel:hover,
     .accent-b .option-panel:focus-visible,
     .accent-b .option-panel.voted {
-      border-color: #c05621;
-      color: #c05621;
+      color: var(--color-accent-b);
     }
 
-    .swipe-out-left {
-      transform: translateX(-120%);
+    .accent-a .option-panel.voted {
+      border-bottom: 3px solid var(--color-accent-a);
     }
 
+    .accent-b .option-panel.voted {
+      border-bottom: 3px solid var(--color-accent-b);
+    }
+
+    .swipe-out-left,
     .swipe-out-right {
-      transform: translateX(120%);
+      transform: translateY(2rem) rotateX(-12deg);
+      opacity: 0;
     }
 
     .vote-confirmation {
       margin: var(--space-sm) 0 0;
-      padding: var(--space-sm);
-      background: var(--color-surface);
-      color: var(--color-text);
+      padding: 0 var(--space-lg);
+      background: transparent;
+      color: var(--color-text-muted);
+      font-style: italic;
       font-size: var(--font-size-muted);
+      text-align: right;
     }
 
     [data-testid="swipe-card-end"] {
       padding: var(--space-lg);
       background: var(--color-surface);
+      border-top: 3px double var(--color-border);
+      box-shadow: 0 2px 6px rgba(58, 46, 31, 0.12);
     }
 
     [data-testid="swipe-card-end"] p {
@@ -80,17 +102,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     [data-testid="swipe-card-end"] a {
-      display: inline-block;
-      padding: var(--space-sm) var(--space-md);
-      border: 1px solid var(--color-border);
+      display: inline;
+      padding: 0;
+      border: none;
       color: var(--color-text);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     @media (max-width: 480px) {
       .swipe-card {
-        padding: var(--space-md);
-        gap: var(--space-sm);
+        padding: var(--space-md) var(--space-md) 0;
+        gap: 0;
       }
 
       .option-panel {
