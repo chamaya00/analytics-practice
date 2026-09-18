@@ -19,11 +19,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
        Astro's scoped-style attribute never lands on them - this block has
        to be global or none of it would ever match in a browser. */
 
+    /* Ledger row: a hairline-bordered table row, two cells side by side, no
+       rounded corners - "instrument," not "friendly." The .voted transition
+       stands in for the spec's momentary casting tick, since poll-dom.ts
+       applies .voted synchronously with the confirmation and swipe-out and
+       exposes no separate DOM hook for the states in between. */
+
     .swipe-card {
       display: flex;
       gap: var(--space-md);
-      padding: var(--space-lg);
+      padding: var(--space-sm);
       background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0;
+      transition: transform 400ms ease-in;
     }
 
     .option-panel {
@@ -34,23 +43,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       font-family: inherit;
       text-align: center;
       border: 1px solid var(--color-border);
+      border-radius: 0;
       background: var(--color-surface);
       color: var(--color-text);
       cursor: pointer;
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    .option-panel--left {
+      border-right-width: 0;
     }
 
     .accent-a .option-panel:hover,
     .accent-a .option-panel:focus-visible,
     .accent-a .option-panel.voted {
-      border-color: #2b6cb0;
-      color: #2b6cb0;
+      border-color: var(--color-accent-a);
+      color: var(--color-accent-a);
     }
 
     .accent-b .option-panel:hover,
     .accent-b .option-panel:focus-visible,
     .accent-b .option-panel.voted {
-      border-color: #c05621;
-      color: #c05621;
+      border-color: var(--color-accent-b);
+      color: var(--color-accent-b);
     }
 
     .swipe-out-left {
@@ -63,15 +78,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     .vote-confirmation {
       margin: var(--space-sm) 0 0;
-      padding: var(--space-sm);
-      background: var(--color-surface);
-      color: var(--color-text);
+      padding: 0;
+      background: transparent;
+      color: var(--color-text-muted);
       font-size: var(--font-size-muted);
+      text-align: right;
+    }
+
+    .vote-confirmation:not([hidden])::before {
+      content: '\2192 ';
     }
 
     [data-testid="swipe-card-end"] {
-      padding: var(--space-lg);
+      padding: var(--space-lg) var(--space-sm) var(--space-sm);
       background: var(--color-surface);
+      border-top: 4px double var(--color-border);
     }
 
     [data-testid="swipe-card-end"] p {
@@ -83,13 +104,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       display: inline-block;
       padding: var(--space-sm) var(--space-md);
       border: 1px solid var(--color-border);
+      border-radius: 0;
       color: var(--color-text);
       text-decoration: none;
     }
 
     @media (max-width: 480px) {
       .swipe-card {
-        padding: var(--space-md);
+        padding: var(--space-xs);
         gap: var(--space-sm);
       }
 
