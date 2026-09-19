@@ -54,6 +54,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       border: 1px solid var(--color-border);
       border-radius: 0;
       touch-action: pan-y;
+      /* Resting tilt from docs/design/46-phone-native.md's mock - its
+         critique names "border, rotation, and caption hierarchy" as what
+         still reads as this card with the accent colors covered, so it's
+         part of the card's identity, not just drag feedback. A drag's
+         inline transform overrides this while held and clears back to it
+         on release, animating through the same transition below. */
+      transform: rotate(-2deg);
       transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
