@@ -18,24 +18,43 @@ import BaseLayout from '../layouts/BaseLayout.astro';
        scoped-style attribute never lands on them - this block has to be
        global or none of it would ever match in a browser. */
 
+    /* Readout panel: the root itself is the console frame; each row a
+       bottom seam, label muted uppercase caps left, count bold tabular
+       numerals right - Signal's structure, Field Notebook's palette. The
+       per-variant "status light" chip is a decorative dot added via
+       ::before - lit in that variant's accent when stats.perVariant has
+       votes (poll-dom.ts adds the accent-a/accent-b class only then),
+       unlit gray otherwise - no new markup or data. */
+
+    [data-testid="dogfooding-root"] {
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: var(--space-lg);
+    }
+
     .stat-total {
       display: flex;
       flex-direction: column;
       gap: var(--space-xs);
       margin: 0;
-      padding: var(--space-md) 0;
+      padding: 0 0 var(--space-md);
       border-bottom: 1px solid var(--color-border);
     }
 
     .stat-total-number {
-      font-size: var(--font-size-h2);
-      font-weight: 600;
-      line-height: 1.3;
+      font-size: var(--font-size-h1);
+      font-weight: 800;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
       color: var(--color-text);
     }
 
     .stat-total-label {
       font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       color: var(--color-text-muted);
     }
 
@@ -58,15 +77,21 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     .stat-row--meta {
       color: var(--color-text-muted);
       font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .stat-label {
-      color: var(--color-text);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .stat-value {
       color: var(--color-text);
-      font-weight: 600;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
 
     .stat-value--muted {
@@ -75,22 +100,44 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
 
     .stat-value.accent-a {
-      color: #2b6cb0;
+      color: var(--color-accent-a);
     }
 
     .stat-value.accent-b {
-      color: #c05621;
+      color: var(--color-accent-b);
+    }
+
+    .stat-row[data-variant] .stat-value::before {
+      content: '';
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-right: var(--space-xs);
+      border-radius: 50%;
+      background: var(--color-border);
+      vertical-align: middle;
+    }
+
+    .stat-row[data-variant] .stat-value.accent-a::before {
+      background: var(--color-accent-a);
+    }
+
+    .stat-row[data-variant] .stat-value.accent-b::before {
+      background: var(--color-accent-b);
     }
 
     .stat-prompt {
       margin: 0 0 var(--space-md);
-      padding: var(--space-md);
-      background: var(--color-surface);
-      color: var(--color-text);
+      padding: var(--space-md) 0;
+      background: transparent;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: var(--font-size-muted);
     }
 
     .stat-prompt a {
-      color: var(--color-text);
+      color: var(--color-text-muted);
     }
 
     @media (max-width: 480px) {
