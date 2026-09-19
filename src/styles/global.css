@@ -24,12 +24,40 @@
   --color-bg: #f7f1e3;
   --color-surface: #fffaf0;
   --color-text: #3a2e1f;
-  --color-text-muted: #8a7860;
+  /* #8a7860 (the original) is only 4.09:1 against --color-surface
+     (#fffaf0), short of the 4.5:1 floor docs/design/46-phone-native.md
+     sets for the dark theme's own tokens. Darkened to clear it, verified
+     by contrast.test.ts. */
+  --color-text-muted: #7f6e58;
   --color-border: #d8c9a8;
 
   --color-accent-a: #35608f;
-  --color-accent-b: #c1601f;
+  /* #c1601f (the original) is only 4.07:1 against --color-surface for the
+     same reason - darkened for the same reason as --color-text-muted
+     above, keeping the same hue so it still reads warm against
+     accent-a's cool. */
+  --color-accent-b: #b1581c;
   --color-tab-active-bg: #efe3c8;
+}
+
+/* docs/design/46-phone-native.md's dark palette: the same warm, paper-
+   adjacent identity as the light theme inverted in value, not Signal's
+   cool near-black palette (see that document's "Why these six" for the
+   reasoning). Follows the OS setting with no manual toggle. Contrast
+   against the dark surface is checked in contrast.test.ts. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1c1712;
+    --color-surface: #241e17;
+    --color-text: #f0e6d2;
+    --color-text-muted: #b3a58c;
+    --color-border: #45392c;
+    --color-accent-a: #7fb2e8;
+    --color-accent-b: #e8935a;
+    /* Not in the spec's own "New tokens" table — taken from its rendered
+       dark mock, docs/design/46-phone-native-dark.html line 39, instead. */
+    --color-tab-active-bg: #382d20;
+  }
 }
 
 *,
@@ -45,6 +73,10 @@ body {
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg);
+  /* The page's scroll container - stops the browser rubber-banding the
+     whole page while a card drag (poll-dom.ts's pointermove handler) is
+     in progress and moves the pointer past the card's bounds. */
+  overscroll-behavior: contain;
 }
 
 h1 {
