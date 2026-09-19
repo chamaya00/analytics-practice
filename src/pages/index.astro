@@ -19,11 +19,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
        Astro's scoped-style attribute never lands on them - this block has
        to be global or none of it would ever match in a browser. */
 
+    /* Console frame: two sharp-cornered panels, Signal's structure, styled
+       in Field Notebook's palette. poll-dom.ts applies .voted synchronously
+       with the confirmation text and the swipe-out class, with no separate
+       DOM hook for a distinct "casting" phase in between - the
+       border-color transition below is what stands in for the spec's
+       momentary console-cursor pulse.
+
+       Adaptation: Signal's post-vote treatment is a low-opacity accent
+       box-shadow ("status-light glow"), built to read against its own
+       near-black surface. Against this hybrid's light cream surface
+       (#fffaf0) a glow of that kind barely shows. Replaced with a
+       border-weight change instead - the voted panel's border goes from
+       1px to 3px in the accent color - which reads as "lit up" without
+       relying on a shadow a light surface can't show off. */
+
     .swipe-card {
       display: flex;
       gap: var(--space-md);
-      padding: var(--space-lg);
+      padding: var(--space-md);
       background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0;
+      transition: transform 400ms ease-in, opacity 400ms ease-in;
     }
 
     .option-panel {
@@ -33,12 +51,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       font-size: var(--font-size-body);
       font-family: inherit;
       text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
       border: 1px solid var(--color-border);
+      border-radius: 0;
       background: var(--color-surface);
       color: var(--color-text);
       cursor: pointer;
       touch-action: none;
-      transition: transform 200ms ease;
+      transition: transform 200ms ease, border-color 150ms ease-out, border-width 150ms ease-out,
+        color 150ms ease-out;
     }
 
     .option-panel--dragging {
@@ -48,48 +70,72 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     .accent-a .option-panel:hover,
     .accent-a .option-panel:focus-visible,
     .accent-a .option-panel.voted {
-      border-color: #2b6cb0;
-      color: #2b6cb0;
+      border-color: var(--color-accent-a);
+      color: var(--color-accent-a);
+    }
+
+    .accent-a .option-panel.voted {
+      border-width: 3px;
     }
 
     .accent-b .option-panel:hover,
     .accent-b .option-panel:focus-visible,
     .accent-b .option-panel.voted {
-      border-color: #c05621;
-      color: #c05621;
+      border-color: var(--color-accent-b);
+      color: var(--color-accent-b);
     }
 
-    .swipe-out-left {
-      transform: translateX(-120%);
+    .accent-b .option-panel.voted {
+      border-width: 3px;
     }
 
+    .swipe-out-left,
     .swipe-out-right {
-      transform: translateX(120%);
+      transform: translateY(120%);
+      opacity: 0;
     }
 
     .vote-confirmation {
       margin: var(--space-sm) 0 0;
-      padding: var(--space-sm);
-      background: var(--color-surface);
-      color: var(--color-text);
+      padding: 0;
+      background: transparent;
+      color: var(--color-text-muted);
       font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .accent-a .vote-confirmation {
+      color: var(--color-accent-a);
+    }
+
+    .accent-b .vote-confirmation {
+      color: var(--color-accent-b);
     }
 
     [data-testid="swipe-card-end"] {
       padding: var(--space-lg);
       background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      text-align: center;
     }
 
     [data-testid="swipe-card-end"] p {
       margin: 0 0 var(--space-md);
       color: var(--color-text);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     [data-testid="swipe-card-end"] a {
       display: inline-block;
       padding: var(--space-sm) var(--space-md);
       border: 1px solid var(--color-border);
+      border-radius: 0;
       color: var(--color-text);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
       text-decoration: none;
     }
 

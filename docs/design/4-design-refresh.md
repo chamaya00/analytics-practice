@@ -1,5 +1,15 @@
 # Visual system: typography, spacing, color, header/nav, and per-state styling
 
+> **Superseded.** The neutral system this document specifies is no longer
+> the live design. The shipped design is the Signal × Field Notebook
+> hybrid — Signal's type scale, spacing, and structure with Field
+> Notebook's palette and accent pair — specified in the
+> [Signal](5-second-pass-directions.md#signal) and
+> [Field Notebook](5-second-pass-directions.md#field-notebook) sections of
+> `docs/design/5-second-pass-directions.md`. Everything below this notice
+> describes the retired neutral system and is kept for history, not as a
+> build reference.
+
 Spec for issue #13, serving parent objective #12. Covers the shared
 visual system for the swipe-poll page (`/`) and the dogfooding page
 (`/results/`), which today share no typography, spacing, or color
