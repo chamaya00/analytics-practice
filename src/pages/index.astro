@@ -63,10 +63,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
          on release, animating through the transition below. */
       transform: rotate(-2deg);
       transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+      /* Touch feedback (docs/design/46-phone-native.md, Touch feedback):
+         no default browser tap-highlight, no text selection or iOS
+         link-preview callout on a long press - a long press starts the
+         drag above, not a selection. */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
     }
 
     .swipe-card--dragging {
       transition: none;
+    }
+
+    /* Pressed state in place of the suppressed tap-highlight above. A
+       drag's own inline transform (set by poll-dom.ts's pointermove
+       handler) takes over the instant a drag starts, so this is visible
+       only for the moment between touch-down and the first move. */
+    .swipe-card:active {
+      transform: scale(0.97) rotate(-2deg);
     }
 
     .pair-caption {
@@ -109,7 +126,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       background: var(--color-surface);
       color: var(--color-text);
       cursor: pointer;
-      transition: border-color 150ms ease-out, border-width 150ms ease-out, color 150ms ease-out;
+      transition: border-color 150ms ease-out, border-width 150ms ease-out, color 150ms ease-out,
+        transform 100ms ease-out;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    .option-panel:active {
+      transform: scale(0.97);
     }
 
     .accent-a .option-panel:hover,
@@ -182,6 +209,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       text-transform: uppercase;
       letter-spacing: 0.03em;
       text-decoration: none;
+      transition: transform 100ms ease-out;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    [data-testid="swipe-card-end"] a:active {
+      transform: scale(0.97);
     }
 
     @media (max-width: 480px) {

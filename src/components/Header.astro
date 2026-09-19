@@ -124,6 +124,16 @@ const links = [
       text-transform: uppercase;
       letter-spacing: 0.05em;
       padding: var(--space-sm);
+      transition: transform 100ms ease-out;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    .tab-bar a:active {
+      transform: scale(0.97);
     }
 
     /* Current tab is shown by a filled pill, not an underline (a tab bar
