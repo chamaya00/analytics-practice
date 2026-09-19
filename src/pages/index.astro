@@ -13,13 +13,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     if (root) initSwipePage(root);
   </script>
   <style is:global>
-    /* The elements these rules target (.swipe-card, .option-panel,
-       .vote-confirmation, the accent classes, the end-state panel) are all
-       created by src/lib/poll-dom.ts at runtime, not by this template, so
-       Astro's scoped-style attribute never lands on them - this block has
-       to be global or none of it would ever match in a browser. */
+    /* The elements these rules target (.swipe-card, .pair-caption,
+       .option-row, .option-panel, .vote-confirmation, the accent classes,
+       the end-state panel) are all created by src/lib/poll-dom.ts at
+       runtime, not by this template, so Astro's scoped-style attribute
+       never lands on them - this block has to be global or none of it
+       would ever match in a browser. */
 
-    /* Console frame: two sharp-cornered panels, Signal's structure, styled
+    /* Console frame, one flung unit (revised by #47 - the card itself is
+       now the drag surface, per docs/design/3-swipe-poll.md's rewritten
+       Structure section). touch-action: pan-y (not none) leaves vertical
+       scroll to the browser; a horizontal drag is claimed by poll-dom.ts's
+       own pointer handlers, which reject a mostly-vertical motion via
+       drag-gesture.ts before it ever becomes a vote - see the Constraints
+       section of issue #47 for why touch-action: none is wrong here: a
+       card spanning the viewport leaves nowhere else to start a scroll.
+
+       Console frame: two sharp-cornered panels, Signal's structure, styled
        in Field Notebook's palette. poll-dom.ts applies .voted synchronously
        with the confirmation text and the swipe-out class, with no separate
        DOM hook for a distinct "casting" phase in between - the
@@ -36,19 +46,42 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     .swipe-card {
       display: flex;
-      gap: var(--space-md);
-      padding: var(--space-md);
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-lg);
+      padding: var(--space-xl) var(--space-lg) var(--space-lg);
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 0;
-      transition: transform 400ms ease-in, opacity 400ms ease-in;
+      touch-action: pan-y;
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .swipe-card--dragging {
+      transition: none;
+    }
+
+    .pair-caption {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .option-row {
+      display: flex;
+      gap: var(--space-md);
+      width: 100%;
     }
 
     .option-panel {
       flex: 1;
       min-width: 0;
-      padding: var(--space-lg) var(--space-md);
-      font-size: var(--font-size-body);
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      font-size: var(--font-size-muted);
       font-family: inherit;
       text-align: center;
       text-transform: uppercase;
@@ -58,13 +91,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       background: var(--color-surface);
       color: var(--color-text);
       cursor: pointer;
-      touch-action: none;
-      transition: transform 200ms ease, border-color 150ms ease-out, border-width 150ms ease-out,
-        color 150ms ease-out;
-    }
-
-    .option-panel--dragging {
-      transition: none;
+      transition: border-color 150ms ease-out, border-width 150ms ease-out, color 150ms ease-out;
     }
 
     .accent-a .option-panel:hover,
@@ -147,6 +174,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       .option-panel {
         padding: var(--space-md) var(--space-sm);
+      }
+    }
+
+    /* docs/design/46-phone-native.md, Card motion: reduced motion removes
+       the transform animation entirely rather than shortening it - the
+       voted card disappears and the next pair appears as a plain state
+       change, with no translate, no rotate, and no opacity fade standing
+       in for either. */
+    @media (prefers-reduced-motion: reduce) {
+      .swipe-card {
+        transition: none;
+      }
+
+      .swipe-out-left,
+      .swipe-out-right {
+        transform: none;
+        opacity: 1;
       }
     }
   </style>
