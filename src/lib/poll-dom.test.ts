@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DISTANCE_THRESHOLD_PX } from './drag-gesture';
 import { EVENTS_KEY, PAIRS, generateId, getEvents, type VoteEvent } from './poll';
 import { renderDogfoodingView, renderSwipeCard } from './poll-dom';
 
@@ -14,9 +15,28 @@ function voteEvent(pairId: string, option: string, direction: 'left' | 'right', 
   };
 }
 
+let nextPointerId = 1;
+
+// The implementation derives velocity from real elapsed time (Date.now()), so a drag
+// test that cares about staying under the velocity threshold has to advance a fake
+// clock between pointerdown and pointerup — dispatching both in the same real tick
+// makes elapsedMs an unpredictable 0 or 1, which flips the velocity check at random.
+function drag(panel: HTMLElement, dx: number, dy = 0, elapsedMs = 0): void {
+  const pointerId = nextPointerId++;
+  panel.dispatchEvent(new PointerEvent('pointerdown', { pointerId, clientX: 0, clientY: 0, bubbles: true }));
+  if (elapsedMs) vi.advanceTimersByTime(elapsedMs);
+  panel.dispatchEvent(new PointerEvent('pointermove', { pointerId, clientX: dx, clientY: dy, bubbles: true }));
+  panel.dispatchEvent(new PointerEvent('pointerup', { pointerId, clientX: dx, clientY: dy, bubbles: true }));
+}
+
 beforeEach(() => {
+  vi.useFakeTimers();
   window.localStorage.clear();
   document.body.innerHTML = '<div id="root"></div>';
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('SwipeCard', () => {
@@ -53,6 +73,60 @@ describe('SwipeCard', () => {
     expect(event.direction).toBe('right');
     expect(event.variant).toBe('b');
     expect(Number.isNaN(Date.parse(event.timestamp))).toBe(false);
+  });
+
+  it('casts a vote identical to a click when a panel is dragged past the threshold and released (AC1)', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
+    drag(right, DISTANCE_THRESHOLD_PX + 10);
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
+
+    const [event] = votes;
+    if (event.type !== 'vote') throw new Error('expected a vote event');
+    expect(event.option).toBe(PAIRS[0].right);
+    expect(event.direction).toBe('right');
+    expect(event.variant).toBe('a');
+  });
+
+  it('casts no vote and resets the transform when a drag is released before the threshold (AC2)', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const left = root.querySelector('[data-testid="option-left"]') as HTMLButtonElement;
+    drag(left, -(DISTANCE_THRESHOLD_PX - 20), 0, 200);
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(0);
+    expect(left.style.transform).toBe('');
+    expect(left.classList.contains('option-panel--dragging')).toBe(false);
+  });
+
+  it('ignores a second drag input while a vote from a first drag is mid-flight (AC4)', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
+    drag(right, DISTANCE_THRESHOLD_PX + 10);
+    drag(right, DISTANCE_THRESHOLD_PX + 10);
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
+  });
+
+  it('ignores a click while a vote from a drag is mid-flight (AC4)', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
+    drag(right, DISTANCE_THRESHOLD_PX + 10);
+    right.click();
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
   });
 
   it('shows the end state once every pair has a matching vote event', () => {
