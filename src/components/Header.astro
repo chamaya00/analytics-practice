@@ -27,6 +27,19 @@ const links = [
   </nav>
 </header>
 
+<nav aria-label="Primary" class="tab-bar">
+  {
+    links.map((link) => {
+      const isCurrent = currentPath === link.href;
+      return (
+        <a href={link.href} aria-current={isCurrent ? 'page' : undefined} class:list={{ current: isCurrent }}>
+          {isCurrent ? <span class="pill">{link.label}</span> : link.label}
+        </a>
+      );
+    })
+  }
+</nav>
+
 <style>
   .site-header {
     display: flex;
@@ -65,10 +78,67 @@ const links = [
     pointer-events: none;
   }
 
+  /* Bottom tab bar: phone only (see .tab-bar display: flex below). Hidden
+     on desktop/tablet so nav is never shown in two places at once. */
+  .tab-bar {
+    display: none;
+  }
+
   @media (max-width: 480px) {
     .site-header {
-      flex-direction: column;
-      align-items: flex-start;
+      justify-content: flex-start;
+      border-bottom: none;
+      padding-top: max(var(--space-sm), env(safe-area-inset-top));
+      padding-left: max(var(--space-lg), env(safe-area-inset-left));
+      padding-right: max(var(--space-lg), env(safe-area-inset-right));
+    }
+
+    /* Phone header carries branding only; nav moves to the tab bar below
+       so "am I here" is never shown in two places at once. */
+    .site-header .site-nav {
+      display: none;
+    }
+
+    .tab-bar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+      padding-left: max(var(--space-lg), env(safe-area-inset-left));
+      padding-right: max(var(--space-lg), env(safe-area-inset-right));
+    }
+
+    .tab-bar a {
+      flex: 1;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-sm);
+    }
+
+    /* Current tab is shown by a filled pill, not an underline (a tab bar
+       label isn't read as an underlined link the way header text is). */
+    .tab-bar a.current {
+      color: var(--color-text);
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .tab-bar a.current .pill {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-md);
+      background: var(--color-tab-active-bg);
+      border-radius: 999px;
     }
   }
 </style>
