@@ -14,6 +14,7 @@ import {
   getEvents,
   getVariant,
 } from './poll';
+import { resolveDragDirection } from './drag-gesture';
 
 export const CONFIRMATION_MS = 1500;
 export const TRANSITION_MS = 400;
@@ -63,6 +64,53 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
     }, TRANSITION_MS);
   }
 
+  function attachDragHandlers(panel: HTMLButtonElement): void {
+    let drag: { pointerId: number; startX: number; startY: number; startTime: number } | null = null;
+
+    function endDrag(pointerId: number): void {
+      panel.classList.remove('option-panel--dragging');
+      panel.style.transform = '';
+      if (panel.hasPointerCapture(pointerId)) {
+        panel.releasePointerCapture(pointerId);
+      }
+    }
+
+    panel.addEventListener('pointerdown', (event: PointerEvent) => {
+      if (voting || drag) return;
+      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startTime: Date.now() };
+      panel.classList.add('option-panel--dragging');
+      panel.setPointerCapture(event.pointerId);
+    });
+
+    panel.addEventListener('pointermove', (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const dx = event.clientX - drag.startX;
+      const dy = event.clientY - drag.startY;
+      panel.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 20}deg)`;
+    });
+
+    panel.addEventListener('pointerup', (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const { startX, startY, startTime } = drag;
+      drag = null;
+      endDrag(event.pointerId);
+      if (voting) return;
+
+      const resolved = resolveDragDirection({
+        horizontalDistance: event.clientX - startX,
+        verticalDistance: event.clientY - startY,
+        elapsedMs: Date.now() - startTime,
+      });
+      if (resolved) vote(resolved, panel);
+    });
+
+    panel.addEventListener('pointercancel', (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      drag = null;
+      endDrag(event.pointerId);
+    });
+  }
+
   function optionPanel(label: string, direction: Direction): HTMLButtonElement {
     const button = document.createElement('button');
     button.type = 'button';
@@ -71,6 +119,7 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
     button.setAttribute('data-direction', direction);
     button.textContent = label;
     button.addEventListener('click', () => vote(direction, button));
+    attachDragHandlers(button);
     return button;
   }
 

@@ -37,6 +37,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       background: var(--color-surface);
       color: var(--color-text);
       cursor: pointer;
+      touch-action: none;
+      transition: transform 200ms ease;
+    }
+
+    .option-panel--dragging {
+      transition: none;
     }
 
     .accent-a .option-panel:hover,
