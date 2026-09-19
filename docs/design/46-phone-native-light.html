@@ -1,0 +1,351 @@
+<!doctype html>
+<!--
+  Mock for docs/design/46-phone-native.md — light theme. Self-contained,
+  no build step, nothing imports it. Hardcodes the light palette (rather
+  than relying on prefers-color-scheme) so this file renders its theme
+  regardless of the browser's own OS setting — see
+  docs/design/46-phone-native-dark.html for the dark counterpart.
+
+  Shows: the phone header/tab-bar split, the one-unit SwipeCard with its
+  two demoted OptionPanel chips, a pressed-state example, and both A/B
+  accents side by side.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Phone-native mock — light</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #f7f1e3;
+    --color-surface: #fffaf0;
+    --color-text: #3a2e1f;
+    --color-text-muted: #8a7860;
+    --color-border: #d8c9a8;
+    --color-accent-a: #35608f;
+    --color-accent-b: #c1601f;
+    --color-tab-active-bg: #efe3c8;
+
+    /* mock-only: a fake safe-area value so the insets are visible in the
+       render — a real device supplies env(safe-area-inset-*) itself. */
+    --mock-safe-top: 24px;
+    --mock-safe-bottom: 20px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.5;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 var(--space-md);
+  }
+
+  /* ---- header: one component, reshapes at 480px ---- */
+
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-lg);
+    padding-top: max(var(--space-sm), var(--mock-safe-top));
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-name {
+    margin: 0;
+    font-size: var(--font-size-nav-title);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: var(--space-md);
+  }
+
+  .site-nav a {
+    color: var(--color-text);
+    text-decoration: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .site-nav a.current {
+    text-decoration: underline;
+  }
+
+  /* ---- tab bar: phone only ---- */
+
+  .tab-bar {
+    display: none;
+  }
+
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  p.lede {
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-xl);
+  }
+
+  p.mock-note {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-lg);
+    margin: var(--space-xxl) 0 0;
+  }
+
+  /* ---- SwipeCard: one flung unit, caption dominant, panels demoted ---- */
+
+  .swipe-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: var(--space-xl) var(--space-lg) var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+    transform: rotate(-2deg);
+  }
+
+  .pair-caption {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .option-row {
+    display: flex;
+    gap: var(--space-sm);
+    width: 100%;
+  }
+
+  .option-panel {
+    flex: 1;
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .option-panel--a { color: var(--color-accent-a); border-color: var(--color-accent-a); }
+  .option-panel--b { color: var(--color-accent-b); border-color: var(--color-accent-b); }
+
+  .card-caption-sub {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: var(--space-sm) 0 0;
+    text-align: center;
+  }
+
+  /* ---- pressed-state example ---- */
+
+  .demo-row {
+    display: flex;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+    flex-wrap: wrap;
+  }
+
+  .demo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .demo-label {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .pressable {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pressable.pressed {
+    transform: scale(0.97);
+    border-color: color-mix(in srgb, var(--color-accent-a) 50%, transparent);
+  }
+
+  /* ---- accent legend ---- */
+
+  .accent-legend {
+    display: flex;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+  }
+
+  .accent-swatch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .swatch-dot {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+  }
+
+  .swatch-dot.a { background: var(--color-accent-a); }
+  .swatch-dot.b { background: var(--color-accent-b); }
+
+  @media (max-width: 480px) {
+    .site-header {
+      justify-content: flex-start;
+      border-bottom: none;
+    }
+
+    .site-header .site-nav {
+      display: none;
+    }
+
+    .tab-bar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding-bottom: max(var(--space-sm), var(--mock-safe-bottom));
+    }
+
+    .tab-bar a {
+      flex: 1;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-sm);
+    }
+
+    .tab-bar a.current {
+      color: var(--color-text);
+      font-weight: 700;
+    }
+
+    .tab-bar a.current .pill {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-md);
+      background: var(--color-tab-active-bg);
+      border-radius: 999px;
+    }
+
+    main {
+      padding-bottom: calc(56px + var(--mock-safe-bottom) + var(--space-xl));
+    }
+  }
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <p class="site-name">Analytics practice</p>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#" class="current" aria-current="page">Swipe poll</a>
+      <a href="#">Results</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Swipe poll</h1>
+    <p class="lede">Fling an option to vote — tap or the keyboard works too.</p>
+
+    <div class="swipe-card" data-testid="swipe-card-mock">
+      <p class="pair-caption">Coffee — Tea</p>
+      <div class="option-row">
+        <button type="button" class="option-panel option-panel--a">Coffee</button>
+        <button type="button" class="option-panel option-panel--b">Tea</button>
+      </div>
+      <p class="card-caption-sub">Pair 1 of 5</p>
+    </div>
+
+    <p class="mock-note">Reference only, below this line — not part of the shipped page:</p>
+
+    <div class="demo-row">
+      <div class="demo-block">
+        <button type="button" class="pressable">at rest</button>
+        <span class="demo-label">default</span>
+      </div>
+      <div class="demo-block">
+        <button type="button" class="pressable pressed">pressed</button>
+        <span class="demo-label">no tap-highlight, scaled + tinted</span>
+      </div>
+    </div>
+
+    <div class="accent-legend">
+      <span class="accent-swatch"><span class="swatch-dot a"></span>Variant A · cool</span>
+      <span class="accent-swatch"><span class="swatch-dot b"></span>Variant B · warm</span>
+    </div>
+  </main>
+
+  <nav class="tab-bar" aria-label="Primary">
+    <a href="#" class="current" aria-current="page"><span class="pill">Swipe poll</span></a>
+    <a href="#">Results</a>
+  </nav>
+</body>
+</html>

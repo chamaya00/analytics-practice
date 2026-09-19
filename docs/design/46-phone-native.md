@@ -307,24 +307,37 @@ with `scripts/design-render`, four PNGs total, committed alongside.
 
 ### Critique, after opening the four renders
 
-- The narrow render's eye lands on the card first, then the tab bar
-  immediately below it, in both themes — the two things the objective
-  asked to dominate the phone view. Confirmed by looking, not assumed.
-- First pass had the two `OptionPanel` chips at the same visual weight
-  as the card's caption, which recreated a small version of the old
-  two-column read — I sized them down and moved them flush to the
-  card's bottom edge, under the caption, so the caption is what's read
-  first.
+- The narrow render's eye lands on the card first — the "COFFEE — TEA"
+  caption at 1.5rem is the largest thing on the card — then the tab
+  bar immediately below it, in both themes. Confirmed by looking, not
+  assumed.
+- First render mixed the demo-only pressed-state example and accent
+  legend into the same visual rhythm as the card, with nothing telling
+  a reader which parts are the spec's own illustration and which are
+  page content — a real risk for a mock, since the whole point of a
+  rendered mock is that it's mistaken for the thing it's a picture of.
+  Added a dashed rule and a "reference only, not part of the shipped
+  page" line above them; re-rendered and confirmed the card now reads
+  as the page, with the demo material visually set apart below it.
 - Blurring my eyes at the wide render, the composition that survives
   is header / card+caption / accent pair — the tab bar's absence at
   this width is itself doing work, since its presence would be the
   "phone column on a big screen" tell the objective calls out.
+- Covering the accent colors with my hand on both renders: the card's
+  border, rotation, and caption hierarchy hold up with no color at
+  all — the accent is doing decoration on the two panels and the
+  legend, not structural work, which is what design-craft's "one
+  accent, used a few times" asks to be true.
 - The one deliberate oddity: the active tab's filled pill is sized to
   the label's text, not to a fixed tab-width box — it reads as a
   highlight the current label is wearing, not a slot every tab already
   had cut out for it. Kept because it's the thing separating "current
   page" from "the tab bar has five equal boxes and one is tinted,"
   which is the more generic version of the same idea.
+- What I'd remove if forced to cut one thing: the "Pair 1 of 5"
+  caption under the panels. It stayed because it's the only thing on
+  the card naming progress through the five pairs, and nothing else
+  in this spec or `docs/design/3-swipe-poll.md` carries that.
 
 ## No ADR
 
