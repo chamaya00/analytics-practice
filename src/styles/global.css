@@ -29,6 +29,7 @@
 
   --color-accent-a: #35608f;
   --color-accent-b: #c1601f;
+  --color-tab-active-bg: #efe3c8;
 }
 
 *,
@@ -76,4 +77,12 @@ main {
   max-width: 40rem;
   margin: 0 auto;
   padding: var(--space-xl) var(--space-lg);
+}
+
+/* Below 480px, nav moves into a fixed bottom tab bar (Header.astro) — give
+   page content enough bottom padding that nothing renders underneath it. */
+@media (max-width: 480px) {
+  main {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-xl));
+  }
 }
