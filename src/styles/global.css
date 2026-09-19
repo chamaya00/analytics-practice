@@ -1,27 +1,34 @@
-/* Global stylesheet: typography, spacing, and base palette from
-   docs/design/4-design-refresh.md. Applied via BaseLayout to every page. */
+/* Global stylesheet: Direction 4 hybrid (Signal/Field Notebook),
+   docs/design/5-second-pass-directions.md. Type scale, spacing scale, and
+   uppercase treatment are Signal's; the color palette and A/B accent are
+   Field Notebook's, replacing Signal's own dark palette entirely. Applied
+   via BaseLayout to every page. */
 
 :root {
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial,
+    sans-serif;
 
-  --font-size-h1: 2rem;
-  --font-size-h2: 1.25rem;
-  --font-size-nav-title: 1.125rem;
-  --font-size-body: 1rem;
-  --font-size-muted: 0.875rem;
+  --font-size-h1: 1.875rem;
+  --font-size-h2: 1rem;
+  --font-size-nav-title: 0.9375rem;
+  --font-size-body: 0.9375rem;
+  --font-size-muted: 0.75rem;
 
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-xxl: 3rem;
+  --space-md: 0.875rem;
+  --space-lg: 1.25rem;
+  --space-xl: 1.75rem;
+  --space-xxl: 2.5rem;
 
-  --color-bg: #ffffff;
-  --color-surface: #f7f7f8;
-  --color-text: #1a1a1a;
-  --color-text-muted: #6b6b6b;
-  --color-border: #d9d9d9;
+  --color-bg: #f7f1e3;
+  --color-surface: #fffaf0;
+  --color-text: #3a2e1f;
+  --color-text-muted: #8a7860;
+  --color-border: #d8c9a8;
+
+  --color-accent-a: #35608f;
+  --color-accent-b: #c1601f;
 }
 
 *,
@@ -41,15 +48,19 @@ body {
 
 h1 {
   font-size: var(--font-size-h1);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   margin: 0 0 var(--space-md);
 }
 
 h2 {
   font-size: var(--font-size-h2);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin: 0 0 var(--space-sm);
 }
 
