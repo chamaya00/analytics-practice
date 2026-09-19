@@ -58,28 +58,52 @@ a matching event, there is no current pair — see End state below.
 
 **Purpose:** show the current pair, accept a vote, log it.
 
-**Structure:** one card containing two `OptionPanel`s side by side,
-left and right, each showing one option's label. Each `OptionPanel` is
-itself the tappable control — clicking/tapping a panel casts a vote for
-that option, identical in effect to swiping the card toward that side.
-This is the answer to "swipe or an equivalent tappable control": the
-equivalent control is the option panel itself, not a separate button,
-and it works identically for mouse click, touch tap, and (each panel
-being a focusable, `Enter`/`Space`-activatable element) keyboard —
-voting is never touch-only.
+**Structure (revised by #46 — phone-native card, nav, and dark-theme
+spec):** one card, a single physical unit that is flung left or right
+as a whole. The card itself is the drag surface: a pointer-drag or
+touch-drag started anywhere on the card's face moves the entire card
+as one rigid piece (translate + a small rotation proportional to
+horizontal displacement), and releasing past the existing threshold in
+`drag-gesture.ts` (80px distance or 0.5px/ms velocity, unchanged,
+mostly-vertical drags still rejected) commits a vote in the direction
+released. This replaces the previous structure, where each
+`OptionPanel` was its own drag surface and the card read as two narrow
+side-by-side columns rather than one thing — the two-column reading is
+exactly what issue #46 diagnosed as not feeling native on a phone.
+
+The card's dominant, first-read content is the current pair itself
+(e.g. a centered "Coffee — Tea" caption) — not two competing option
+columns. Two `OptionPanel`s remain inside the card, but demoted to a
+secondary row of compact tap targets anchored along the card's bottom
+edge, one toward the left half labeled with the left option and one
+toward the right half labeled with the right option, each at least
+44px tall (the same floor `Header.astro`'s nav links already use).
+Each panel is a focusable, `Enter`/`Space`-activatable element, and
+clicking, tapping, or keyboard-activating one **casts a vote for that
+option immediately** — it is not a drag start and does not require
+crossing the fling threshold. This is the answer to "swipe or an
+equivalent tappable control": the equivalent control is a panel, not a
+separate button, and tap/click/keyboard voting is never touch-only,
+exactly as before — only which element owns the drag gesture has
+changed, not that a panel remains individually tappable.
 
 **Inputs:** the current pair (from the derivation above).
 
 **States:**
 
-1. **Viewing a pair (happy path start).** Both `OptionPanel`s render
-   with their labels, at rest — no highlight, no accent applied yet.
-2. **Casting a vote.** Triggered by swiping the card past a left/right
-   drag threshold, or by clicking/tapping/activating either panel.
-   Only one of these can register per pair: once a vote is mid-flight
-   for the current pair, further input on that card is ignored until
-   the next pair renders (this is the "never do" for SwipeCard — it
-   must never write two events for one pair).
+1. **Viewing a pair (happy path start).** The card is at rest — no
+   transform, no rotation — showing the current pair's caption and
+   both `OptionPanel`s at rest with their labels, no highlight or
+   accent applied yet.
+2. **Casting a vote.** Triggered by dragging the card as a whole past
+   the left/right threshold and releasing, or by clicking/tapping/
+   activating either panel directly (a panel tap is a click/keydown
+   handler on that panel, never a drag-release — the two inputs are
+   independent and either alone is sufficient). Only one of these can
+   register per pair: once a vote is mid-flight for the current pair,
+   further input on that card — drag or panel — is ignored until the
+   next pair renders (this is the "never do" for SwipeCard — it must
+   never write two events for one pair).
 3. **Immediately after a vote (visible sequence, in order):**
    a. The chosen panel highlights with the visitor's variant accent
       color (see A/B section) for a brief, fixed duration.
@@ -104,7 +128,14 @@ voting is never touch-only.
 
 **Must never:** write an event for a `pairId` that already has one;
 show a pair whose `pairId` already has a matching event; hold vote
-progress anywhere but `poll.events`.
+progress anywhere but `poll.events`; let a drag started on one panel
+move only that panel rather than the whole card (the card is a single
+rigid drag surface, not two independent ones); treat a page-level
+vertical scroll as a card drag (a mostly-vertical drag stays a scroll,
+per `drag-gesture.ts`'s existing rejection, and must not be blocked by
+the card claiming the gesture too early — see Touch feedback in
+`docs/design/46-phone-native.md` for the no-rubber-band requirement
+this implies).
 
 ## Component: DogfoodingView
 
