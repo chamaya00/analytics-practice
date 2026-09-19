@@ -7,6 +7,7 @@ import {
   type Direction,
   type Variant,
   OPTIONS,
+  PAIRS,
   assignVariant,
   castVote,
   computeStats,
@@ -40,18 +41,38 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
   card.setAttribute('data-testid', 'swipe-card');
   card.setAttribute('data-pair-id', pair.id);
 
+  const caption = document.createElement('p');
+  caption.className = 'pair-caption';
+  caption.setAttribute('data-testid', 'pair-caption');
+  caption.textContent = `${pair.left} — ${pair.right}`;
+
+  const optionRow = document.createElement('div');
+  optionRow.className = 'option-row';
+
+  // Derived from poll.events, never a counter — must never rules in
+  // docs/design/3-swipe-poll.md hold vote progress only in the event log.
+  const pairIndex = PAIRS.findIndex((candidate) => candidate.id === pair.id);
+  const progress = document.createElement('p');
+  progress.className = 'card-caption-sub';
+  progress.setAttribute('data-testid', 'pair-progress');
+  progress.textContent = `Pair ${pairIndex + 1} of ${PAIRS.length}`;
+
   const confirmation = document.createElement('p');
   confirmation.className = 'vote-confirmation';
   confirmation.setAttribute('data-testid', 'vote-confirmation');
   confirmation.hidden = true;
 
-  function vote(direction: Direction, panel: HTMLButtonElement): void {
+  function panelFor(direction: Direction): HTMLButtonElement {
+    return direction === 'left' ? leftPanel : rightPanel;
+  }
+
+  function vote(direction: Direction): void {
     if (voting) return;
     voting = true;
 
     const event = castVote(storage, pair, direction, variant);
 
-    panel.classList.add('voted', ACCENT_CLASS[variant]);
+    panelFor(direction).classList.add('voted', ACCENT_CLASS[variant]);
     confirmation.hidden = false;
     confirmation.textContent = `Voted: ${event.option}`;
     window.setTimeout(() => {
@@ -64,32 +85,32 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
     }, TRANSITION_MS);
   }
 
-  function attachDragHandlers(panel: HTMLButtonElement): void {
+  function attachDragHandlers(): void {
     let drag: { pointerId: number; startX: number; startY: number; startTime: number } | null = null;
 
     function endDrag(pointerId: number): void {
-      panel.classList.remove('option-panel--dragging');
-      panel.style.transform = '';
-      if (panel.hasPointerCapture(pointerId)) {
-        panel.releasePointerCapture(pointerId);
+      card.classList.remove('swipe-card--dragging');
+      card.style.transform = '';
+      if (card.hasPointerCapture(pointerId)) {
+        card.releasePointerCapture(pointerId);
       }
     }
 
-    panel.addEventListener('pointerdown', (event: PointerEvent) => {
+    card.addEventListener('pointerdown', (event: PointerEvent) => {
       if (voting || drag) return;
       drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startTime: Date.now() };
-      panel.classList.add('option-panel--dragging');
-      panel.setPointerCapture(event.pointerId);
+      card.classList.add('swipe-card--dragging');
+      card.setPointerCapture(event.pointerId);
     });
 
-    panel.addEventListener('pointermove', (event: PointerEvent) => {
+    card.addEventListener('pointermove', (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
       const dx = event.clientX - drag.startX;
       const dy = event.clientY - drag.startY;
-      panel.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 20}deg)`;
+      card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 20}deg)`;
     });
 
-    panel.addEventListener('pointerup', (event: PointerEvent) => {
+    card.addEventListener('pointerup', (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
       const { startX, startY, startTime } = drag;
       drag = null;
@@ -101,10 +122,10 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
         verticalDistance: event.clientY - startY,
         elapsedMs: Date.now() - startTime,
       });
-      if (resolved) vote(resolved, panel);
+      if (resolved) vote(resolved);
     });
 
-    panel.addEventListener('pointercancel', (event: PointerEvent) => {
+    card.addEventListener('pointercancel', (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
       drag = null;
       endDrag(event.pointerId);
@@ -118,12 +139,15 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
     button.setAttribute('data-testid', `option-${direction}`);
     button.setAttribute('data-direction', direction);
     button.textContent = label;
-    button.addEventListener('click', () => vote(direction, button));
-    attachDragHandlers(button);
+    button.addEventListener('click', () => vote(direction));
     return button;
   }
 
-  card.append(optionPanel(pair.left, 'left'), optionPanel(pair.right, 'right'));
+  const leftPanel = optionPanel(pair.left, 'left');
+  const rightPanel = optionPanel(pair.right, 'right');
+  optionRow.append(leftPanel, rightPanel);
+  card.append(caption, optionRow, progress);
+  attachDragHandlers();
   root.append(card, confirmation);
 }
 
