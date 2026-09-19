@@ -40,10 +40,11 @@ afterEach(() => {
 });
 
 describe('SwipeCard', () => {
-  it('renders the placeholder pair and casts a vote when a panel is activated (AC1)', () => {
+  it('renders the placeholder pair as one card and casts a vote when a panel is activated (AC2)', () => {
     const root = document.getElementById('root') as HTMLElement;
     renderSwipeCard(root, window.localStorage, 'a');
 
+    expect(root.querySelector('[data-testid="swipe-card"]')).not.toBeNull();
     const left = root.querySelector('[data-testid="option-left"]') as HTMLButtonElement;
     const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
     expect(left.textContent).toBe(PAIRS[0].left);
@@ -75,12 +76,12 @@ describe('SwipeCard', () => {
     expect(Number.isNaN(Date.parse(event.timestamp))).toBe(false);
   });
 
-  it('casts a vote identical to a click when a panel is dragged past the threshold and released (AC1)', () => {
+  it('casts one vote and animates the card off when the card itself is dragged past the threshold (AC1)', () => {
     const root = document.getElementById('root') as HTMLElement;
     renderSwipeCard(root, window.localStorage, 'a');
 
-    const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
-    drag(right, DISTANCE_THRESHOLD_PX + 10);
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    drag(card, DISTANCE_THRESHOLD_PX + 10);
 
     const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
     expect(votes).toHaveLength(1);
@@ -90,40 +91,72 @@ describe('SwipeCard', () => {
     expect(event.option).toBe(PAIRS[0].right);
     expect(event.direction).toBe('right');
     expect(event.variant).toBe('a');
+    expect(card.classList.contains('swipe-out-right')).toBe(true);
   });
 
-  it('casts no vote and resets the transform when a drag is released before the threshold (AC2)', () => {
+  it('casts a left vote identical in shape to a right one when the card is dragged left past the threshold (AC1)', () => {
     const root = document.getElementById('root') as HTMLElement;
     renderSwipeCard(root, window.localStorage, 'a');
 
-    const left = root.querySelector('[data-testid="option-left"]') as HTMLButtonElement;
-    drag(left, -(DISTANCE_THRESHOLD_PX - 20), 0, 200);
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    drag(card, -(DISTANCE_THRESHOLD_PX + 10));
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
+
+    const [event] = votes;
+    if (event.type !== 'vote') throw new Error('expected a vote event');
+    expect(event.option).toBe(PAIRS[0].left);
+    expect(event.direction).toBe('left');
+    expect(card.classList.contains('swipe-out-left')).toBe(true);
+  });
+
+  it('casts no vote and resets the card transform when a drag is released before the threshold', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    drag(card, -(DISTANCE_THRESHOLD_PX - 20), 0, 200);
 
     const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
     expect(votes).toHaveLength(0);
-    expect(left.style.transform).toBe('');
-    expect(left.classList.contains('option-panel--dragging')).toBe(false);
+    expect(card.style.transform).toBe('');
+    expect(card.classList.contains('swipe-card--dragging')).toBe(false);
   });
 
-  it('ignores a second drag input while a vote from a first drag is mid-flight (AC4)', () => {
+  it('ignores a second drag input while a vote from a first drag is mid-flight', () => {
     const root = document.getElementById('root') as HTMLElement;
     renderSwipeCard(root, window.localStorage, 'a');
 
-    const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
-    drag(right, DISTANCE_THRESHOLD_PX + 10);
-    drag(right, DISTANCE_THRESHOLD_PX + 10);
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    drag(card, DISTANCE_THRESHOLD_PX + 10);
+    drag(card, DISTANCE_THRESHOLD_PX + 10);
 
     const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
     expect(votes).toHaveLength(1);
   });
 
-  it('ignores a click while a vote from a drag is mid-flight (AC4)', () => {
+  it('a completed drag release and a click on the same render write only one event (AC2)', () => {
     const root = document.getElementById('root') as HTMLElement;
     renderSwipeCard(root, window.localStorage, 'a');
 
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
     const right = root.querySelector('[data-testid="option-right"]') as HTMLButtonElement;
-    drag(right, DISTANCE_THRESHOLD_PX + 10);
+    drag(card, DISTANCE_THRESHOLD_PX + 10);
     right.click();
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
+  });
+
+  it('a click followed by a completed drag release on the same render write only one event (AC2)', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    const left = root.querySelector('[data-testid="option-left"]') as HTMLButtonElement;
+    left.click();
+    drag(card, DISTANCE_THRESHOLD_PX + 10);
 
     const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
     expect(votes).toHaveLength(1);

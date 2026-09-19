@@ -1,17 +1,14 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Window } from 'happy-dom';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Reads the output of `astro build`, the same command Vercel runs for this
 // static site (ADR 0001) — so this test proves the nav ships in what a
-// visitor actually gets, not just in an isolated component render.
+// visitor actually gets, not just in an isolated component render. The
+// build itself runs once for the whole test run in vitest.global-setup.ts,
+// not here — see that file for why.
 const root = process.cwd();
-
-beforeAll(() => {
-  execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'inherit' });
-}, 30_000);
 
 function readNav(distPath: string) {
   const html = readFileSync(path.join(root, distPath), 'utf-8');
