@@ -86,6 +86,15 @@ two halves differently:
   they are. `ci.yml` in particular carries the project's `check-name` and its
   `commands`, which the template cannot know and must never overwrite.
 
+  This holds even when the template's own `check-name` has changed. A
+  repository provisioned before that name settled may still report something
+  else - `scaffolding`, or the four Node script names - and that string is what
+  its branch protection requires. Changing it here would stop the required
+  check reporting and block every merge, including the pull request doing the
+  changing. Leave it, and say in the body that it differs and why that is
+  deliberate. Adopting the template's name is a separate, human-sequenced
+  change: rename the job and re-point protection in one sitting, once.
+
 Never rewrite a caller wholesale from the template. It reads as tidying and it
 deletes the one thing in that file nobody else can reconstruct.
 
@@ -113,8 +122,12 @@ What goes in the commit:
 - All four workflow callers moved to the target version together. The roles,
   the workflows around them, and the commands that maintain them are one
   release; taking half of it is how they drift apart.
-- `.claude/agent-factory.json` with the new version, and the role, skill, and
-  command lists refreshed to what was actually written.
+- `.claude/agent-factory.json` with the new version, the role, skill, and
+  command lists refreshed to what was actually written, and `labels` copied
+  from the release's own manifest. That last one is read at run time rather
+  than being a record of it: the session-start hook compares it against the
+  labels the repository really has, so a stale copy is a hook reporting the
+  wrong thing rather than one reporting nothing.
 
 Leave alone, always:
 
@@ -189,12 +202,24 @@ execute bit is wired, silent, and looks like it ran.
 **If this release added a label, say so and hand the person `bootstrap`.** The
 label vocabulary is created by that workflow and nowhere else, so a repository
 provisioned before a release that added one simply does not have it, and the
-run that first tries to apply it fails at the `gh` call. Compare the `label`
-lines in this release's `bootstrap.yml` against what the repository has. If any
-is missing, put it in the pull request body as a step for them: open the
-Actions tab, run `bootstrap`, and it creates whatever is absent. It is
-idempotent, so running it is never the wrong call. Do not try to create labels
-from here - this command writes files, and the vocabulary has one source.
+run that first tries to apply it fails at the `gh` call. Compare this release's `labels` in
+`templates/project/.claude/agent-factory.json` against the `labels` already in
+this repository's copy. That used to read "against what the repository has",
+which was not something anybody could actually do: nothing recorded what it
+had, so the step got carried out from memory or not at all. The declared list
+is what makes it real, and a check in the factory keeps it in step with
+`bootstrap.yml`.
+
+Anything in the release's list and not in this repository's is a step for them
+in the pull request body: open the Actions tab, run `bootstrap`, and it creates
+whatever is absent. It is idempotent, so running it is never the wrong call. Do
+not try to create labels from here - this command writes files, and the
+vocabulary has one source.
+
+Say it even though the session-start hook says it too. The hook reports what is
+missing now, to whoever opens a session next; the body says what this merge is
+about to make missing, to the person merging it. Different moments, and the
+second is the cheaper place to fix it.
 
 **Memory moved out of `.claude/`.** A repository provisioned before it did has
 its lessons at `.claude/memory/<role>.md`, and the roles in this release read
