@@ -13,9 +13,17 @@ name: ci
 # output, npm. `node-version` is pinned to 22 because Astro 7 and Vitest 5
 # both require Node >=22.12, above the reusable workflow's default of 20.
 # `checks` is left at the default (`typecheck,lint,test,build`), which is
-# exactly this repository's four scripts, so the required check reports as
-# `ci / typecheck, lint, test, build`. Branch protection is re-pointed at
-# that name in the same commit as this change.
+# exactly this repository's four scripts.
+#
+# `check-name` is pinned explicitly as of v1.34.0. The reusable workflow's own
+# default changed there, from the literal string `typecheck, lint, test,
+# build` to the generic `checks` - deliberately, so a future repository's
+# required check name survives a `checks` list changing under it. This
+# repository's branch protection was already pointed at the old default's
+# name, so leaving `check-name` unset here would have silently stopped that
+# required check reporting the moment this pin moved. Pinning it keeps the
+# required check reporting as `ci / typecheck, lint, test, build`, exactly as
+# before.
 # ---------------------------------------------------------------------------
 
 on:
@@ -28,3 +36,4 @@ jobs:
     uses: chamaya00/agent-factory/.github/workflows/ci.yml@v1.34.0
     with:
       node-version: '22'
+      check-name: 'typecheck, lint, test, build'
