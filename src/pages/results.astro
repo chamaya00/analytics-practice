@@ -136,6 +136,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       font-size: var(--font-size-muted);
     }
 
+    /* Sits under the last stat row, above the start-over button, saying
+       what that button clears before it is pressed. */
+    .stat-prompt--reset {
+      margin: var(--space-md) 0 var(--space-sm);
+      padding: 0;
+    }
+
+    [data-testid="dogfooding-root"] .reset-button {
+      align-self: flex-start;
+    }
+
     .stat-prompt a {
       color: var(--color-text-muted);
     }

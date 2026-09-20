@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   EVENTS_KEY,
   OPTIONS,
+  PAIRS,
+  VARIANT_KEY,
   assignVariant,
+  castVote,
   computeStats,
   generateId,
+  getCurrentPair,
   getEvents,
   getVariant,
+  resetPoll,
   type VoteEvent,
 } from './poll';
 
@@ -76,5 +81,36 @@ describe('assignVariant', () => {
 
     expect(assignVariant(storage)).toBe('b');
     expect(getEvents(storage).filter((e) => e.type === 'variant_seen')).toHaveLength(0);
+  });
+});
+
+describe('resetPoll', () => {
+  it('empties the log and the variant assignment, so the next read starts back at pair 1', () => {
+    const storage = window.localStorage;
+    const variant = assignVariant(storage);
+    for (const pair of PAIRS) castVote(storage, pair, 'left', variant);
+    expect(getCurrentPair(getEvents(storage))).toBeNull();
+
+    resetPoll(storage);
+
+    expect(getEvents(storage)).toEqual([]);
+    expect(storage.getItem(EVENTS_KEY)).toBeNull();
+    expect(getVariant(storage)).toBeNull();
+    expect(storage.getItem(VARIANT_KEY)).toBeNull();
+    expect(getCurrentPair(getEvents(storage))).toEqual(PAIRS[0]);
+  });
+
+  it('leaves a log holding exactly one variant_seen event once a variant is assigned again (ADR 0002)', () => {
+    const storage = window.localStorage;
+    assignVariant(storage);
+    castVote(storage, PAIRS[0], 'left', 'a');
+
+    resetPoll(storage);
+    const after = assignVariant(storage);
+
+    const events = getEvents(storage);
+    expect(events.filter((event) => event.type === 'variant_seen')).toHaveLength(1);
+    expect(events.filter((event) => event.type === 'vote')).toHaveLength(0);
+    expect(getVariant(storage)).toBe(after);
   });
 });

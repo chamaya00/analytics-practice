@@ -111,6 +111,45 @@ main {
   padding: var(--space-xl) var(--space-lg);
 }
 
+/* The start-over control (src/lib/poll-dom.ts's resetButton). Created at
+   runtime and rendered on both pages, so it lives here rather than in
+   either page's style block — one rule instead of two copies that could
+   drift. Same bordered, uppercase treatment as the end-state link it sits
+   beside, and the same 44px touch floor and tap-highlight suppression as
+   every other touch target in docs/design/46-phone-native.md. */
+.reset-button {
+  display: inline-block;
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  font-family: inherit;
+  /* Inherited, not the muted size: on the card's end state this sits beside
+     the results link, and the two read as one pair of controls only at the
+     same size. */
+  font-size: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, color 150ms ease-out, transform 100ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+.reset-button:hover,
+.reset-button:focus-visible {
+  border-color: var(--color-text);
+}
+
+.reset-button:active {
+  transform: scale(0.97);
+}
+
 /* Below 480px, nav moves into a fixed bottom tab bar (Header.astro) — give
    page content enough bottom padding that nothing renders underneath it. */
 @media (max-width: 480px) {

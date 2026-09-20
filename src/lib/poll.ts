@@ -72,6 +72,19 @@ export function assignVariant(storage: Storage): Variant {
   return variant;
 }
 
+/**
+ * Returns this browser to its first-visit state by removing both keys the
+ * demo owns - the event log and the variant assignment - so the next
+ * `assignVariant` re-rolls an arm and logs a fresh `variant_seen`. Both go
+ * together on purpose: clearing the log alone would leave a persisted
+ * `poll.variant` with no `variant_seen` event behind it, a combination no
+ * ordinary visit can produce. See ADR 0004.
+ */
+export function resetPoll(storage: Storage): void {
+  storage.removeItem(EVENTS_KEY);
+  storage.removeItem(VARIANT_KEY);
+}
+
 export function getEvents(storage: Storage): PollEvent[] {
   const raw = storage.getItem(EVENTS_KEY);
   if (!raw) return [];

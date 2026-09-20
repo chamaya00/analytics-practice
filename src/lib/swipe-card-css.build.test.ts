@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { deliveredCss } from '../../test-support/dist-css';
 
 // Reads the output of `astro build`, the same command Vercel runs for this
 // static site (ADR 0001) - so these assertions prove what a visitor's
@@ -11,12 +10,7 @@ import { describe, expect, it } from 'vitest';
 // half - the emitted CSS values a build-output assertion can prove false.
 // The build itself runs once for the whole test run in
 // vitest.global-setup.ts, not here - see that file for why.
-const root = process.cwd();
-
-const html = readFileSync(path.join(root, 'dist/index.html'), 'utf-8');
-const match = html.match(/<style>(.*?)<\/style>/s);
-if (!match) throw new Error('expected an inline <style> block in dist/index.html');
-const css = match[1];
+const css = deliveredCss('dist/index.html');
 
 describe('swipe-card emitted CSS (AC3, AC4)', () => {
   it('sets touch-action to pan-y on the card, never a blanket none (AC3)', () => {

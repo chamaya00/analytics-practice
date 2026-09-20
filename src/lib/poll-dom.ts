@@ -14,11 +14,27 @@ import {
   getCurrentPair,
   getEvents,
   getVariant,
+  resetPoll,
 } from './poll';
 import { resolveDragDirection } from './drag-gesture';
 
 export const CONFIRMATION_MS = 1500;
 export const TRANSITION_MS = 400;
+
+/**
+ * How far a pointer may travel and still count as a tap rather than a drag.
+ *
+ * It is also the point at which the card claims the pointer. Claiming it on
+ * `pointerdown` - which this did until a tap was found to cast no vote at
+ * all in Chromium - retargets the browser's own `pointerup` and `click` to
+ * the capture element, so a tap on an option panel arrived as a click on the
+ * card and the panel's handler never ran. Voting by swipe still worked,
+ * which is why every test here stayed green: happy-dom dispatches the click
+ * this code asks for rather than the one a browser would have retargeted, so
+ * nothing in this suite could see the difference. Waiting for real movement
+ * keeps a tap a tap, in the browser as well as in the tests.
+ */
+export const TAP_SLOP_PX = 8;
 
 const ACCENT_CLASS: Record<Variant, string> = { a: 'accent-a', b: 'accent-b' };
 
@@ -29,7 +45,7 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
 
   const maybePair = getCurrentPair(getEvents(storage));
   if (!maybePair) {
-    renderSwipeCardEnd(root);
+    renderSwipeCardEnd(root, storage);
     return;
   }
   const pair = maybePair;
@@ -86,7 +102,14 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
   }
 
   function attachDragHandlers(): void {
-    let drag: { pointerId: number; startX: number; startY: number; startTime: number } | null = null;
+    let drag: {
+      pointerId: number;
+      startX: number;
+      startY: number;
+      startTime: number;
+      panel: HTMLElement | null;
+      captured: boolean;
+    } | null = null;
 
     function endDrag(pointerId: number): void {
       card.classList.remove('swipe-card--dragging');
@@ -98,31 +121,60 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
 
     card.addEventListener('pointerdown', (event: PointerEvent) => {
       if (voting || drag) return;
-      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startTime: Date.now() };
+      const target = event.target instanceof Element ? event.target : null;
+      drag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startTime: Date.now(),
+        panel: target?.closest<HTMLElement>('.option-panel') ?? null,
+        // Capture is deliberately not taken here - see the comment on
+        // TAP_SLOP_PX. It is taken on the first move that proves this is a
+        // drag rather than a tap.
+        captured: false,
+      };
       card.classList.add('swipe-card--dragging');
-      card.setPointerCapture(event.pointerId);
     });
 
     card.addEventListener('pointermove', (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
       const dx = event.clientX - drag.startX;
       const dy = event.clientY - drag.startY;
+      if (!drag.captured && Math.hypot(dx, dy) > TAP_SLOP_PX) {
+        card.setPointerCapture(event.pointerId);
+        drag.captured = true;
+      }
       card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 20}deg)`;
     });
 
     card.addEventListener('pointerup', (event: PointerEvent) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
-      const { startX, startY, startTime } = drag;
+      const { startX, startY, startTime, panel } = drag;
       drag = null;
       endDrag(event.pointerId);
       if (voting) return;
 
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
       const resolved = resolveDragDirection({
-        horizontalDistance: event.clientX - startX,
-        verticalDistance: event.clientY - startY,
+        horizontalDistance: dx,
+        verticalDistance: dy,
         elapsedMs: Date.now() - startTime,
       });
-      if (resolved) vote(resolved);
+      if (resolved) {
+        vote(resolved);
+        return;
+      }
+
+      // A press and release on a panel that never travelled is a tap, and
+      // casts that panel's vote from here rather than waiting for the click
+      // event. The panel's own click handler still runs when the browser
+      // sends one - `voting` makes the second of the two a no-op - but a
+      // browser that swallows it (see TAP_SLOP_PX) no longer loses the vote.
+      if (panel && Math.hypot(dx, dy) <= TAP_SLOP_PX) {
+        const direction = panel.getAttribute('data-direction');
+        if (direction === 'left' || direction === 'right') vote(direction);
+      }
     });
 
     card.addEventListener('pointercancel', (event: PointerEvent) => {
@@ -151,18 +203,47 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
   root.append(card, confirmation);
 }
 
-function renderSwipeCardEnd(root: HTMLElement): void {
+/**
+ * The one control both pages use to start over. Clicking it wipes this
+ * browser's poll state and hands back to the caller to re-render whatever
+ * it was showing, now derived from an empty log.
+ */
+function resetButton(onReset: () => void): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'reset-button';
+  button.setAttribute('data-testid', 'reset-poll');
+  button.textContent = 'Start over';
+  button.addEventListener('click', onReset);
+  return button;
+}
+
+function renderSwipeCardEnd(root: HTMLElement, storage: Storage): void {
   const wrapper = document.createElement('div');
   wrapper.setAttribute('data-testid', 'swipe-card-end');
 
   const message = document.createElement('p');
   message.textContent = "That's all the pairs for now — thanks for voting!";
 
+  const actions = document.createElement('div');
+  actions.className = 'end-actions';
+
   const link = document.createElement('a');
   link.href = '/results/';
   link.textContent = 'See how everyone voted →';
 
-  wrapper.append(message, link);
+  // A reload re-derives this same state from poll.events, so the only way
+  // back to pair 1 is to empty that log - see docs/design/3-swipe-poll.md's
+  // End state and ADR 0004.
+  actions.append(
+    link,
+    resetButton(() => {
+      resetPoll(storage);
+      renderSwipeCard(root, storage, assignVariant(storage));
+    }),
+  );
+
+  wrapper.append(message, actions);
   root.append(wrapper);
 }
 
@@ -233,7 +314,23 @@ export function renderDogfoodingView(root: HTMLElement, storage: Storage): void 
   variantB.setAttribute('data-variant', 'b');
   perVariant.append(variantA, variantB);
 
-  root.append(total, yourVariant, perOption, perVariant);
+  const resetHint = document.createElement('p');
+  resetHint.className = 'stat-prompt stat-prompt--reset';
+  resetHint.setAttribute('data-testid', 'reset-hint');
+  resetHint.textContent = 'Starting over clears this browser\u2019s votes and re-rolls your variant.';
+
+  root.append(
+    total,
+    yourVariant,
+    perOption,
+    perVariant,
+    resetHint,
+    resetButton(() => {
+      resetPoll(storage);
+      assignVariant(storage);
+      renderDogfoodingView(root, storage);
+    }),
+  );
 }
 
 export function initSwipePage(root: HTMLElement, storage: Storage = window.localStorage): void {
