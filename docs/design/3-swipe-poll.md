@@ -143,8 +143,13 @@ changed, not that a panel remains individually tappable.
 show a pair whose `pairId` already has a matching event; hold vote
 progress anywhere but `poll.events`; let a drag started on one panel
 move only that panel rather than the whole card (the card is a single
-rigid drag surface, not two independent ones); treat a page-level
-vertical scroll as a card drag (a mostly-vertical drag stays a scroll,
+rigid drag surface, not two independent ones); claim the pointer before
+a gesture is known to be a drag — capturing on `pointerdown` makes the
+browser retarget its own `pointerup` and `click` from the panel to the
+card, which silently turns a panel tap into a click on the card and
+loses the vote, leaving swiping as the only way to vote and defeating
+the "swipe **or** an equivalent tappable control" requirement above;
+treat a page-level vertical scroll as a card drag (a mostly-vertical drag stays a scroll,
 per `drag-gesture.ts`'s existing rejection, and must not be blocked by
 the card claiming the gesture too early — see Touch feedback in
 `docs/design/46-phone-native.md` for the no-rubber-band requirement

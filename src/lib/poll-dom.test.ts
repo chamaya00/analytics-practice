@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DISTANCE_THRESHOLD_PX } from './drag-gesture';
 import { EVENTS_KEY, PAIRS, VARIANT_KEY, generateId, getEvents, getVariant, type VoteEvent } from './poll';
-import { renderDogfoodingView, renderSwipeCard } from './poll-dom';
+import { TAP_SLOP_PX, renderDogfoodingView, renderSwipeCard } from './poll-dom';
 
 function voteEvent(pairId: string, option: string, direction: 'left' | 'right', variant: 'a' | 'b'): VoteEvent {
   return {
@@ -27,6 +27,21 @@ function drag(panel: HTMLElement, dx: number, dy = 0, elapsedMs = 0): void {
   if (elapsedMs) vi.advanceTimersByTime(elapsedMs);
   panel.dispatchEvent(new PointerEvent('pointermove', { pointerId, clientX: dx, clientY: dy, bubbles: true }));
   panel.dispatchEvent(new PointerEvent('pointerup', { pointerId, clientX: dx, clientY: dy, bubbles: true }));
+}
+
+// A tap as a browser sends it: pointer events, then the click. `dx` moves the
+// pointer between down and up, for the shaky-finger cases.
+function tap(target: HTMLElement, dx = 0, dy = 0, { withClick = true } = {}): void {
+  const pointerId = nextPointerId++;
+  target.dispatchEvent(new PointerEvent('pointerdown', { pointerId, clientX: 0, clientY: 0, bubbles: true }));
+  if (dx || dy) {
+    target.dispatchEvent(new PointerEvent('pointermove', { pointerId, clientX: dx, clientY: dy, bubbles: true }));
+  }
+  target.dispatchEvent(new PointerEvent('pointerup', { pointerId, clientX: dx, clientY: dy, bubbles: true }));
+  // Chromium retargets this click to whichever element holds pointer capture,
+  // so a card that captured on pointerdown never lets it reach the panel —
+  // withClick: false is that browser, and the vote must survive it.
+  if (withClick) target.click();
 }
 
 beforeEach(() => {
@@ -177,6 +192,73 @@ describe('SwipeCard', () => {
 
     const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
     expect(votes).toHaveLength(1);
+  });
+
+  // Regression tests for a tap casting no vote at all in Chromium: the card
+  // captured the pointer on pointerdown, and the browser then retargeted its
+  // own pointerup and click from the panel to the card, so the panel's click
+  // handler never ran and only swiping worked. See TAP_SLOP_PX in poll-dom.ts.
+  it('does not claim the pointer on a press that has not moved, so the browser leaves a tap on the panel', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    const capture = vi.spyOn(card, 'setPointerCapture');
+    const left = root.querySelector('[data-testid="option-left"]') as HTMLButtonElement;
+
+    tap(left);
+
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('claims the pointer once a drag passes the tap slop, so a real drag keeps its events', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const card = root.querySelector('[data-testid="swipe-card"]') as HTMLElement;
+    const capture = vi.spyOn(card, 'setPointerCapture');
+
+    drag(card, DISTANCE_THRESHOLD_PX + 10);
+
+    expect(capture).toHaveBeenCalled();
+  });
+
+  it('casts a panel tap as a vote even when the browser sends no click for it (AC2)', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const left = root.querySelector('[data-testid="option-left"]') as HTMLButtonElement;
+    tap(left, 0, 0, { withClick: false });
+
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
+    expect(votes[0]).toMatchObject({ pairId: PAIRS[0].id, option: PAIRS[0].left, direction: 'left' });
+  });
+
+  it('writes one event, not two, when a tap is followed by the click the browser normally sends', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    tap(root.querySelector('[data-testid="option-right"]') as HTMLButtonElement);
+
+    expect(getEvents(window.localStorage).filter((event) => event.type === 'vote')).toHaveLength(1);
+  });
+
+  it('still counts a tap that wobbles within the slop, and still refuses one that became a short drag', () => {
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    tap(root.querySelector('[data-testid="option-left"]') as HTMLButtonElement, TAP_SLOP_PX - 3, 0, {
+      withClick: false,
+    });
+    expect(getEvents(window.localStorage).filter((event) => event.type === 'vote')).toHaveLength(1);
+
+    // A deliberate short drag off a panel, released below the vote threshold,
+    // is a cancelled swipe and stays one.
+    window.localStorage.clear();
+    renderSwipeCard(root, window.localStorage, 'a');
+    drag(root.querySelector('[data-testid="option-left"]') as HTMLButtonElement, DISTANCE_THRESHOLD_PX - 20, 0, 200);
+    expect(getEvents(window.localStorage).filter((event) => event.type === 'vote')).toHaveLength(0);
   });
 
   it('shows the end state once every pair has a matching vote event', () => {
