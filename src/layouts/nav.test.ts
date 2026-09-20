@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Window } from 'happy-dom';
 import { describe, expect, it } from 'vitest';
+import { deliveredCss } from '../../test-support/dist-css';
 
 // Reads the output of `astro build`, the same command Vercel runs for this
 // static site (ADR 0001) — so this test proves the nav ships in what a
@@ -56,7 +57,7 @@ describe('bottom tab bar at phone width (AC1)', () => {
     const tabBar = readNav('dist/index.html', 'nav.tab-bar');
     expect(tabBar).not.toBeNull();
     expect(tabBar?.querySelector('a[href="/results/"]')?.textContent).toContain('Results');
-    const css = readHtml('dist/index.html');
+    const css = deliveredCss('dist/index.html');
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\{[^}]*min-height:44px[^}]*flex:1/);
   });
 
@@ -68,7 +69,7 @@ describe('bottom tab bar at phone width (AC1)', () => {
 
     // The desktop nav's current-page treatment (underline) must not be the
     // tab bar's only cue — the pill above is required in addition to it.
-    const css = readHtml('dist/index.html');
+    const css = deliveredCss('dist/index.html');
     const tabBarCurrentRule = css.match(/\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\.current\{[^}]*\}/);
     expect(tabBarCurrentRule?.[0]).not.toMatch(/text-decoration:\s*underline/);
   });
@@ -76,7 +77,7 @@ describe('bottom tab bar at phone width (AC1)', () => {
 
 describe('desktop keeps the unchanged header shape, not the tab bar (AC2)', () => {
   it('the tab bar is display:none outside the phone-width media query, and display:flex inside it', () => {
-    const css = readHtml('dist/index.html');
+    const css = deliveredCss('dist/index.html');
     // Base rule (no media wrapper): hidden by default, i.e. on desktop/tablet.
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\{display:none\}/);
     // Inside the 480px breakpoint the bar becomes visible.
@@ -84,7 +85,7 @@ describe('desktop keeps the unchanged header shape, not the tab bar (AC2)', () =
   });
 
   it('the desktop nav keeps its underline current-page treatment, unmoved by this change', () => {
-    const css = readHtml('dist/index.html');
+    const css = deliveredCss('dist/index.html');
     expect(css).toMatch(
       /\.site-nav\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\.current\{[^}]*text-decoration:underline/,
     );
@@ -98,13 +99,13 @@ describe('desktop keeps the unchanged header shape, not the tab bar (AC2)', () =
 
 describe('safe-area insets pad for hardware, not just the viewport rectangle (AC4)', () => {
   it('the header pads for the top inset (notch) and the tab bar pads for the bottom inset (home indicator)', () => {
-    const css = readHtml('dist/index.html');
+    const css = deliveredCss('dist/index.html');
     expect(css).toMatch(/\.site-header\[data-astro-cid-[\w-]+\]\{[^}]*env\(safe-area-inset-top\)/);
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\{[^}]*env\(safe-area-inset-bottom\)/);
   });
 
   it('the header and tab bar also pad left/right for a notch or rounded corner in landscape', () => {
-    const css = readHtml('dist/index.html');
+    const css = deliveredCss('dist/index.html');
     expect(css).toMatch(/\.site-header\[data-astro-cid-[\w-]+\]\{[^}]*env\(safe-area-inset-left\)/);
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\{[^}]*env\(safe-area-inset-right\)/);
   });

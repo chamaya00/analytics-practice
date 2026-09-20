@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DISTANCE_THRESHOLD_PX } from './drag-gesture';
-import { EVENTS_KEY, PAIRS, generateId, getEvents, type VoteEvent } from './poll';
+import { EVENTS_KEY, PAIRS, VARIANT_KEY, generateId, getEvents, getVariant, type VoteEvent } from './poll';
 import { renderDogfoodingView, renderSwipeCard } from './poll-dom';
 
 function voteEvent(pairId: string, option: string, direction: 'left' | 'right', variant: 'a' | 'b'): VoteEvent {
@@ -189,6 +189,49 @@ describe('SwipeCard', () => {
     expect(root.querySelector('[data-testid="swipe-card-end"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="swipe-card"]')).toBeNull();
   });
+
+  it('offers a start-over control in the end state that empties the log and renders pair 1 again', () => {
+    const events = PAIRS.map((pair) => voteEvent(pair.id, pair.left, 'left', 'a'));
+    window.localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+    window.localStorage.setItem(VARIANT_KEY, 'a');
+
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+
+    const reset = root.querySelector('[data-testid="reset-poll"]') as HTMLButtonElement;
+    expect(reset).not.toBeNull();
+    reset.click();
+
+    expect(getEvents(window.localStorage).filter((event) => event.type === 'vote')).toHaveLength(0);
+    expect(root.querySelector('[data-testid="swipe-card-end"]')).toBeNull();
+    expect(root.querySelector('[data-testid="pair-progress"]')?.textContent).toBe(`Pair 1 of ${PAIRS.length}`);
+    expect(root.querySelector('[data-testid="pair-caption"]')?.textContent).toBe(
+      `${PAIRS[0].left} — ${PAIRS[0].right}`,
+    );
+  });
+
+  it('re-assigns a variant on start over, so the restarted run logs one variant_seen and accents the card with it', () => {
+    const events = PAIRS.map((pair) => voteEvent(pair.id, pair.left, 'left', 'a'));
+    window.localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+    window.localStorage.setItem(VARIANT_KEY, 'a');
+
+    const root = document.getElementById('root') as HTMLElement;
+    renderSwipeCard(root, window.localStorage, 'a');
+    (root.querySelector('[data-testid="reset-poll"]') as HTMLButtonElement).click();
+
+    const variant = getVariant(window.localStorage);
+    expect(variant).not.toBeNull();
+    const seen = getEvents(window.localStorage).filter((event) => event.type === 'variant_seen');
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ variant });
+    expect(root.classList.contains(`accent-${variant}`)).toBe(true);
+
+    // And the restarted run still records votes, against the new variant.
+    (root.querySelector('[data-testid="option-left"]') as HTMLButtonElement).click();
+    const votes = getEvents(window.localStorage).filter((event) => event.type === 'vote');
+    expect(votes).toHaveLength(1);
+    expect(votes[0]).toMatchObject({ pairId: PAIRS[0].id, variant });
+  });
 });
 
 describe('DogfoodingView', () => {
@@ -217,5 +260,26 @@ describe('DogfoodingView', () => {
 
     expect(root.querySelector('[data-testid="total-votes"]')?.textContent).toContain('0');
     expect(root.querySelector('[data-testid="no-votes-prompt"]')).not.toBeNull();
+  });
+
+  it('offers a start-over control that clears the counts it is rendered from', () => {
+    window.localStorage.setItem(
+      EVENTS_KEY,
+      JSON.stringify([voteEvent('pair-1', 'Coffee', 'left', 'a'), voteEvent('pair-2', 'Dogs', 'right', 'b')]),
+    );
+    window.localStorage.setItem(VARIANT_KEY, 'a');
+
+    const root = document.getElementById('root') as HTMLElement;
+    renderDogfoodingView(root, window.localStorage);
+    expect(root.querySelector('[data-testid="total-votes"]')?.textContent).toContain('2');
+    expect(root.querySelector('[data-testid="reset-hint"]')).not.toBeNull();
+
+    (root.querySelector('[data-testid="reset-poll"]') as HTMLButtonElement).click();
+
+    expect(getEvents(window.localStorage).filter((event) => event.type === 'vote')).toHaveLength(0);
+    expect(root.querySelector('[data-testid="total-votes"]')?.textContent).toContain('0');
+    expect(root.querySelector('li[data-option="Coffee"]')?.textContent).toContain('0');
+    expect(root.querySelector('[data-testid="no-votes-prompt"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="your-variant"]')?.textContent).not.toContain('unknown');
   });
 });

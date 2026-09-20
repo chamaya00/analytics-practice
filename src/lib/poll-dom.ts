@@ -14,6 +14,7 @@ import {
   getCurrentPair,
   getEvents,
   getVariant,
+  resetPoll,
 } from './poll';
 import { resolveDragDirection } from './drag-gesture';
 
@@ -29,7 +30,7 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
 
   const maybePair = getCurrentPair(getEvents(storage));
   if (!maybePair) {
-    renderSwipeCardEnd(root);
+    renderSwipeCardEnd(root, storage);
     return;
   }
   const pair = maybePair;
@@ -151,18 +152,47 @@ export function renderSwipeCard(root: HTMLElement, storage: Storage, variant: Va
   root.append(card, confirmation);
 }
 
-function renderSwipeCardEnd(root: HTMLElement): void {
+/**
+ * The one control both pages use to start over. Clicking it wipes this
+ * browser's poll state and hands back to the caller to re-render whatever
+ * it was showing, now derived from an empty log.
+ */
+function resetButton(onReset: () => void): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'reset-button';
+  button.setAttribute('data-testid', 'reset-poll');
+  button.textContent = 'Start over';
+  button.addEventListener('click', onReset);
+  return button;
+}
+
+function renderSwipeCardEnd(root: HTMLElement, storage: Storage): void {
   const wrapper = document.createElement('div');
   wrapper.setAttribute('data-testid', 'swipe-card-end');
 
   const message = document.createElement('p');
   message.textContent = "That's all the pairs for now — thanks for voting!";
 
+  const actions = document.createElement('div');
+  actions.className = 'end-actions';
+
   const link = document.createElement('a');
   link.href = '/results/';
   link.textContent = 'See how everyone voted →';
 
-  wrapper.append(message, link);
+  // A reload re-derives this same state from poll.events, so the only way
+  // back to pair 1 is to empty that log - see docs/design/3-swipe-poll.md's
+  // End state and ADR 0004.
+  actions.append(
+    link,
+    resetButton(() => {
+      resetPoll(storage);
+      renderSwipeCard(root, storage, assignVariant(storage));
+    }),
+  );
+
+  wrapper.append(message, actions);
   root.append(wrapper);
 }
 
@@ -233,7 +263,23 @@ export function renderDogfoodingView(root: HTMLElement, storage: Storage): void 
   variantB.setAttribute('data-variant', 'b');
   perVariant.append(variantA, variantB);
 
-  root.append(total, yourVariant, perOption, perVariant);
+  const resetHint = document.createElement('p');
+  resetHint.className = 'stat-prompt stat-prompt--reset';
+  resetHint.setAttribute('data-testid', 'reset-hint');
+  resetHint.textContent = 'Starting over clears this browser\u2019s votes and re-rolls your variant.';
+
+  root.append(
+    total,
+    yourVariant,
+    perOption,
+    perVariant,
+    resetHint,
+    resetButton(() => {
+      resetPoll(storage);
+      assignVariant(storage);
+      renderDogfoodingView(root, storage);
+    }),
+  );
 }
 
 export function initSwipePage(root: HTMLElement, storage: Storage = window.localStorage): void {

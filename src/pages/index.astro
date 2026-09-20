@@ -200,6 +200,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       letter-spacing: 0.03em;
     }
 
+    /* Link and start-over button share a row, wrapping onto two lines on a
+       narrow phone rather than shrinking below the 44px touch floor. */
+    .end-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
     [data-testid="swipe-card-end"] a {
       display: inline-block;
       padding: var(--space-sm) var(--space-md);

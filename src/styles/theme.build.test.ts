@@ -1,17 +1,11 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { deliveredCss } from '../../test-support/dist-css';
 
 // Reads the output of `astro build`, the same command Vercel runs for this
 // static site (ADR 0001), so these assertions prove what a visitor's
 // browser actually receives. The build itself runs once for the whole
 // test run in vitest.global-setup.ts, not here - see that file for why.
-const root = process.cwd();
-
-const html = readFileSync(path.join(root, 'dist/index.html'), 'utf-8');
-const match = html.match(/<style>(.*?)<\/style>/s);
-if (!match) throw new Error('expected an inline <style> block in dist/index.html');
-const css = match[1];
+const css = deliveredCss('dist/index.html');
 
 describe('dark theme palette (AC1)', () => {
   it('a prefers-color-scheme: dark block re-declares the design spec\'s dark hex values, including the tab-active-bg token the spec\'s table omits', () => {
@@ -39,6 +33,7 @@ describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
     ['the card', /\.swipe-card\{[^}]*\}/],
     ['a tab bar link', /\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\{[^}]*\}/],
     ['the end-state link', /\[data-testid=swipe-card-end\] a\{[^}]*\}/],
+    ['the start-over button', /\.reset-button\{[^}]*\}/],
   ];
 
   it.each(cases)('%s suppresses the default tap-highlight', (_label, pattern) => {
@@ -57,6 +52,11 @@ describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
   it('the end-state link defines a visible :active pressed rule', () => {
     expect(css).toMatch(/\[data-testid=swipe-card-end\] a:active\{[^}]*transform:[^}]*\}/);
   });
+
+  it('the start-over button clears the 44px touch floor and defines a visible :active pressed rule', () => {
+    expect(css).toMatch(/\.reset-button\{[^}]*min-height:44px[^}]*\}/);
+    expect(css).toMatch(/\.reset-button:active\{[^}]*transform:[^}]*\}/);
+  });
 });
 
 describe('touch feedback: no text selection on press-and-hold (AC3)', () => {
@@ -64,6 +64,7 @@ describe('touch feedback: no text selection on press-and-hold (AC3)', () => {
     ['the card', /\.swipe-card\{[^}]*\}/],
     ['a tab bar link', /\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\{[^}]*\}/],
     ['the end-state link', /\[data-testid=swipe-card-end\] a\{[^}]*\}/],
+    ['the start-over button', /\.reset-button\{[^}]*\}/],
   ];
 
   it.each(cases)('%s sets user-select: none (with vendor prefixes)', (_label, pattern) => {

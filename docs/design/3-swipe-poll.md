@@ -119,12 +119,25 @@ changed, not that a panel remains individually tappable.
       the End state renders there instead.
 4. **End state.** Once all 5 pairs have a matching event, the card
    area shows a static panel: a short message (e.g. "That's all the
-   pairs for now — thanks for voting!") and a single link/button to
-   the dogfooding view (e.g. "See how everyone voted →"). No swipe or
-   tap target remains in this state — there is nothing left to vote
-   on, and this spec does not include a restart control. A visitor who
-   reloads after finishing lands directly back in this state, because
-   it is re-derived from `poll.events`, not from a session flag.
+   pairs for now — thanks for voting!"), a link to the dogfooding view
+   (e.g. "See how everyone voted →"), and a **start-over control**
+   beside it. No swipe or tap target remains — there is nothing left
+   to vote on. A visitor who reloads after finishing lands directly
+   back in this state, because it is re-derived from `poll.events`,
+   not from a session flag; that is exactly why a reload cannot be the
+   way back to pair 1, and why the control exists.
+
+   **Revised (restart control).** This section originally said "this
+   spec does not include a restart control," on the reasoning that a
+   finished visitor has nothing left to do here. That left the demo
+   with no way back to pair 1 short of clearing site data by hand,
+   which is the state anyone testing it reaches after five taps.
+   Pressing the control empties `poll.events` *and* clears
+   `poll.variant`, so the browser is back to its first-visit state and
+   the next render re-rolls an arm and logs a fresh `variant_seen` —
+   see ADR 0004 for why both keys go together rather than the log
+   alone. The same control appears at the foot of the DogfoodingView,
+   which is where a visitor who followed the link above ends up.
 
 **Must never:** write an event for a `pairId` that already has one;
 show a pair whose `pairId` already has a matching event; hold vote
