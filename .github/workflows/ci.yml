@@ -25,6 +25,6 @@ on:
 
 jobs:
   ci:
-    uses: chamaya00/agent-factory/.github/workflows/ci.yml@v1.29.0
+    uses: chamaya00/agent-factory/.github/workflows/ci.yml@v1.32.0
     with:
       node-version: '22'
