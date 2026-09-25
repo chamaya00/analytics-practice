@@ -1,0 +1,180 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildEventRow, createSupabaseSender, initTracking } from './tracking-transport';
+import { resetTrack, track } from './tracking';
+
+const ORDER_ID = '11111111-2222-4333-8444-555555555555';
+const VALID_ORDER_PLACED = {
+  order_id: ORDER_ID,
+  item_count: 2,
+  subtotal_cents: 1800,
+  drop_off_spot: 'couch',
+  handling_instructions: 'guard_it',
+  utensils: true,
+  tip_percent: 10,
+  promo_code: 'dont_drop10',
+};
+
+const NORMAL_NAVIGATOR = { webdriver: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' };
+
+beforeEach(() => {
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+  // happy-dom's own default userAgent contains "HeadlessChrome", which the
+  // sender's own bot pattern would otherwise match — stub a normal one so
+  // tests exercise the sending path, and override it in the bot tests below.
+  vi.stubGlobal('navigator', NORMAL_NAVIGATOR);
+});
+
+afterEach(() => {
+  resetTrack();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('createSupabaseSender (AC1: publishable-key transport call shape)', () => {
+  it('POSTs an insert-only row to the store URL using only the publishable key, with Prefer: return=minimal', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({
+      url: 'https://abcdefgh.supabase.co',
+      publishableKey: 'sb_publishable_test_key',
+      fetchImpl,
+      localStorage: window.localStorage,
+      sessionStorage: window.sessionStorage,
+    });
+
+    sender('restaurant_opened', { restaurant_slug: 'one-job-pizza' });
+    await Promise.resolve();
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe('https://abcdefgh.supabase.co/rest/v1/events');
+    expect(init.method).toBe('POST');
+    expect(init.headers.apikey).toBe('sb_publishable_test_key');
+    expect(init.headers.Authorization).toBe('Bearer sb_publishable_test_key');
+    expect(init.headers.Prefer).toBe('return=minimal');
+
+    const body = JSON.parse(init.body);
+    expect(body.event_name).toBe('restaurant_opened');
+    expect(body.props).toEqual({ restaurant_slug: 'one-job-pizza' });
+    expect(body.variant).toBeNull();
+    expect(typeof body.id).toBe('string');
+    expect(typeof body.visitor_id).toBe('string');
+    expect(typeof body.session_id).toBe('string');
+    expect(typeof body.occurred_at).toBe('string');
+  });
+
+  it('never sends a service/admin key — the config shape only accepts one key, used as both apikey and bearer token', () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({
+      url: 'https://abcdefgh.supabase.co',
+      publishableKey: 'sb_publishable_test_key',
+      fetchImpl,
+      localStorage: window.localStorage,
+      sessionStorage: window.sessionStorage,
+    });
+    sender('restaurants_viewed', {});
+    const [, init] = fetchImpl.mock.calls[0];
+    expect(Object.values(init.headers)).not.toContain(expect.stringMatching(/service_role|secret/i));
+  });
+
+  it('reuses one visitor id and session id across multiple sends', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({
+      url: 'https://abcdefgh.supabase.co',
+      publishableKey: 'sb_publishable_test_key',
+      fetchImpl,
+      localStorage: window.localStorage,
+      sessionStorage: window.sessionStorage,
+    });
+    sender('restaurants_viewed', {});
+    sender('cart_viewed', { item_count: 0, subtotal_cents: 0 });
+
+    const first = JSON.parse(fetchImpl.mock.calls[0][1].body);
+    const second = JSON.parse(fetchImpl.mock.calls[1][1].body);
+    expect(first.visitor_id).toBe(second.visitor_id);
+    expect(first.session_id).toBe(second.session_id);
+    expect(first.id).not.toBe(second.id);
+  });
+});
+
+describe('buildEventRow', () => {
+  it('always sets variant to null (docs/measurement/66-parody-event-contract.md §3: no experiment ships)', () => {
+    const row = buildEventRow('restaurants_viewed', {}, { visitorId: 'v', sessionId: 's' });
+    expect(row.variant).toBeNull();
+  });
+});
+
+describe('anti-spam bounds enforced before sending (AC3)', () => {
+  const config = () => ({
+    url: 'https://abcdefgh.supabase.co',
+    publishableKey: 'sb_publishable_test_key',
+    localStorage: window.localStorage,
+    sessionStorage: window.sessionStorage,
+  });
+
+  it('does not send an oversized props payload', () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({ ...config(), fetchImpl });
+    // order_placed has no free-text field long enough to legitimately exceed
+    // 1 KB — this shape is exactly the "shouldn't be reachable" case the
+    // event contract's checkout_viewed invariant describes for item_count: 0.
+    sender('restaurant_opened', { restaurant_slug: 'a'.repeat(2000) });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('does not send a malformed event (fails the shape the store would also refuse)', () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({ ...config(), fetchImpl });
+    sender('order_placed', { ...VALID_ORDER_PLACED, promo_code: 'not_a_real_code' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('does not send when navigator.webdriver signals an automated browser (bot exclusion)', () => {
+    vi.stubGlobal('navigator', { webdriver: true, userAgent: 'Mozilla/5.0' });
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({ ...config(), fetchImpl });
+    sender('restaurants_viewed', {});
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('does not send when the user agent matches a bot pattern', () => {
+    vi.stubGlobal('navigator', { webdriver: false, userAgent: 'Googlebot/2.1' });
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    const sender = createSupabaseSender({ ...config(), fetchImpl });
+    sender('restaurants_viewed', {});
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('never throws when the request itself rejects — best-effort, non-blocking', () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
+    const sender = createSupabaseSender({ ...config(), fetchImpl });
+    expect(() => sender('restaurants_viewed', {})).not.toThrow();
+  });
+});
+
+describe('initTracking (AC2: env var absent leaves track at its no-op default)', () => {
+  it('sends nothing and throws nothing when PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_PUBLISHABLE_KEY are unset', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', '');
+    const fetchImpl = vi.fn();
+    vi.stubGlobal('fetch', fetchImpl);
+
+    expect(() => initTracking()).not.toThrow();
+    expect(() => track('restaurants_viewed', {})).not.toThrow();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('wires the real sender when both are set', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', 'https://abcdefgh.supabase.co');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test_key');
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchImpl);
+
+    initTracking();
+    track('restaurants_viewed', {});
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe('https://abcdefgh.supabase.co/rest/v1/events');
+  });
+});
