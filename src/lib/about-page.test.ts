@@ -2,6 +2,10 @@
 // drafted appears at /about, built at the location #65's flow spec fixes.
 // Reads the built output the same way nav.test.ts does, so this proves what
 // a visitor actually gets, not an isolated component render.
+//
+// Lives in src/lib, not src/pages: any file under src/pages is a route to
+// Astro's file-based router, and a .test.ts there breaks the build trying
+// to render it as one.
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
