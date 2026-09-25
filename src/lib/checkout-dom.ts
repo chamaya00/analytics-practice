@@ -58,10 +58,12 @@ function choiceButtons<T extends string | number>(
   group.setAttribute('aria-label', legend);
 
   const buttons = new Map<T, HTMLButtonElement>();
+  const buttonClass = groupClass === 'chip-group' ? 'chip' : undefined;
 
   for (const option of options) {
     const button = document.createElement('button');
     button.type = 'button';
+    if (buttonClass) button.classList.add(buttonClass);
     button.textContent = option.label;
     button.setAttribute('data-testid', `${testIdPrefix}-${option.value}`);
     const isDefault = option.value === selected;

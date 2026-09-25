@@ -30,7 +30,9 @@ describe('isValidEventProps (AC3, AC8)', () => {
   });
 
   it('rejects an order_placed missing promo_code entirely', () => {
-    const { promo_code: _promoCode, ...withoutPromo } = VALID_ORDER_PLACED;
+    const withoutPromo = Object.fromEntries(
+      Object.entries(VALID_ORDER_PLACED).filter(([key]) => key !== 'promo_code'),
+    );
     expect(isValidEventProps('order_placed', withoutPromo)).toBe(false);
   });
 

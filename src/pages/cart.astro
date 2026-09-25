@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Cart — Dontdropthatpromo">
+  <h1>Cart</h1>
+  <div id="cart-root" data-testid="cart-root"></div>
+  <script>
+    import { initCartPage } from '../lib/cart-dom';
+
+    const root = document.getElementById('cart-root');
+    if (root) initCartPage(root);
+  </script>
+</BaseLayout>

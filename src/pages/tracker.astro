@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Tracker — Dontdropthatpromo">
+  <h1>Tracker</h1>
+  <div id="tracker-root" data-testid="tracker-root"></div>
+  <script>
+    import { initTrackerPage } from '../lib/tracker-dom';
+
+    const root = document.getElementById('tracker-root');
+    if (root) initTrackerPage(root);
+  </script>
+</BaseLayout>
