@@ -25,25 +25,32 @@ function readNav(distPath: string, selector: string) {
   return window.document.querySelector(selector);
 }
 
-describe('shared header/nav (AC2, AC5)', () => {
-  it('the swipe-poll page links to /results/', () => {
+describe('shared header/nav, three destinations (AC1, AC2)', () => {
+  it('the landing page nav links to Restaurants, Cart, and Tracker', () => {
     const nav = readNav('dist/index.html', 'nav.site-nav');
     expect(nav).not.toBeNull();
-    const link = nav?.querySelector('a[href="/results/"]');
-    expect(link?.textContent).toContain('Results');
+    expect(nav?.querySelector('a[href="/restaurants/"]')?.textContent).toContain('Restaurants');
+    expect(nav?.querySelector('a[href="/cart/"]')?.textContent).toContain('Cart');
+    expect(nav?.querySelector('a[href="/tracker/"]')?.textContent).toContain('Tracker');
   });
 
-  it('the results page links to /', () => {
-    const nav = readNav('dist/results/index.html', 'nav.site-nav');
-    expect(nav).not.toBeNull();
-    const link = nav?.querySelector('a[href="/"]');
-    expect(link?.textContent).toContain('Swipe poll');
+  it('the tracker page marks Tracker current, not any other destination', () => {
+    const nav = readNav('dist/tracker/index.html', 'nav.site-nav');
+    const current = nav?.querySelector('a.current');
+    expect(current?.getAttribute('href')).toBe('/tracker/');
+  });
+
+  it('checkout marks no destination current — it is not one of the three nav tabs (AC7)', () => {
+    const nav = readNav('dist/checkout/index.html', 'nav.site-nav');
+    expect(nav?.querySelector('a.current')).toBeNull();
+    const tabBar = readNav('dist/checkout/index.html', 'nav.tab-bar');
+    expect(tabBar?.querySelector('a.current')).toBeNull();
   });
 });
 
 describe('viewport meta covers the display, not just its safe rectangle (AC3)', () => {
-  it('the viewport meta content includes viewport-fit=cover on both pages', () => {
-    for (const distPath of ['dist/index.html', 'dist/results/index.html']) {
+  it('the viewport meta content includes viewport-fit=cover on every page', () => {
+    for (const distPath of ['dist/index.html', 'dist/restaurants/index.html', 'dist/cart/index.html']) {
       const window = new Window();
       window.document.write(readHtml(distPath));
       const meta = window.document.querySelector('meta[name="viewport"]');
@@ -53,16 +60,18 @@ describe('viewport meta covers the display, not just its safe rectangle (AC3)', 
 });
 
 describe('bottom tab bar at phone width (AC1)', () => {
-  it('the tab bar carries the same two destinations as the desktop nav, each a 44px-minimum, evenly split tap target', () => {
+  it('the tab bar carries the same three destinations as the desktop nav, each a 44px-minimum, evenly split tap target', () => {
     const tabBar = readNav('dist/index.html', 'nav.tab-bar');
     expect(tabBar).not.toBeNull();
-    expect(tabBar?.querySelector('a[href="/results/"]')?.textContent).toContain('Results');
+    expect(tabBar?.querySelector('a[href="/restaurants/"]')?.textContent).toContain('Restaurants');
+    expect(tabBar?.querySelector('a[href="/cart/"]')?.textContent).toContain('Cart');
+    expect(tabBar?.querySelector('a[href="/tracker/"]')?.textContent).toContain('Tracker');
     const css = deliveredCss('dist/index.html');
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\{[^}]*min-height:44px[^}]*flex:1/);
   });
 
   it('the current tab is distinguished by a filled pill, not the underline the desktop nav uses for the same state', () => {
-    const tabBar = readNav('dist/index.html', 'nav.tab-bar');
+    const tabBar = readNav('dist/tracker/index.html', 'nav.tab-bar');
     const current = tabBar?.querySelector('a.current');
     expect(current?.getAttribute('aria-current')).toBe('page');
     expect(current?.querySelector('span.pill')).not.toBeNull();
@@ -72,6 +81,13 @@ describe('bottom tab bar at phone width (AC1)', () => {
     const css = deliveredCss('dist/index.html');
     const tabBarCurrentRule = css.match(/\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\.current\{[^}]*\}/);
     expect(tabBarCurrentRule?.[0]).not.toMatch(/text-decoration:\s*underline/);
+  });
+
+  it('the Cart tab carries a badge element, hidden until a client script fills it in (AC1, "CartBadge — never renders at zero")', () => {
+    const tabBar = readNav('dist/index.html', 'nav.tab-bar');
+    const badge = tabBar?.querySelector('a[href="/cart/"] [data-testid="cart-badge-phone"]');
+    expect(badge).not.toBeNull();
+    expect(badge?.hasAttribute('hidden')).toBe(true);
   });
 });
 
@@ -85,16 +101,14 @@ describe('desktop keeps the unchanged header shape, not the tab bar (AC2)', () =
   });
 
   it('the desktop nav keeps its underline current-page treatment, unmoved by this change', () => {
-    const css = deliveredCss('dist/index.html');
+    const css = deliveredCss('dist/tracker/index.html');
     expect(css).toMatch(
       /\.site-nav\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\.current\{[^}]*text-decoration:underline/,
     );
   });
 
   // A human confirms which media query actually wins visually — nothing in
-  // this suite can assert that. See docs/design/48-nav-safe-area-wide.png
-  // and docs/design/48-nav-safe-area-narrow.png, rendered from this same
-  // build with scripts/design-render.
+  // this suite can assert that.
 });
 
 describe('safe-area insets pad for hardware, not just the viewport rectangle (AC4)', () => {
@@ -108,5 +122,16 @@ describe('safe-area insets pad for hardware, not just the viewport rectangle (AC
     const css = deliveredCss('dist/index.html');
     expect(css).toMatch(/\.site-header\[data-astro-cid-[\w-]+\]\{[^}]*env\(safe-area-inset-left\)/);
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\{[^}]*env\(safe-area-inset-right\)/);
+  });
+});
+
+describe('sitewide footer link (AC2, AC5)', () => {
+  it('every page carries a footer link to /about/ reading "What we log, and why"', () => {
+    for (const distPath of ['dist/index.html', 'dist/restaurants/index.html', 'dist/checkout/index.html']) {
+      const window = new Window();
+      window.document.write(readHtml(distPath));
+      const link = window.document.querySelector('.site-footer a[href="/about/"]');
+      expect(link?.textContent).toBe('What we log, and why');
+    }
   });
 });

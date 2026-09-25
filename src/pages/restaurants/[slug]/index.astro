@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { RESTAURANTS } from '../../../lib/restaurants';
+
+export function getStaticPaths() {
+  return RESTAURANTS.map((restaurant) => ({
+    params: { slug: restaurant.slug },
+    props: { restaurant },
+  }));
+}
+
+const { restaurant } = Astro.props;
+---
+
+<BaseLayout title={`${restaurant.name} — Dontdropthatpromo`}>
+  <h1>{restaurant.name}</h1>
+  <p>{restaurant.cuisineTag}</p>
+  <div id="menu-root" data-testid="menu-root" data-slug={restaurant.slug}></div>
+  <script>
+    import { getRestaurant } from '../../../lib/restaurants';
+    import { initMenuPage } from '../../../lib/menu-dom';
+
+    const root = document.getElementById('menu-root');
+    const slug = root?.dataset.slug;
+    const restaurant = slug ? getRestaurant(slug) : undefined;
+    if (root && restaurant) initMenuPage(root, restaurant);
+  </script>
+</BaseLayout>

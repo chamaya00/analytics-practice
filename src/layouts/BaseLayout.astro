@@ -20,5 +20,395 @@ const { title } = Astro.props;
     <main>
       <slot />
     </main>
+    <footer class="site-footer">
+      <a href="/about/">What we log, and why</a>
+    </footer>
   </body>
 </html>
+
+<style is:global>
+  /* Sitewide per docs/design/65-parody-flow.md's "Privacy note" section —
+     same link text and destination as the checkout page's contextual one,
+     so it reads as the same document found twice. Sits under the
+     tab-bar-clearing padding main.astro already reserves at phone width. */
+  .site-footer {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0 var(--space-lg) var(--space-xl);
+    text-align: center;
+  }
+
+  .site-footer a {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* main's own bottom padding (global.css) only clears the fixed tab bar for
+     main's own content — the footer sits after it, so it needs the same
+     clearance or the tab bar covers it at the bottom of the page. */
+  @media (max-width: 480px) {
+    .site-footer {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-xl));
+    }
+  }
+
+  /* Shared component styles for the Dontdropthatpromo parody
+     (docs/design/65-parody-flow.md, docs/design/72-dontdropthatpromo-identity.md),
+     used by more than one page's DOM module — lives here rather than
+     duplicated per page, same reasoning as .reset-button in global.css. All
+     tokens (spacing, color, type) are global.css's own, unchanged. */
+
+  .drop-glyph {
+    color: var(--color-accent-a);
+  }
+
+  .drop-glyph.dropped {
+    color: var(--color-text-muted);
+    opacity: 0.6;
+    transform: rotate(-12deg);
+    display: inline-block;
+  }
+
+  /* ---- landing: order-in-progress banner ---- */
+
+  .order-banner {
+    display: block;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-a);
+    color: var(--color-accent-a);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  /* ---- restaurant list ---- */
+
+  .restaurant-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .restaurant-card {
+    display: block;
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: transform 100ms ease-out;
+    /* docs/design/46-phone-native.md, Touch feedback: no default browser
+       tap-highlight, no text selection or iOS link-preview callout on a
+       long press — every touch target on this site follows it, not only
+       the ones #46 itself introduced. */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+
+  .restaurant-card:active {
+    transform: scale(0.98);
+  }
+
+  .restaurant-card .cuisine-tag,
+  .restaurant-card .eta {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---- menu / cart line items, shared shape ---- */
+
+  .menu-list,
+  .cart-list {
+    list-style: none;
+    margin: 0 0 var(--space-lg);
+    padding: 0;
+  }
+
+  .menu-item-row,
+  .cart-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .menu-item-name,
+  .cart-line-name {
+    flex: 1;
+    min-width: 8rem;
+  }
+
+  .menu-item-price,
+  .cart-line-total {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-muted);
+  }
+
+  .quantity-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .quantity-stepper button {
+    min-width: 44px;
+    min-height: 44px;
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .quantity-count {
+    min-width: 1.5rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .add-button,
+  .remove-button {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .cart-summary {
+    position: sticky;
+    bottom: 0;
+    display: block;
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-accent-a);
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+  }
+
+  .cart-subtotal {
+    font-weight: 700;
+  }
+
+  /* ---- checkout fields: preset choices only, nothing typed ---- */
+
+  .checkout-field {
+    margin-bottom: var(--space-sm);
+  }
+
+  .checkout-field h2 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .mini-field {
+    margin-bottom: var(--space-md);
+  }
+
+  .mini-label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .chip {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chip.selected {
+    color: var(--color-accent-a);
+    border-color: var(--color-accent-a);
+    font-weight: 700;
+  }
+
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--color-border);
+  }
+
+  .segmented button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: none;
+    border-right: 1px solid var(--color-border);
+    cursor: pointer;
+  }
+
+  .segmented button:last-child {
+    border-right: none;
+  }
+
+  .segmented button.selected {
+    color: var(--color-bg);
+    background: var(--color-accent-b);
+    font-weight: 700;
+  }
+
+  .privacy-note {
+    margin: 0 0 var(--space-lg);
+  }
+
+  .privacy-note a {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .place-order {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-align: center;
+    text-decoration: none;
+    color: var(--color-bg);
+    background: var(--color-accent-a);
+    border: none;
+    cursor: pointer;
+    transition: transform 100ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+
+  .place-order:active {
+    transform: scale(0.98);
+  }
+
+  .place-order:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  /* ---- order placed ---- */
+
+  .order-placed-mark {
+    color: var(--color-accent-a);
+    margin: var(--space-lg) 0;
+  }
+
+  /* ---- tracker stepper ---- */
+
+  .stepper {
+    list-style: none;
+    margin: var(--space-lg) 0 0;
+    padding: 0;
+    border-left: 2px solid var(--color-border);
+  }
+
+  .stepper li {
+    position: relative;
+    padding: 0 0 var(--space-lg) var(--space-lg);
+  }
+
+  .stepper li:last-child {
+    padding-bottom: 0;
+  }
+
+  .stepper li::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+  }
+
+  .stepper li.done::before {
+    background: var(--color-accent-a);
+    border-color: var(--color-accent-a);
+  }
+
+  .stepper li.current::before {
+    background: var(--color-accent-b);
+    border-color: var(--color-accent-b);
+  }
+
+  .stepper li.done .step-label,
+  .stepper li.current .step-label {
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .stepper li .step-label {
+    color: var(--color-text-muted);
+  }
+
+  .flavor-text {
+    margin: var(--space-md) 0 0;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  .given-up,
+  [data-testid='tracker-empty'] {
+    text-align: center;
+    padding: var(--space-xl) 0;
+  }
+
+  .given-up .headline {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: var(--space-lg) 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .order-placed-mark,
+    .drop-glyph {
+      transition: none;
+      animation: none;
+    }
+  }
+</style>

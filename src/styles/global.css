@@ -86,6 +86,11 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   margin: 0 0 var(--space-md);
+  /* The landing page's wordmark is one unbreakable word (#72 keeps it
+     run-together on purpose) and overflows a 375px viewport at this size
+     without this (driver review, #67) — lets it break mid-word rather than
+     widen the page, instead of inserting spaces the identity doesn't want. */
+  overflow-wrap: anywhere;
 }
 
 h2 {

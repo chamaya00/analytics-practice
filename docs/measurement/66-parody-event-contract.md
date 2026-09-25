@@ -94,7 +94,7 @@ One row per event; `props` is the `jsonb` object each event's
 | `restaurant_opened` | Every load of `/restaurants/<slug>`. | `restaurant_slug: string, 1–60 chars, lowercase kebab-case`. | Fires once per page load; `restaurant_slug` must be one the compiled site actually built (the sender never constructs one from user input — there is no free-text entry point that could feed it something else). |
 | `cart_viewed` | Every load of `/cart`, populated or empty. | `item_count: integer, 0–999`; `subtotal_cents: integer, 0–100000`. | Both reflect cart state at page load, including the empty state (`item_count: 0`). |
 | `checkout_viewed` | Every load of `/checkout`. | `item_count: integer, 1–999`; `subtotal_cents: integer, 1–100000`. | `/checkout` is only reachable from a populated cart (design doc, "Cart"), so `item_count` is never 0 here — a 0 would mean the flow was entered somewhere it shouldn't be reachable from. |
-| `order_placed` | Once, when "Place order" is tapped and the order record is written to browser storage — independent of whether the Supabase write itself succeeds (best-effort, never blocking; design doc, checkout). | `order_id: uuid`; `item_count: integer, 1–999`; `subtotal_cents: integer, 1–100000`; `drop_off_spot: enum [couch, wherever_i_am, the_void, behind_you]`; `rider_instructions: enum [leave_and_run, knock_loudly, dont_knock, surprise_me]`; `utensils: boolean`; `tip_percent: enum [0, 10, 15, 20]`. | Exactly one `order_placed` per `order_id` — the "Place order" control must disable itself on first tap so a double-tap cannot fire it twice for the same order. |
+| `order_placed` | Once, when "Place order" is tapped and the order record is written to browser storage — independent of whether the Supabase write itself succeeds (best-effort, never blocking; design doc, checkout). | `order_id: uuid`; `item_count: integer, 1–999`; `subtotal_cents: integer, 1–100000`; `drop_off_spot: enum [couch, wherever_i_am, the_void, behind_you]`; `handling_instructions: enum [guard_it, wing_it, two_hands, surprise_me]`; `utensils: boolean`; `tip_percent: enum [0, 10, 15, 20]`; `promo_code: enum [dont_drop10, still_here, clumsy15, gotcha]`. | Exactly one `order_placed` per `order_id` — the "Place order" control must disable itself on first tap so a double-tap cannot fire it twice for the same order. |
 | `tracker_viewed` | Every load of `/tracker` that finds a stored order (design doc states 7a–7d). **Not** fired for state 7e (no active order — nothing to view). | `order_id: uuid`; `minutes_since_order: number, ≥0`; `view_number: integer, ≥1`. | `view_number` increments by exactly 1 each time this fires for the same `order_id`, and never resets or decreases — `view_number: 1` is "viewed," anything higher is a refresh or return, which is how this one event covers both without a second event name. |
 | `order_abandoned` | The "Start over" control on the tracker's given-up state (7d) is tapped, clearing the stored order. This is the *only* control this event is wired to — no other exit or navigation counts. | `order_id: uuid`; `minutes_since_order: number, ≥0`; `view_count: integer, ≥1` (the last `tracker_viewed.view_number` seen for this order). | Exactly one per `order_id` that is explicitly cleared this way; an order nobody ever returns to clear produces zero — see §7. |
 
@@ -195,11 +195,11 @@ Required content, plain language:
 > - **Which screens you visit and when** — landing, restaurants, a
 >   restaurant's menu, your cart, checkout, and the tracker (including
 >   every time you come back to check on your order).
-> - **The choices you make at checkout** — your joke drop-off spot,
->   instructions for the ghost rider, whether you want utensils, and your
->   tip percentage. There is no name, address, phone number, email, or
->   payment field anywhere in this app for us to log, because we never ask
->   for one.
+> - **The choices you make at checkout** — your joke drop-off spot, your
+>   handling instructions (mostly about the promo), whether you want
+>   utensils, your tip percentage, and the promo code you pick. There is no
+>   name, address, phone number, email, or payment field anywhere in this
+>   app for us to log, because we never ask for one.
 >
 > **What we don't log:** anything that identifies you as a real person.
 > No account, no card, no email, no address, no cross-site tracking cookie.
