@@ -80,3 +80,18 @@ describe('no page rubber-band during a card drag (AC4)', () => {
     expect(rule).toContain('overscroll-behavior:contain');
   });
 });
+
+describe('cart badge never renders at zero (driver review, #67)', () => {
+  it('a hidden cart badge is display:none, not an empty flex dot', () => {
+    const rules = css.match(/\.cart-badge(?:\[[^\]]*\])*\{[^}]*\}/g) ?? [];
+    const hiddenRule = rules.find((rule) => rule.includes('[hidden]') && rule.includes('display:none'));
+    expect(hiddenRule, `expected a .cart-badge[hidden] rule with display:none among: ${rules.join(' / ')}`).toBeTruthy();
+  });
+});
+
+describe('landing hero wordmark fits at 375px (driver review, #67)', () => {
+  it('h1 allows the run-together wordmark to break rather than overflow the viewport', () => {
+    const rule = css.match(/h1\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('overflow-wrap:anywhere');
+  });
+});

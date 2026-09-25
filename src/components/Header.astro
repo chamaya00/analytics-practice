@@ -140,6 +140,13 @@ const links = [
     justify-content: center;
   }
 
+  /* [hidden] is a browser default of display:none, but the flex rule above
+     has higher specificity and overrides it — without this, an empty cart
+     shows as a blank filled dot on the Cart tab (driver review, #67). */
+  .cart-badge[hidden] {
+    display: none;
+  }
+
   @media (max-width: 480px) {
     .site-header {
       justify-content: flex-start;
