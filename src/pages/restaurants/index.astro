@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { RESTAURANTS } from '../../lib/restaurants';
+---
+
+<BaseLayout title="Restaurants — Dontdropthatpromo">
+  <h1>Restaurants</h1>
+  <ul class="restaurant-list" data-testid="restaurant-list">
+    {
+      RESTAURANTS.map((restaurant) => (
+        <li>
+          <a class="restaurant-card" href={`/restaurants/${restaurant.slug}/`} data-testid={`restaurant-${restaurant.slug}`}>
+            <span class="restaurant-name">{restaurant.name}</span>
+            <span class="cuisine-tag">{restaurant.cuisineTag}</span>
+            <span class="eta">{restaurant.eta}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <script>
+    import { initRestaurantsPage } from '../../lib/restaurants-dom';
+
+    initRestaurantsPage();
+  </script>
+</BaseLayout>

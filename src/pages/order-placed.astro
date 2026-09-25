@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Order placed — Dontdropthatpromo">
+  <h1>Order placed</h1>
+  <div id="order-placed-root" data-testid="order-placed-root"></div>
+  <script>
+    import { initOrderPlacedPage } from '../lib/order-placed-dom';
+
+    const root = document.getElementById('order-placed-root');
+    if (root) initOrderPlacedPage(root);
+  </script>
+</BaseLayout>

@@ -30,9 +30,9 @@ describe('dark theme palette (AC1)', () => {
 
 describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
   const cases: Array<[string, RegExp]> = [
-    ['the card', /\.swipe-card\{[^}]*\}/],
+    ['the primary CTA (place-order)', /\.place-order\{[^}]*\}/],
     ['a tab bar link', /\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\{[^}]*\}/],
-    ['the end-state link', /\[data-testid=swipe-card-end\] a\{[^}]*\}/],
+    ['a restaurant card link', /\.restaurant-card\{[^}]*\}/],
     ['the start-over button', /\.reset-button\{[^}]*\}/],
   ];
 
@@ -41,16 +41,16 @@ describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
     expect(rule).toContain('-webkit-tap-highlight-color:transparent');
   });
 
-  it('the card defines a visible :active pressed rule', () => {
-    expect(css).toMatch(/\.swipe-card:active\{[^}]*transform:[^}]*\}/);
+  it('the primary CTA (place-order) defines a visible :active pressed rule', () => {
+    expect(css).toMatch(/\.place-order:active\{[^}]*transform:[^}]*\}/);
   });
 
   it('a tab bar link defines a visible :active pressed rule', () => {
     expect(css).toMatch(/\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]:active\{[^}]*transform:[^}]*\}/);
   });
 
-  it('the end-state link defines a visible :active pressed rule', () => {
-    expect(css).toMatch(/\[data-testid=swipe-card-end\] a:active\{[^}]*transform:[^}]*\}/);
+  it('a restaurant card link defines a visible :active pressed rule', () => {
+    expect(css).toMatch(/\.restaurant-card:active\{[^}]*transform:[^}]*\}/);
   });
 
   it('the start-over button clears the 44px touch floor and defines a visible :active pressed rule', () => {
@@ -61,9 +61,9 @@ describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
 
 describe('touch feedback: no text selection on press-and-hold (AC3)', () => {
   const cases: Array<[string, RegExp]> = [
-    ['the card', /\.swipe-card\{[^}]*\}/],
+    ['the primary CTA (place-order)', /\.place-order\{[^}]*\}/],
     ['a tab bar link', /\.tab-bar\[data-astro-cid-[\w-]+\]\s*a\[data-astro-cid-[\w-]+\]\{[^}]*\}/],
-    ['the end-state link', /\[data-testid=swipe-card-end\] a\{[^}]*\}/],
+    ['a restaurant card link', /\.restaurant-card\{[^}]*\}/],
     ['the start-over button', /\.reset-button\{[^}]*\}/],
   ];
 
