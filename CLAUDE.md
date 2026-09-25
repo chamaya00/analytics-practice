@@ -3,13 +3,24 @@
 ## What this is
 
 A site that gives a hands-on introduction to product analytics work, taking a
-beginner through to senior-level technical ability.
+beginner through to senior-level technical ability. Every screen fires real
+events at a hosted store the owner can query with SQL, so there is an actual
+aggregate to practise reading, not a simulated one.
 
 ## Stack
 
 Astro (static output, no server adapter), TypeScript, Vitest, ESLint.
 Hosting: Vercel, zero-configuration static detection. See ADR 0001
 (`docs/decisions/0001-framework-choice.md`) for why.
+
+Events are stored in Supabase Postgres, written by a direct browser insert
+over the Data API with a publishable key - no Vercel function, no server
+adapter, ADR 0001's static/no-adapter build unchanged. This amends ADR
+0001's original "no backend and no database" wording: the site now sends
+events to a hosted database it does not run, though it still has no backend
+of its own. See ADR 0005 (`docs/decisions/0005-hosted-event-store.md`) for
+the store, the write path, and the anti-spam bounds enforced in
+`supabase/migrations/`.
 
 ## Commands
 
