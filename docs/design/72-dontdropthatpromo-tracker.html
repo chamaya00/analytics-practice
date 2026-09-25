@@ -1,0 +1,352 @@
+<!doctype html>
+<!--
+  Mock for docs/design/72-dontdropthatpromo-identity.md — tracker screen,
+  Direction 1 (Precious Cargo), dark theme. Built from
+  docs/design/65-parody-tracker.html with tokens, layout, and the stepper
+  mechanics untouched; every edit here is the wordmark, the mark glyph
+  (held/dropped states), and the flavor text named in 72's replacement
+  table.
+
+  Shows all five states the flow spec names for /tracker (7a-7e), stacked
+  top to bottom with a labeled eyebrow above each — a real product only
+  ever shows one at a time; this file shows all of them so a reader can
+  compare without opening five separate mocks. State 7b is the primary
+  "never delivers" state the acceptance criteria asks to see: the stepper
+  stopped solid at "On the way," forever.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dontdropthatpromo — tracker mock, all states</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #1c1712;
+    --color-surface: #241e17;
+    --color-text: #f0e6d2;
+    --color-text-muted: #b3a58c;
+    --color-border: #45392c;
+    --color-accent-a: #7fb2e8;
+    --color-accent-b: #e8935a;
+    --color-tab-active-bg: #382d20;
+
+    --mock-safe-top: 24px;
+    --mock-safe-bottom: 20px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.5;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 var(--space-sm);
+  }
+
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-lg);
+    padding-top: max(var(--space-sm), var(--mock-safe-top));
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-name {
+    margin: 0;
+    font-size: var(--font-size-nav-title);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .drop-glyph { color: var(--color-accent-a); vertical-align: -4px; }
+  .drop-glyph.dropped { color: var(--color-text-muted); opacity: 0.6; vertical-align: baseline; transform: rotate(-12deg); display: inline-block; }
+
+  .site-nav { display: flex; gap: var(--space-md); }
+  .site-nav a { color: var(--color-text); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+  .site-nav a.current { text-decoration: underline; }
+
+  .tab-bar { display: none; }
+
+  main {
+    max-width: 32rem;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  .state-block {
+    padding-bottom: var(--space-xxl);
+    margin-bottom: var(--space-xxl);
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .state-block:last-child { border-bottom: none; }
+
+  .state-eyebrow {
+    display: inline-block;
+    margin: 0 0 var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+  }
+
+  .state-eyebrow.primary {
+    color: var(--color-bg);
+    background: var(--color-accent-b);
+    border-color: var(--color-accent-b);
+    font-weight: 700;
+  }
+
+  .flavor-text {
+    margin: var(--space-md) 0 0;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  /* ---- stepper ---- */
+
+  .stepper {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 2px solid var(--color-border);
+  }
+
+  .stepper li {
+    position: relative;
+    padding: 0 0 var(--space-lg) var(--space-lg);
+  }
+
+  .stepper li:last-child { padding-bottom: 0; }
+
+  .stepper li::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+  }
+
+  .stepper li.done::before {
+    background: var(--color-accent-a);
+    border-color: var(--color-accent-a);
+  }
+
+  .stepper li.current::before {
+    background: var(--color-accent-b);
+    border-color: var(--color-accent-b);
+  }
+
+  .stepper li.done .step-label,
+  .stepper li.current .step-label {
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .stepper li .step-label {
+    color: var(--color-text-muted);
+  }
+
+  .stepper li.current .step-label::after {
+    content: ' — still going';
+    font-weight: 400;
+    font-style: italic;
+    color: var(--color-accent-b);
+  }
+
+  /* ---- given-up state (7d) ---- */
+
+  .given-up {
+    text-align: center;
+    padding: var(--space-xl) 0;
+  }
+
+  .given-up p.headline {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: var(--space-lg) 0;
+  }
+
+  .start-over {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+  }
+
+  /* ---- empty state (7e) ---- */
+
+  .empty-state {
+    text-align: center;
+    padding: var(--space-xl) 0;
+    color: var(--color-text-muted);
+  }
+
+  .empty-state .browse-link {
+    display: inline-block;
+    margin-top: var(--space-lg);
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
+    color: var(--color-bg);
+    background: var(--color-accent-a);
+    text-decoration: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  @media (max-width: 480px) {
+    .site-header { justify-content: flex-start; border-bottom: none; }
+    .site-header .site-nav { display: none; }
+
+    .tab-bar {
+      display: flex;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding-bottom: max(var(--space-sm), var(--mock-safe-bottom));
+    }
+
+    .tab-bar a {
+      flex: 1;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-sm);
+    }
+
+    .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+
+    .tab-bar a.current .pill {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-md);
+      background: var(--color-tab-active-bg);
+      border-radius: 999px;
+    }
+
+    main { padding-bottom: calc(56px + var(--mock-safe-bottom) + var(--space-xl)); }
+  }
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <p class="site-name"><svg class="drop-glyph" width="14" height="20" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 2C4 2 8 0.5 12 2"/><line x1="8" y1="2" x2="8" y2="8"/><path d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z" fill="currentColor" stroke="none"/></svg> Dontdropthatpromo</p>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#">Restaurants</a>
+      <a href="#">Cart</a>
+      <a href="#" class="current" aria-current="page">Tracker</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Tracker</h1>
+
+    <!-- STATE: 7a - fresh, first minute, steps filling in -->
+    <div class="state-block">
+      <span class="state-eyebrow">State 7a — just placed</span>
+      <ul class="stepper" aria-live="polite">
+        <li class="done"><span class="step-label">Placed</span></li>
+        <li class="done"><span class="step-label">Preparing</span></li>
+        <li class="current"><span class="step-label">Picked up</span></li>
+        <li><span class="step-label">On the way</span></li>
+      </ul>
+      <p class="flavor-text">Your promo is still in your hand. Don't jinx it.</p>
+    </div>
+
+    <!-- STATE: 7b - settled, same visit. This is the "never delivers" state. -->
+    <div class="state-block">
+      <span class="state-eyebrow primary">State 7b — stalled (the "never delivers" state)</span>
+      <ul class="stepper" aria-live="polite">
+        <li class="done"><span class="step-label">Placed</span></li>
+        <li class="done"><span class="step-label">Preparing</span></li>
+        <li class="done"><span class="step-label">Picked up</span></li>
+        <li class="current"><span class="step-label">On the way</span></li>
+      </ul>
+      <p class="flavor-text">Still holding it. Still not dropped. That's something.</p>
+    </div>
+
+    <!-- STATE: 7c - refresh or return same day, elapsed time keeps counting -->
+    <div class="state-block">
+      <span class="state-eyebrow">State 7c — refreshed, 3h12m later</span>
+      <ul class="stepper" aria-live="polite">
+        <li class="done"><span class="step-label">Placed</span></li>
+        <li class="done"><span class="step-label">Preparing</span></li>
+        <li class="done"><span class="step-label">Picked up</span></li>
+        <li class="current"><span class="step-label">On the way</span></li>
+      </ul>
+      <p class="flavor-text">3 hours 12 minutes and counting. New personal record.</p>
+    </div>
+
+    <!-- STATE: 7d - return much later, given up (24h+ cut) -->
+    <div class="state-block">
+      <div class="given-up">
+        <span class="state-eyebrow">State 7d — given up (24h+ later)</span>
+        <p class="drop-glyph dropped"><svg width="28" height="42" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z" fill="currentColor" stroke="none"/></svg></p>
+        <p class="headline">Well. We dropped it.</p>
+        <button type="button" class="start-over">Start over</button>
+      </div>
+    </div>
+
+    <!-- STATE: 7e - no active order stored, visited /tracker directly -->
+    <div class="state-block">
+      <div class="empty-state">
+        <span class="state-eyebrow">State 7e — nothing to track</span>
+        <p>Nothing to track yet. Go order something that won't arrive.</p>
+        <a href="#" class="browse-link">Browse restaurants</a>
+      </div>
+    </div>
+  </main>
+
+  <nav class="tab-bar" aria-label="Primary">
+    <a href="#">Restaurants</a>
+    <a href="#">Cart</a>
+    <a href="#" class="current" aria-current="page"><span class="pill">Tracker</span></a>
+  </nav>
+</body>
+</html>

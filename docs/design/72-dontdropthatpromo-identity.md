@@ -189,10 +189,10 @@ itself does:
 | Restaurant name (example) | "Ghost Kitchen" | "Fumble & Sons" |
 | Restaurant name (example) | "Sisyphus Sushi" | "One Job Pizza" |
 | Restaurant name (example) | "The Long Wait Diner" | "Try Not To Wok" |
-| Checkout group heading | "Instructions for the ghost rider" | "Handling instructions (for the promo, mostly)" |
-| Checkout group option | "Leave it & run" | "Guard it with your life" |
-| Checkout group option | "Knock loudly" | "Eh, wing it" |
-| Checkout group option | "Don't knock" | "Two hands, at all times" |
+| Checkout group heading | "Instructions for the ghost rider" | "Handling instructions" |
+| Checkout group option | "Leave it & run" | "Guard it" |
+| Checkout group option | "Knock loudly" | "Wing it" |
+| Checkout group option | "Don't knock" | "Two hands" |
 | Checkout group option | "Surprise me" | "Surprise me" (unchanged — not ghost-specific, already fits the new voice) |
 | Tracker 7a flavor text | "Your rider is nearby (allegedly)." | "Your promo is still in your hand. Don't jinx it." |
 | Tracker 7b flavor text (the never-delivers state) | "Still on the way. Any minute now." | "Still holding it. Still not dropped. That's something." |
@@ -221,13 +221,17 @@ constraint that carried over from #63:
   before the order submits. Defaults to the first option, so checkout stays
   reachable in one tap with zero required input, same guarantee 65 already
   established for the other four fields.
-  - **DONTDROPTHIS10** (default)
-  - **STILLHOLDINGIT**
-  - **BUTTERFINGERS**
-  - **CAUGHTYA**
+  - **DONTDROP10** (default)
+  - **STILLHERE**
+  - **CLUMSY15**
+  - **GOTCHA**
 
   Flavor only — nothing is charged anywhere in this flow, the same as the
-  tip selector 65 already specifies and defends on identical grounds.
+  tip selector 65 already specifies and defends on identical grounds. Short
+  by design: the first render at 375px cropped before "Place order" once a
+  fifth field was added (see critique, below), and shorter codes wrapping
+  two-per-row bought back the room a longer, more literal set of codes would
+  have cost.
 
 ## What this changes in the event contract — named for #67/#72's successor, not edited here
 
@@ -245,8 +249,10 @@ so the next child can act without re-deriving it:
    promo code you pick" (no other property, since it carries no personal
    data any more than the existing four already don't).
 2. **`order_placed.props`, §4.** Needs one new key:
-   `promo_code: enum [dont_drop_this10, still_holding_it, butterfingers,
-   caught_ya]`. Every other event's props (`landing_viewed`,
+   `promo_code: enum [dont_drop10, still_here, clumsy15, gotcha]`
+   (matching the checkout options' on-screen values above, lowercased and
+   snake_cased the way `rider_instructions`' own keys already are). Every
+   other event's props (`landing_viewed`,
    `restaurants_viewed`, `restaurant_opened`, `cart_viewed`,
    `checkout_viewed`, `tracker_viewed`, `order_abandoned`) are unaffected —
    none of them ever carried a checkout-field value.
@@ -274,7 +280,49 @@ committed alongside as four PNGs.
 
 ## Critique, after opening the four rendered pictures
 
-(Filled in after rendering — see below.)
+- **The first narrow checkout render repeated 65's own finding, for the same
+  reason.** Adding a fifth field (Promo code) without changing anything else
+  cropped the render before "What we log, and why" and "Place order"
+  entirely — the exact failure 65's critique already found and fixed for
+  four fields, back the moment a fifth arrived. Fixed the same way 65 did,
+  one step further: shortened "Handling instructions (for the promo,
+  mostly)" to "Handling instructions" (one line instead of two), shortened
+  its four chip labels so they wrap three-per-row instead of two ("Guard
+  it," "Wing it," "Two hands," "Surprise me"), shortened the four promo-code
+  values so they wrap two-per-row instead of three rows for four chips
+  ("DONTDROP10," "STILLHERE," "CLUMSY15," "GOTCHA"), and tightened narrow-
+  only spacing (section margins, chip-group gap, the lede and privacy-note
+  margins) rather than touching any chip's 44px tap target. Re-rendered
+  three times until "Place order" cleared the fixed tab bar with the whole
+  button visible, not just its top edge.
+- **Checkout, wide:** the eye lands on "DONTDROPTHATPROMO" first, then the
+  five preset groups reading top-to-bottom, "Place order" last — same
+  intended order 65 established, confirmed by looking rather than assumed;
+  the fifth group didn't change what the eye does, only how far it travels.
+- **Checkout, narrow (after the fix):** all five fields, the privacy line,
+  and the full submit button are visible with no scrolling past the tab
+  bar; no chip label clips at 375px.
+- **Tracker, wide:** blurring my eyes, the same composition 65 found
+  survives — wordmark / stepper / flavor line, the stepper still the
+  largest weight on the screen. The drop glyph is small enough in the
+  header that it doesn't compete with the stepper for attention, which is
+  correct — it's a signature, not the punchline.
+- **Tracker, narrow:** state 7a and the full primary state 7b (the never-
+  delivers state) are both visible without scrolling, unchanged from 65's
+  own finding that 7b needs to sit second in the stack to guarantee this.
+  States 7c–7e exist in the file for a reader who opens it, not in either
+  screenshot — the same accurate trade 65 made, not re-litigated here.
+- Covering the accent color with my hand on both tracker renders: the
+  filled-vs-unfilled step distinction still reads from weight and fill
+  alone, unchanged from 65 since this document doesn't touch the stepper's
+  markup or CSS, only the wordmark, glyph, and flavor text around it.
+- **What I'd remove if forced to cut one thing:** the parenthetical
+  "(guard this)" on the Promo code heading — it's doing the same job as the
+  heading text alone once the group's position (last, right before the
+  privacy note and submit) already signals "this is the new, extra-careful
+  one." It stayed because it's short enough not to have cost anything in
+  the narrow fix, and a bare "Promo code" heading reads as more functional
+  than the identity's voice wants anywhere on this screen.
 
 ## No ADR
 

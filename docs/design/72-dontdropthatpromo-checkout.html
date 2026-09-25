@@ -1,0 +1,383 @@
+<!doctype html>
+<!--
+  Mock for docs/design/72-dontdropthatpromo-identity.md — checkout screen,
+  Direction 1 (Precious Cargo), dark theme. Built from
+  docs/design/65-parody-checkout.html with tokens and layout untouched;
+  every edit here is the wordmark, the mark glyph, the Instructions group,
+  the new Promo code group, and the nav's active state (checkout isn't the
+  Tracker tab, which the source file had wrong).
+
+  Shows the one state checkout has: every field defaulted to a preset
+  choice, nothing typed anywhere, "what we log and why" placed directly
+  above the submit action.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dontdropthatpromo — checkout mock</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #1c1712;
+    --color-surface: #241e17;
+    --color-text: #f0e6d2;
+    --color-text-muted: #b3a58c;
+    --color-border: #45392c;
+    --color-accent-a: #7fb2e8;
+    --color-accent-b: #e8935a;
+    --color-tab-active-bg: #382d20;
+
+    /* mock-only: a fake safe-area value so the insets are visible in the
+       render — a real device supplies env(safe-area-inset-*) itself. */
+    --mock-safe-top: 24px;
+    --mock-safe-bottom: 20px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.5;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 var(--space-sm);
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 var(--space-sm);
+    color: var(--color-text-muted);
+  }
+
+  /* ---- header: same component 46-phone-native.md specified, unchanged ---- */
+
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-lg);
+    padding-top: max(var(--space-sm), var(--mock-safe-top));
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-name {
+    margin: 0;
+    font-size: var(--font-size-nav-title);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .drop-glyph { color: var(--color-accent-a); vertical-align: -4px; }
+
+  .site-nav {
+    display: flex;
+    gap: var(--space-md);
+  }
+
+  .site-nav a {
+    color: var(--color-text);
+    text-decoration: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .site-nav a.current {
+    text-decoration: underline;
+  }
+
+  .tab-bar { display: none; }
+
+  main {
+    max-width: 32rem;
+    margin: 0 auto;
+    padding: var(--space-lg);
+  }
+
+  p.lede {
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-md);
+  }
+
+  /* ---- checkout fields: preset choices only, nothing typed ---- */
+
+  .checkout-field {
+    margin-bottom: var(--space-sm);
+  }
+
+  .checkout-field h2 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .mini-field {
+    margin-bottom: var(--space-md);
+  }
+
+  .mini-label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .chip {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chip.selected {
+    color: var(--color-accent-a);
+    border-color: var(--color-accent-a);
+    font-weight: 700;
+  }
+
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--color-border);
+  }
+
+  .segmented button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: var(--space-sm) var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: none;
+    border-right: 1px solid var(--color-border);
+    cursor: pointer;
+  }
+
+  .segmented button:last-child { border-right: none; }
+
+  .segmented button.selected {
+    color: var(--color-bg);
+    background: var(--color-accent-b);
+    font-weight: 700;
+  }
+
+  .privacy-note {
+    margin: 0 0 var(--space-lg);
+  }
+
+  .privacy-note a {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .place-order {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-bg);
+    background: var(--color-accent-a);
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (max-width: 480px) {
+    .site-header { justify-content: flex-start; border-bottom: none; }
+    .site-header .site-nav { display: none; }
+
+    .tab-bar {
+      display: flex;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding-bottom: max(var(--space-sm), var(--mock-safe-bottom));
+    }
+
+    .tab-bar a {
+      flex: 1;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-sm);
+      position: relative;
+    }
+
+    .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+
+    .tab-bar a.current .pill {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-md);
+      background: var(--color-tab-active-bg);
+      border-radius: 999px;
+    }
+
+    .cart-badge {
+      position: absolute;
+      top: 2px;
+      right: calc(50% - 26px);
+      min-width: 16px;
+      height: 16px;
+      padding: 0 3px;
+      border-radius: 999px;
+      background: var(--color-accent-a);
+      color: var(--color-bg);
+      font-size: 0.625rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    main {
+      padding-top: var(--space-xs);
+      padding-bottom: calc(56px + var(--mock-safe-bottom) + var(--space-md));
+    }
+
+    /* Five fields need tighter rhythm than four did at this width, or the
+       last field pushes "Place order" under the fixed tab bar — the same
+       failure 65's own narrow render found with four fields, now back with
+       a fifth. Tightened here rather than by shrinking a tap target. */
+    h1 { margin-bottom: var(--space-xs); }
+    .checkout-field { margin-bottom: var(--space-xs); }
+    .checkout-field h2 { margin-bottom: var(--space-xs); }
+    .chip-group { gap: var(--space-xs); }
+    p.lede { margin-bottom: var(--space-xs); }
+    .privacy-note { margin-bottom: var(--space-xs); }
+  }
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <p class="site-name"><svg class="drop-glyph" width="14" height="20" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 2C4 2 8 0.5 12 2"/><line x1="8" y1="2" x2="8" y2="8"/><path d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z" fill="currentColor" stroke="none"/></svg> Dontdropthatpromo</p>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#">Restaurants</a>
+      <a href="#">Cart</a>
+      <a href="#">Tracker</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Checkout</h1>
+    <p class="lede">Five choices. Nothing typed.</p>
+
+    <section class="checkout-field">
+      <h2>Drop-off spot</h2>
+      <div class="chip-group" role="radiogroup" aria-label="Drop-off spot">
+        <button type="button" class="chip selected" aria-pressed="true">My couch</button>
+        <button type="button" class="chip">Wherever I am</button>
+        <button type="button" class="chip">The void</button>
+        <button type="button" class="chip">Behind you</button>
+      </div>
+    </section>
+
+    <section class="checkout-field">
+      <h2>Handling instructions</h2>
+      <div class="chip-group" role="radiogroup" aria-label="Handling instructions">
+        <button type="button" class="chip selected" aria-pressed="true">Guard it</button>
+        <button type="button" class="chip">Wing it</button>
+        <button type="button" class="chip">Two hands</button>
+        <button type="button" class="chip">Surprise me</button>
+      </div>
+    </section>
+
+    <section class="checkout-field">
+      <div class="mini-field">
+        <span class="mini-label">Utensils &amp; napkins</span>
+        <div class="segmented" role="radiogroup" aria-label="Utensils and napkins">
+          <button type="button" class="selected" aria-pressed="true">Yes</button>
+          <button type="button">No</button>
+        </div>
+      </div>
+
+      <div class="mini-field">
+        <span class="mini-label">Tip for the rider</span>
+        <div class="segmented" role="radiogroup" aria-label="Tip for the rider">
+          <button type="button" class="selected" aria-pressed="true">0%</button>
+          <button type="button">10%</button>
+          <button type="button">15%</button>
+          <button type="button">20%</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="checkout-field">
+      <h2>Promo code (guard this)</h2>
+      <div class="chip-group" role="radiogroup" aria-label="Promo code">
+        <button type="button" class="chip selected" aria-pressed="true">DONTDROP10</button>
+        <button type="button" class="chip">STILLHERE</button>
+        <button type="button" class="chip">CLUMSY15</button>
+        <button type="button" class="chip">GOTCHA</button>
+      </div>
+    </section>
+
+    <p class="privacy-note"><a href="#">What we log, and why →</a></p>
+
+    <button type="button" class="place-order">Place order — it's free, no really</button>
+  </main>
+
+  <nav class="tab-bar" aria-label="Primary">
+    <a href="#">Restaurants</a>
+    <a href="#">
+      Cart
+      <span class="cart-badge">2</span>
+    </a>
+    <a href="#">Tracker</a>
+  </nav>
+</body>
+</html>
