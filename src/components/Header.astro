@@ -6,13 +6,34 @@ interface Props {
 const { currentPath } = Astro.props;
 
 const links = [
-  { href: '/', label: 'Swipe poll' },
-  { href: '/results/', label: 'Results' },
+  { href: '/restaurants/', label: 'Restaurants' },
+  { href: '/cart/', label: 'Cart' },
+  { href: '/tracker/', label: 'Tracker' },
 ];
 ---
 
 <header class="site-header">
-  <p class="site-name">Analytics practice</p>
+  <p class="site-name">
+    <svg
+      class="drop-glyph"
+      width="14"
+      height="20"
+      viewBox="0 0 16 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      aria-hidden="true"
+    >
+      <path d="M4 2C4 2 8 0.5 12 2" />
+      <line x1="8" y1="2" x2="8" y2="8" />
+      <path
+        d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+    Dontdropthatpromo
+  </p>
   <nav aria-label="Primary" class="site-nav">
     {
       links.map((link) => {
@@ -20,6 +41,7 @@ const links = [
         return (
           <a href={link.href} aria-current={isCurrent ? 'page' : undefined} class:list={{ current: isCurrent }}>
             {link.label}
+            {link.label === 'Cart' && <span class="cart-badge" data-testid="cart-badge" hidden></span>}
           </a>
         );
       })
@@ -34,11 +56,18 @@ const links = [
       return (
         <a href={link.href} aria-current={isCurrent ? 'page' : undefined} class:list={{ current: isCurrent }}>
           {isCurrent ? <span class="pill">{link.label}</span> : link.label}
+          {link.label === 'Cart' && <span class="cart-badge" data-testid="cart-badge-phone" hidden></span>}
         </a>
       );
     })
   }
 </nav>
+
+<script>
+  import { initCartBadge } from '../lib/header-dom';
+
+  initCartBadge(document);
+</script>
 
 <style>
   .site-header {
@@ -53,11 +82,19 @@ const links = [
 
   .site-name {
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
     font-size: var(--font-size-nav-title);
     font-weight: 800;
     line-height: 1.2;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+
+  .drop-glyph {
+    color: var(--color-accent-a);
+    vertical-align: -4px;
   }
 
   .site-nav {
@@ -66,6 +103,7 @@ const links = [
   }
 
   .site-nav a {
+    position: relative;
     display: inline-flex;
     align-items: center;
     min-height: 44px;
@@ -82,6 +120,24 @@ const links = [
      on desktop/tablet so nav is never shown in two places at once. */
   .tab-bar {
     display: none;
+  }
+
+  /* The small filled count circle on the Cart destination — docs/design/65-parody-flow.md,
+     Nav: "only rendered when the count is greater than zero", toggled by
+     header-dom.ts rather than shown/hidden here. */
+  .cart-badge {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    margin-left: var(--space-xs);
+    border-radius: 999px;
+    background: var(--color-accent-a);
+    color: var(--color-bg);
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   @media (max-width: 480px) {
@@ -113,6 +169,7 @@ const links = [
     }
 
     .tab-bar a {
+      position: relative;
       flex: 1;
       min-height: 44px;
       display: flex;
@@ -149,6 +206,13 @@ const links = [
       padding: var(--space-xs) var(--space-md);
       background: var(--color-tab-active-bg);
       border-radius: 999px;
+    }
+
+    .tab-bar .cart-badge {
+      position: absolute;
+      top: 2px;
+      right: calc(50% - 26px);
+      margin-left: 0;
     }
   }
 </style>

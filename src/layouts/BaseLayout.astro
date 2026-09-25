@@ -20,5 +20,37 @@ const { title } = Astro.props;
     <main>
       <slot />
     </main>
+    <footer class="site-footer">
+      <a href="/about/">What we log, and why</a>
+    </footer>
   </body>
 </html>
+
+<style is:global>
+  /* Sitewide per docs/design/65-parody-flow.md's "Privacy note" section —
+     same link text and destination as the checkout page's contextual one,
+     so it reads as the same document found twice. Sits under the
+     tab-bar-clearing padding main.astro already reserves at phone width. */
+  .site-footer {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0 var(--space-lg) var(--space-xl);
+    text-align: center;
+  }
+
+  .site-footer a {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* main's own bottom padding (global.css) only clears the fixed tab bar for
+     main's own content — the footer sits after it, so it needs the same
+     clearance or the tab bar covers it at the bottom of the page. */
+  @media (max-width: 480px) {
+    .site-footer {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-xl));
+    }
+  }
+</style>
