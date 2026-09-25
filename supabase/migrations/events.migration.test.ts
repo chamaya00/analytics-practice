@@ -7,7 +7,7 @@
 // @electric-sql/pglite, a WASM build of actual Postgres (not a JS
 // reimplementation — see docs/decisions/0006-pglite-for-migration-tests.md)
 // entirely in-process: no server to start, no service to configure in CI.
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
@@ -157,6 +157,65 @@ describe('rate limit trigger refuses a too-frequent insert from one IP (AC6, ADR
     ]);
     await expect(insertEvent({})).resolves.toBeDefined();
     await db.query("select set_config('request.headers', '', false)", []);
+  });
+
+  it('refuses the 61st write even when the leftmost x-forwarded-for entry rotates on every request (driver review on #68)', async () => {
+    for (let i = 0; i < 60; i += 1) {
+      await db.query("select set_config('request.headers', $1, false)", [
+        JSON.stringify({ 'x-forwarded-for': `10.0.0.${i}, 203.0.113.55` }),
+      ]);
+      await expect(insertEvent({})).resolves.toBeDefined();
+    }
+
+    await db.query("select set_config('request.headers', $1, false)", [
+      JSON.stringify({ 'x-forwarded-for': '10.0.0.200, 203.0.113.55' }),
+    ]);
+    await expect(insertEvent({})).rejects.toThrow();
+    await db.query("select set_config('request.headers', '', false)", []);
+  });
+
+  it("keys on cf-connecting-ip over x-forwarded-for when both are present, since the client can't set the former", async () => {
+    for (let i = 0; i < 60; i += 1) {
+      await db.query("select set_config('request.headers', $1, false)", [
+        JSON.stringify({ 'cf-connecting-ip': '198.51.100.90', 'x-forwarded-for': `10.0.0.${i}` }),
+      ]);
+      await expect(insertEvent({})).resolves.toBeDefined();
+    }
+
+    await db.query("select set_config('request.headers', $1, false)", [
+      JSON.stringify({ 'cf-connecting-ip': '198.51.100.90', 'x-forwarded-for': '10.0.0.200' }),
+    ]);
+    await expect(insertEvent({})).rejects.toThrow();
+    await db.query("select set_config('request.headers', '', false)", []);
+  });
+});
+
+describe('the rate limit IP hash is salted (AC6, ADR 0005 §4)', () => {
+  it('does not store the plain, unsalted sha256 of the client IP', async () => {
+    const ip = '203.0.113.201';
+    await db.query("select set_config('request.headers', $1, false)", [
+      JSON.stringify({ 'x-forwarded-for': ip }),
+    ]);
+    await expect(insertEvent({})).resolves.toBeDefined();
+    await db.query("select set_config('request.headers', '', false)", []);
+
+    await db.query('reset role');
+    const plainHash = createHash('sha256').update(ip).digest('hex');
+    const result = await db.query<{ ip_hash: string }>(
+      'select ip_hash from private.write_log order by created_at desc limit 1',
+    );
+    expect(result.rows[0].ip_hash).not.toBe(plainHash);
+    await db.query('set role anon');
+  });
+});
+
+describe('events_clean is a queryable pass-through view (AC6, ADR 0005 §5)', () => {
+  it('returns the same rows as the raw table', async () => {
+    await db.query('reset role');
+    const raw = await db.query('select count(*) as count from public.events');
+    const clean = await db.query('select count(*) as count from public.events_clean');
+    expect(clean.rows).toEqual(raw.rows);
+    await db.query('set role anon');
   });
 });
 

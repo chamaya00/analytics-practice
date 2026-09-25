@@ -164,6 +164,19 @@ create table private.write_log (
 
 create index write_log_ip_hash_created_at_idx on private.write_log (ip_hash, created_at);
 
+-- Salts the IP hash below. Generated once, here, at migration time, so the
+-- hash is never unsalted by default — nothing has to remember to configure
+-- it. Lives in `private`, which `anon` has no grant on at all, and is read
+-- only by the SECURITY DEFINER function below, so nobody who can reach the
+-- Data API can read it back out.
+create table private.rate_limit_salt (
+  id boolean primary key default true,
+  salt bytea not null,
+  constraint rate_limit_salt_single_row check (id)
+);
+
+insert into private.rate_limit_salt (salt) values (gen_random_bytes(32));
+
 -- security definer: anon has no grant on the private schema at all (the
 -- point of putting write_log there), so this must run as the function's
 -- owner rather than the inserting role. search_path is pinned so a
@@ -176,18 +189,39 @@ set search_path = public, private, pg_temp
 as $$
 declare
   headers jsonb;
+  xff text;
+  xff_parts text[];
   client_ip text;
+  v_salt bytea;
   v_ip_hash text;
   recent_count int;
 begin
   headers := nullif(current_setting('request.headers', true), '')::jsonb;
-  client_ip := nullif(headers ->> 'x-forwarded-for', '');
+
+  -- Prefer a header the client cannot set. `cf-connecting-ip` is set by
+  -- Supabase's edge (fronted by Cloudflare), overwriting any value the
+  -- client sends. Where it's absent, fall back to the rightmost
+  -- `x-forwarded-for` entry — the one the nearest trusted proxy appends —
+  -- rather than the leftmost, which is whatever the client sends and can be
+  -- rotated on every request to defeat this limit entirely: driver review
+  -- on #68 reproduced 200 of 200 spoofed-leftmost inserts accepted against
+  -- this 60-per-5-minute limit. Which header the live project actually
+  -- supplies is an assumption to confirm on the first real deploy — see
+  -- the pull request body.
+  client_ip := nullif(headers ->> 'cf-connecting-ip', '');
+
+  if client_ip is null then
+    xff := nullif(headers ->> 'x-forwarded-for', '');
+    if xff is not null then
+      xff_parts := string_to_array(xff, ',');
+      client_ip := nullif(trim(both ' ' from xff_parts[array_length(xff_parts, 1)]), '');
+    end if;
+  end if;
 
   if client_ip is not null then
-    v_ip_hash := encode(
-      digest(client_ip || coalesce(current_setting('app.rate_limit_salt', true), ''), 'sha256'),
-      'hex'
-    );
+    select salt into v_salt from private.rate_limit_salt;
+
+    v_ip_hash := encode(digest(client_ip::bytea || v_salt, 'sha256'), 'hex');
 
     delete from private.write_log where created_at < now() - interval '1 hour';
 
@@ -210,3 +244,13 @@ create trigger events_rate_limit
   before insert on public.events
   for each row
   execute function public.enforce_write_rate_limit();
+
+-- ADR 0005 §5 / docs/measurement/66-parody-event-contract.md §5-§6: "every
+-- metric is computed from `events_clean`, never raw `events`". A
+-- pass-through view for now — deciding which sequences or rates count as
+-- "humanly impossible" is a measurement judgment for the analyst's
+-- follow-up, not this migration's to invent (driver review on #68). The
+-- raw `events` table stays whole either way; this view is the seam where
+-- exclusion rules land later without any query above it changing.
+create view public.events_clean as
+  select * from public.events;
