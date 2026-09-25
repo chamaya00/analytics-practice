@@ -219,6 +219,30 @@ describe('events_clean is a queryable pass-through view (AC6, ADR 0005 §5)', ()
   });
 });
 
+describe('events_clean does not expose the raw table through Supabase-style default privileges (ADR 0005 §5, driver review round 2 on #68)', () => {
+  it('refuses anon select, update, and delete on events_clean when default privileges grant anon access to every new relation, as Supabase does', async () => {
+    // Supabase's platform runs `alter default privileges ... grant all on
+    // tables to anon` (and `authenticated`) once, before any migration
+    // applies. Reproduced here, before this migration runs, on a separate
+    // instance — the shared `db` above already has this migration applied,
+    // and default privileges only affect objects created after they're set.
+    const supabaseLikeDb = new PGlite({ extensions: { pgcrypto } });
+    await supabaseLikeDb.exec('create role anon nologin;');
+    await supabaseLikeDb.exec('alter default privileges in schema public grant all on tables to anon;');
+    await supabaseLikeDb.exec(MIGRATION_SQL);
+    await supabaseLikeDb.exec('set role anon;');
+
+    await expect(supabaseLikeDb.query('select * from public.events_clean limit 1')).rejects.toThrow();
+    await expect(
+      supabaseLikeDb.query("update public.events_clean set event_name = 'landing_viewed'"),
+    ).rejects.toThrow();
+    await expect(supabaseLikeDb.query('delete from public.events_clean')).rejects.toThrow();
+
+    await supabaseLikeDb.query('reset role');
+    await supabaseLikeDb.close();
+  });
+});
+
 describe('anon cannot read, update, or delete rows (ADR 0005 §1)', () => {
   it('refuses a select as anon', async () => {
     await expect(db.query('select * from public.events limit 1')).rejects.toThrow();

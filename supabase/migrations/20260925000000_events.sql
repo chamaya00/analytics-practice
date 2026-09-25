@@ -252,5 +252,26 @@ create trigger events_rate_limit
 -- follow-up, not this migration's to invent (driver review on #68). The
 -- raw `events` table stays whole either way; this view is the seam where
 -- exclusion rules land later without any query above it changing.
-create view public.events_clean as
+--
+-- `security_invoker = true` so the view runs with the querying role's own
+-- rights, not the view owner's — a default (invoker off) view over a single
+-- table is auto-updatable and runs as the owner, which would let anyone who
+-- can reach it bypass `events`' RLS and grants entirely. Supabase also grants
+-- `anon` (and `authenticated`) default privileges on every new relation in
+-- `public`, so the view is unreadable/unwritable from the outside only once
+-- those grants are explicitly revoked below too (driver review round 2 on
+-- #68: an unguarded pass-through view let anon select, update, and delete
+-- every row through this view despite `events` itself being locked down).
+create view public.events_clean
+  with (security_invoker = true) as
   select * from public.events;
+
+revoke all on public.events_clean from anon;
+
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    execute 'revoke all on public.events_clean from authenticated';
+  end if;
+end
+$$;
