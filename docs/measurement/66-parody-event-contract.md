@@ -1,5 +1,11 @@
 # Event contract: the food-delivery parody funnel
 
+**Superseded by `docs/measurement/81-two-city-event-contract.md` (#81, child
+of objective #79) and kept only as history.** The parody funnel it describes
+(`docs/design/65-parody-flow.md`) is itself superseded by
+`docs/design/80-two-city-brand-and-flow.md`; nothing below — event names,
+props, enum values, or metrics — should be built against again.
+
 Issue: #66 (child of objective #63). Reads `docs/decisions/0005-hosted-event-store.md`
 (store, schema constraints, anti-spam bounds) and `docs/design/65-parody-flow.md`
 (the seven screens, their states, and the checkout fields) as fixed. Neither
