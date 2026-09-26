@@ -77,6 +77,19 @@ only drift. A run started too early refuses, correctly, and still spends one of
 that issue's three attempts. That check is now the orchestrator's to make before
 it queues anything.
 
+**Event tracking comes last, as its own objective.** The owner's rule, set on
+#79. An objective that builds or changes screens ships the product only: no
+event-contract revision, no analyst child, no store migration and no new
+`track()` wiring inside it. What those screens should log gets its own
+follow-up objective, an analytics-readiness pass that runs after the product
+objective is merged. Wiring events into screens that are still being designed
+made #79's split longer, its children larger, and every design change a change
+to the contract as well. Until the readiness objective lands, the product
+objective has to leave existing tracking harmless rather than wrong, because
+the store rejects shapes it doesn't know without reporting it (ADR 0005). Say
+which events will stop or go quiet in the product objective's own
+"For the orchestrator" section.
+
 The human still decides what merges. The orchestrator queues work and reports on
 it; it does not merge a pull request, and it cannot break a child down further -
 that comes back as `needs-decomposition` and a comment on the parent.
