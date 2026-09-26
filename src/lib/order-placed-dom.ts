@@ -5,13 +5,10 @@
 // an empty confirmation.
 
 import { getOrder } from './order-store';
+import { formatMoney } from './money';
 
 export interface OrderPlacedView {
   redirectedToRestaurants: boolean;
-}
-
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export function renderOrderPlaced(
@@ -39,7 +36,7 @@ export function renderOrderPlaced(
   const restaurantNames = [...new Set(order.items.map((line) => line.restaurantName))].join(', ');
   const summary = document.createElement('p');
   summary.setAttribute('data-testid', 'order-placed-summary');
-  summary.textContent = `${order.itemCount} item${order.itemCount === 1 ? '' : 's'} from ${restaurantNames}, ${formatCents(order.subtotalCents)}.`;
+  summary.textContent = `${order.itemCount} item${order.itemCount === 1 ? '' : 's'} from ${restaurantNames}, ${formatMoney(order.amountMinor, order.currency)}.`;
 
   const trackLink = document.createElement('a');
   trackLink.href = '/tracker/';

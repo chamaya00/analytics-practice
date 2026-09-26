@@ -1,15 +1,15 @@
-// Cart screen (docs/design/65-parody-flow.md, screen 4): populated (line
-// items, subtotal, Checkout CTA) or empty ("Nothing here yet." plus a CTA
-// back to Restaurants — reachable either by never adding anything or by
-// removing the last item, so it's an explicit state rather than an edge case).
+// Cart screen (docs/design/80-two-city-brand-and-flow.md, "Cart"): populated
+// (line items, subtotal, delivery-fee preview, "Go to checkout") or empty
+// ("Nothing in your cart yet." plus a CTA back to the home feed — reachable
+// either by never adding anything or by removing the last item, so it's an
+// explicit state rather than an edge case).
 
-import { cartItemCount, cartSubtotalCents, getCart, removeFromCart, setItemQuantity } from './order-store';
+import { cartItemCount, cartSubtotalMinor, getCart, removeFromCart, setItemQuantity } from './order-store';
+import { getRestaurant } from './restaurants';
+import { formatMoney, currencyForCity } from './money';
+import { getStoredCity } from './location';
 import { initCartBadge } from './header-dom';
 import { track } from './tracking';
-
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
 
 export function renderCart(root: HTMLElement, storage: Storage): void {
   root.innerHTML = '';
@@ -20,10 +20,10 @@ export function renderCart(root: HTMLElement, storage: Storage): void {
     empty.setAttribute('data-testid', 'cart-empty');
 
     const message = document.createElement('p');
-    message.textContent = 'Nothing here yet.';
+    message.textContent = 'Nothing in your cart yet.';
 
     const link = document.createElement('a');
-    link.href = '/restaurants/';
+    link.href = '/';
     link.className = 'add-button';
     link.textContent = 'Browse restaurants';
 
@@ -31,6 +31,8 @@ export function renderCart(root: HTMLElement, storage: Storage): void {
     root.append(empty);
     return;
   }
+
+  const currency = lines[0].currency;
 
   const list = document.createElement('ul');
   list.className = 'cart-list';
@@ -90,7 +92,7 @@ export function renderCart(root: HTMLElement, storage: Storage): void {
 
     const lineTotal = document.createElement('span');
     lineTotal.className = 'cart-line-total';
-    lineTotal.textContent = formatCents(line.priceCents * line.quantity);
+    lineTotal.textContent = formatMoney(line.amountMinor * line.quantity, line.currency);
 
     row.append(name, stepper, remove, lineTotal);
     list.append(row);
@@ -99,19 +101,32 @@ export function renderCart(root: HTMLElement, storage: Storage): void {
   const subtotal = document.createElement('p');
   subtotal.className = 'cart-subtotal';
   subtotal.setAttribute('data-testid', 'cart-subtotal');
-  subtotal.textContent = `Subtotal: ${formatCents(cartSubtotalCents(lines))}`;
+  subtotal.textContent = `Subtotal: ${formatMoney(cartSubtotalMinor(lines), currency)}`;
+
+  // #80's cart preview: subtotal, delivery fee, and one note pointing at
+  // checkout for the rest — never the full breakdown twice.
+  const deliveryFeeMinor = getRestaurant(lines[0].restaurantSlug)?.deliveryFeeMinor ?? 0;
+  const deliveryPreview = document.createElement('p');
+  deliveryPreview.className = 'cart-delivery-preview';
+  deliveryPreview.setAttribute('data-testid', 'cart-delivery-preview');
+  deliveryPreview.textContent = `Delivery fee: ${formatMoney(deliveryFeeMinor, currency)}`;
+
+  const feeNote = document.createElement('p');
+  feeNote.className = 'cart-fee-note';
+  feeNote.textContent = '+ service fee and any discount at checkout';
 
   const checkoutLink = document.createElement('a');
   checkoutLink.href = '/checkout/';
   checkoutLink.className = 'place-order';
   checkoutLink.setAttribute('data-testid', 'go-to-checkout');
-  checkoutLink.textContent = 'Checkout';
+  checkoutLink.textContent = 'Go to checkout';
 
-  root.append(list, subtotal, checkoutLink);
+  root.append(list, subtotal, deliveryPreview, feeNote, checkoutLink);
 }
 
 export function initCartPage(root: HTMLElement, storage: Storage = window.localStorage): void {
   renderCart(root, storage);
   const lines = getCart(storage);
-  track('cart_viewed', { item_count: cartItemCount(lines), subtotal_cents: cartSubtotalCents(lines) });
+  const currency = lines[0]?.currency ?? currencyForCity(getStoredCity(storage) ?? 'sf');
+  track('cart_viewed', { item_count: cartItemCount(lines), amount_minor: cartSubtotalMinor(lines), currency });
 }

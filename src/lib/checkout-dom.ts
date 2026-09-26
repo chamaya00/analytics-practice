@@ -1,49 +1,44 @@
-// Checkout screen (docs/design/65-parody-flow.md, screen 5;
-// docs/design/72-dontdropthatpromo-identity.md's field table): five preset-
-// choice fields, all single-select, nothing typed anywhere, every field
-// defaulted so checkout is reachable in one tap. "Place order" disables
-// itself on first tap (docs/measurement/66-parody-event-contract.md §4's
+// Checkout screen (docs/design/80-two-city-brand-and-flow.md, "Checkout"):
+// two preset-choice fields (Drop-off, Delivery instructions), a utensils
+// toggle, a price breakdown (Subtotal, Delivery fee, Service fee, Total —
+// no Offers row, Discount line or "You saved" line yet, #89's scope), a demo
+// disclosure directly above the CTA, and "Place order" — nothing typed
+// anywhere. "Place order" disables itself on first tap (contract §7's
 // invariant) so a double-tap cannot fire two order_placed events for one
-// order_id (issue #67 AC3).
+// order_id.
 
-import { cartItemCount, cartSubtotalCents, getCart, placeOrder } from './order-store';
-import type { DropOffSpot, HandlingInstructions, PromoCode, TipPercent } from './tracking';
+import {
+  cartItemCount,
+  cartSubtotalMinor,
+  computeCheckoutBreakdown,
+  getCart,
+  placeOrder,
+  type CheckoutBreakdown,
+} from './order-store';
+import type { DeliveryInstructions, DropOffPreset } from './tracking';
 import { track } from './tracking';
+import { formatMoney } from './money';
+import { getRestaurant } from './restaurants';
 
 interface ChoiceOption<T> {
   value: T;
   label: string;
 }
 
-const DROP_OFF_OPTIONS: ChoiceOption<DropOffSpot>[] = [
-  { value: 'couch', label: 'My couch' },
-  { value: 'wherever_i_am', label: 'Wherever I am' },
-  { value: 'the_void', label: 'The void' },
-  { value: 'behind_you', label: 'Behind you' },
+const DROP_OFF_OPTIONS: ChoiceOption<DropOffPreset>[] = [
+  { value: 'home', label: 'Home' },
+  { value: 'office', label: 'Office' },
+  { value: 'front_desk', label: 'Front desk' },
 ];
 
-const HANDLING_OPTIONS: ChoiceOption<HandlingInstructions>[] = [
-  { value: 'guard_it', label: 'Guard it' },
-  { value: 'wing_it', label: 'Wing it' },
-  { value: 'two_hands', label: 'Two hands' },
-  { value: 'surprise_me', label: 'Surprise me' },
+const DELIVERY_INSTRUCTIONS_OPTIONS: ChoiceOption<DeliveryInstructions>[] = [
+  { value: 'leave_at_door', label: 'Leave at door' },
+  { value: 'hand_to_me', label: 'Hand to me' },
+  { value: 'meet_downstairs', label: 'Meet downstairs' },
+  { value: 'call_on_arrival', label: 'Call on arrival' },
 ];
 
-const TIP_OPTIONS: ChoiceOption<TipPercent>[] = [
-  { value: 0, label: '0%' },
-  { value: 10, label: '10%' },
-  { value: 15, label: '15%' },
-  { value: 20, label: '20%' },
-];
-
-const PROMO_OPTIONS: ChoiceOption<PromoCode>[] = [
-  { value: 'dont_drop10', label: 'DONTDROP10' },
-  { value: 'still_here', label: 'STILLHERE' },
-  { value: 'clumsy15', label: 'CLUMSY15' },
-  { value: 'gotcha', label: 'GOTCHA' },
-];
-
-/** The chip/segmented button row itself, always one selected — docs/design/65-parody-flow.md's PresetChoiceGroup, "must never render with nothing selected". Defaults to the first option. */
+/** The chip/segmented button row itself, always one selected — must never render with nothing selected. Defaults to the first option. */
 function choiceButtons<T extends string | number>(
   legend: string,
   options: ChoiceOption<T>[],
@@ -103,8 +98,63 @@ function choiceField<T extends string | number>(
   return { element: wrapper, getValue };
 }
 
+function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'checkout-breakdown';
+  wrapper.setAttribute('data-testid', 'checkout-breakdown');
+
+  function row(testId: string, label: string, amountMinor: number, extraClass?: string): HTMLElement {
+    const el = document.createElement('div');
+    el.className = extraClass ? `breakdown-row ${extraClass}` : 'breakdown-row';
+    el.setAttribute('data-testid', testId);
+    const labelEl = document.createElement('span');
+    labelEl.className = 'muted';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('span');
+    valueEl.textContent = formatMoney(amountMinor, breakdown.currency);
+    el.append(labelEl, valueEl);
+    return el;
+  }
+
+  wrapper.append(
+    row('breakdown-subtotal', 'Subtotal', breakdown.subtotalMinor),
+    row('breakdown-delivery-fee', 'Delivery fee', breakdown.deliveryFeeMinor),
+    row('breakdown-service-fee', 'Service fee', breakdown.serviceFeeMinor),
+  );
+
+  const total = document.createElement('div');
+  total.className = 'breakdown-row total';
+  total.setAttribute('data-testid', 'breakdown-total');
+  const totalLabel = document.createElement('span');
+  totalLabel.textContent = 'Total';
+  const totalValue = document.createElement('span');
+  totalValue.textContent = formatMoney(breakdown.totalMinor, breakdown.currency);
+  total.append(totalLabel, totalValue);
+  wrapper.append(total);
+
+  return wrapper;
+}
+
+/** #80's "Demo disclosure" — sits directly above "Place order", identical copy everywhere it appears. */
+function renderDemoDisclosure(): HTMLElement {
+  const disclosure = document.createElement('div');
+  disclosure.className = 'demo-disclosure';
+  disclosure.setAttribute('data-testid', 'demo-disclosure');
+
+  const text = document.createElement('span');
+  text.textContent = 'This is a demo. No payment is taken and no food is sent. ';
+
+  const link = document.createElement('a');
+  link.href = '/about/';
+  link.textContent = 'What we log, and why →';
+
+  text.append(link);
+  disclosure.append(text);
+  return disclosure;
+}
+
 export interface CheckoutView {
-  redirectedToEmptyCart: boolean;
+  cartIsEmpty: boolean;
 }
 
 export function renderCheckout(
@@ -118,14 +168,31 @@ export function renderCheckout(
 
   const lines = getCart(storage);
   if (lines.length === 0) {
-    // AC9: an empty /checkout redirects to /cart rather than rendering a
-    // screen with nothing to submit.
-    navigate('/cart/');
-    return { redirectedToEmptyCart: true };
+    // #80's checkout "Empty" state: an inline message and a CTA back to the
+    // home feed, never a $0.00/₫0 breakdown that looks like a bug.
+    const empty = document.createElement('div');
+    empty.setAttribute('data-testid', 'checkout-empty');
+
+    const message = document.createElement('p');
+    message.textContent = 'Your cart is empty.';
+
+    const link = document.createElement('a');
+    link.href = '/';
+    link.className = 'add-button';
+    link.textContent = 'Browse restaurants';
+
+    empty.append(message, link);
+    root.append(empty);
+    return { cartIsEmpty: true };
   }
 
-  const dropOff = choiceField('Drop-off spot', DROP_OFF_OPTIONS, 'drop-off', 'chip-group');
-  const handling = choiceField('Handling instructions', HANDLING_OPTIONS, 'handling', 'chip-group');
+  const dropOff = choiceField('Drop-off', DROP_OFF_OPTIONS, 'drop-off', 'chip-group');
+  const deliveryInstructions = choiceField(
+    'Delivery instructions',
+    DELIVERY_INSTRUCTIONS_OPTIONS,
+    'delivery-instructions',
+    'chip-group',
+  );
 
   const UTENSILS_OPTIONS: ChoiceOption<'yes' | 'no'>[] = [
     { value: 'yes', label: 'Yes' },
@@ -150,26 +217,23 @@ export function renderCheckout(
   }
 
   const utensilsField = miniField('Utensils & napkins', UTENSILS_OPTIONS, 'utensils', 'field-utensils');
-  const tipField = miniField('Tip for the rider', TIP_OPTIONS, 'tip', 'field-tip');
 
   const miniFields = document.createElement('section');
   miniFields.className = 'checkout-field';
-  miniFields.append(utensilsField.element, tipField.element);
+  miniFields.append(utensilsField.element);
 
-  const promo = choiceField('Promo code (guard this)', PROMO_OPTIONS, 'promo', 'chip-group');
+  const deliveryFeeMinor = getRestaurant(lines[0].restaurantSlug)?.deliveryFeeMinor ?? 0;
+  const breakdown = computeCheckoutBreakdown(lines, deliveryFeeMinor);
+  if (breakdown === null) return { cartIsEmpty: true };
+  const breakdownEl = renderBreakdown(breakdown);
 
-  const privacy = document.createElement('p');
-  privacy.className = 'privacy-note';
-  const privacyLink = document.createElement('a');
-  privacyLink.href = '/about/';
-  privacyLink.textContent = 'What we log, and why →';
-  privacy.append(privacyLink);
+  const disclosure = renderDemoDisclosure();
 
   const placeOrderButton = document.createElement('button');
   placeOrderButton.type = 'button';
   placeOrderButton.className = 'place-order';
   placeOrderButton.setAttribute('data-testid', 'place-order');
-  placeOrderButton.textContent = "Place order — it's free, no really";
+  placeOrderButton.textContent = 'Place order';
 
   let placing = false;
   placeOrderButton.addEventListener('click', () => {
@@ -181,29 +245,28 @@ export function renderCheckout(
     placeOrderButton.disabled = true;
 
     const order = placeOrder(storage, {
-      dropOffSpot: dropOff.getValue(),
-      handlingInstructions: handling.getValue(),
+      dropOffPreset: dropOff.getValue(),
+      deliveryInstructions: deliveryInstructions.getValue(),
       utensils: utensilsField.getValue() === 'yes',
-      tipPercent: tipField.getValue(),
-      promoCode: promo.getValue(),
     });
 
     track('order_placed', {
       order_id: order.orderId,
       item_count: order.itemCount,
-      subtotal_cents: order.subtotalCents,
-      drop_off_spot: order.dropOffSpot,
-      handling_instructions: order.handlingInstructions,
+      amount_minor: order.amountMinor,
+      currency: order.currency,
+      drop_off_preset: order.dropOffPreset,
+      delivery_instructions: order.deliveryInstructions,
       utensils: order.utensils,
-      tip_percent: order.tipPercent,
-      promo_code: order.promoCode,
+      applied_voucher_ids: order.appliedVoucherIds,
+      saved_amount_minor: order.savedAmountMinor,
     });
 
     navigate('/order-placed/');
   });
 
-  root.append(dropOff.element, handling.element, miniFields, promo.element, privacy, placeOrderButton);
-  return { redirectedToEmptyCart: false };
+  root.append(dropOff.element, deliveryInstructions.element, miniFields, breakdownEl, disclosure, placeOrderButton);
+  return { cartIsEmpty: false };
 }
 
 export function initCheckoutPage(
@@ -214,8 +277,12 @@ export function initCheckoutPage(
   },
 ): void {
   const view = renderCheckout(root, storage, navigate);
-  if (view.redirectedToEmptyCart) return;
+  if (view.cartIsEmpty) return;
 
   const lines = getCart(storage);
-  track('checkout_viewed', { item_count: cartItemCount(lines), subtotal_cents: cartSubtotalCents(lines) });
+  track('checkout_viewed', {
+    item_count: cartItemCount(lines),
+    amount_minor: cartSubtotalMinor(lines),
+    currency: lines[0].currency,
+  });
 }

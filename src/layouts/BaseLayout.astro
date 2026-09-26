@@ -431,6 +431,16 @@ const { title } = Astro.props;
     font-weight: 700;
   }
 
+  .cart-delivery-preview {
+    color: var(--color-text-muted);
+  }
+
+  .cart-fee-note {
+    margin-top: 0;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
   /* ---- checkout fields: preset choices only, nothing typed ---- */
 
   .checkout-field {
@@ -515,6 +525,49 @@ const { title } = Astro.props;
     font-size: var(--font-size-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  /* ---- checkout price breakdown (#80: Subtotal, Delivery fee, Service fee,
+     Total — #89 adds Discount/"You saved" lines to this same block) ---- */
+
+  .checkout-breakdown {
+    margin: var(--space-md) 0;
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-xs) 0;
+  }
+
+  .breakdown-row .muted {
+    color: var(--color-text-muted);
+  }
+
+  .breakdown-row.total {
+    font-weight: 800;
+    font-size: var(--font-size-h2);
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+  }
+
+  /* ---- demo disclosure (#80): sits directly above "Place order" and above
+     the tracker's Delivered-state rating prompt ---- */
+
+  .demo-disclosure {
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    font-size: var(--font-size-muted);
+  }
+
+  .demo-disclosure a {
+    color: var(--color-accent-a);
+    font-weight: 700;
   }
 
   .place-order {
