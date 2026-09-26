@@ -142,3 +142,54 @@ describe('cart/checkout breakdown, chip groups and CTA fit at 375px (#94 review 
     expect(rule).not.toMatch(/width:\d+px/);
   });
 });
+
+describe('Offers screen voucher icons stay explicitly sized at 375px (driver review, #89 revision round 1)', () => {
+  // Before this round's styling fix, .badge and .voucher-expiry rendered
+  // their SVGs at intrinsic size with no width/height rule at all, so each
+  // voucher row measured roughly 330px wide on its own (driver review on
+  // PR #97). These assert the sizing rule exists at all - not `?? ''`,
+  // which would let a renamed or dropped selector pass silently - before
+  // checking what it constrains the icon to.
+  it('.badge svg is explicitly sized rather than left at its intrinsic width', () => {
+    const rules = css.match(/\.badge svg\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .badge svg rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('width:18px');
+    expect(rules[0]).toContain('height:18px');
+  });
+
+  it('.voucher-expiry svg is explicitly sized rather than left at its intrinsic width', () => {
+    const rules = css.match(/\.voucher-expiry svg\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .voucher-expiry svg rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('width:13px');
+    expect(rules[0]).toContain('height:13px');
+  });
+
+  it('.voucher-main clears its flex min-width floor so its text truncates instead of forcing the row wider', () => {
+    const rules = css.match(/\.voucher-main\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .voucher-main rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('min-width:0');
+  });
+});
+
+describe('flash-deal sheet renders as a fixed overlay above the feed, not page content (driver review, #89 revision round 1)', () => {
+  // Before this round's styling fix, .flash-sheet-overlay had no position
+  // rule at all, so the scrim and sheet sat in normal page flow under the
+  // last restaurant card instead of covering the viewport as a modal
+  // (driver review on PR #97).
+  it('.flash-sheet-overlay covers the full viewport rather than sitting in page flow', () => {
+    const rules = css.match(/\.flash-sheet-overlay\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .flash-sheet-overlay rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('position:fixed');
+    expect(rules[0]).toContain('inset:0');
+  });
+
+  it('.flash-sheet-overlay .sheet is pinned to the viewport edges rather than a fixed pixel width that could overflow at 375px', () => {
+    const rules = css.match(/\.flash-sheet-overlay \.sheet\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .flash-sheet-overlay .sheet rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    const rule = rules[0];
+    expect(rule).toContain('position:fixed');
+    expect(rule).toContain('left:0');
+    expect(rule).toContain('right:0');
+    expect(rule).not.toMatch(/(?<!max-)width:\d+px/);
+  });
+});
