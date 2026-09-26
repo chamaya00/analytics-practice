@@ -146,6 +146,44 @@ describe('renderOffers — drop-below-minimum removes an applied voucher (AC1)',
   });
 });
 
+describe('renderOffers — the unlock moment and prefers-reduced-motion (AC2)', () => {
+  it('a voucher that just became qualifying carries the unlock-sweep class', () => {
+    // Start below every threshold, then cross ₫100.000 so hcmc-discount-t1 newly qualifies.
+    window.localStorage.setItem('parody.cart', JSON.stringify([{ ...HCMC_LINE, amountMinor: 90000, quantity: 1 }]));
+    const first = root();
+    renderOffers(first, window.localStorage, window.sessionStorage);
+
+    window.localStorage.setItem('parody.cart', JSON.stringify([{ ...HCMC_LINE, amountMinor: 120000, quantity: 1 }]));
+    const second = root();
+    renderOffers(second, window.localStorage, window.sessionStorage);
+
+    expect(second.querySelector('[data-testid="voucher-row-hcmc-discount-t1"]')?.classList).toContain(
+      'voucher-row-unlocking',
+    );
+  });
+
+  it('under prefers-reduced-motion: reduce, the same transition applies with no sweep class', () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ matches: query.includes('reduce') }) as MediaQueryList) as typeof window.matchMedia;
+
+    try {
+      window.localStorage.setItem('parody.cart', JSON.stringify([{ ...HCMC_LINE, amountMinor: 90000, quantity: 1 }]));
+      const first = root();
+      renderOffers(first, window.localStorage, window.sessionStorage);
+
+      window.localStorage.setItem('parody.cart', JSON.stringify([{ ...HCMC_LINE, amountMinor: 120000, quantity: 1 }]));
+      const second = root();
+      renderOffers(second, window.localStorage, window.sessionStorage);
+
+      const row = second.querySelector('[data-testid="voucher-row-hcmc-discount-t1"]');
+      expect(row?.classList).not.toContain('voucher-row-unlocking');
+      expect(row?.classList).toContain('qualified'); // the state change itself still applies, just without the sweep
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+});
+
 describe('renderOffers — the flash voucher (AC2, AC4)', () => {
   it('a larger live flash draw beats t2 and is the one auto-selected', () => {
     addToCart(window.localStorage, HCMC_LINE);
