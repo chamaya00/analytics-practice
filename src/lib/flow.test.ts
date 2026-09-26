@@ -59,11 +59,12 @@ describe('home → restaurant → items → cart → checkout → order-placed �
     initOrderPlacedPage(root(), window.localStorage, vi.fn());
 
     const trackerRoot = root();
-    initTrackerPage(trackerRoot, window.localStorage, vi.fn());
+    initTrackerPage(trackerRoot, window.localStorage);
 
     const names = events.map(([name]) => name);
     expect(names).not.toContain('landing_viewed');
     expect(names).not.toContain('restaurants_viewed');
+    expect(names).not.toContain('order_abandoned');
 
     expect(events.find(([name]) => name === 'location_selected')?.[1]).toEqual({ city: 'sf', is_switch: false });
     expect(events.find(([name]) => name === 'home_viewed')?.[1]).toEqual({ city: 'sf' });
@@ -72,8 +73,11 @@ describe('home → restaurant → items → cart → checkout → order-placed �
       restaurant_slug: restaurant.slug,
     });
 
-    // The current tracker (#83's to finish) never resolves yet.
-    expect(trackerRoot.textContent).not.toMatch(/delivered/i);
+    // No fake clock in this test, so no time has passed since order_placed —
+    // the tracker sits at "Placed", not yet Delivered.
+    expect(trackerRoot.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
+      'Placed',
+    );
     expect(trackerRoot.querySelector('[data-testid="tracker-empty"]')).toBeNull();
   });
 

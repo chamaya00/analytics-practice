@@ -208,3 +208,22 @@ describe('#94’s three events still complete with no error when the store env v
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
+
+describe('#83’s tracker events still complete with no error when the store env vars are unset (AC3)', () => {
+  it('tracker_viewed, order_delivered, and rating_submitted all call track() without throwing or reaching the network', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', '');
+    const fetchImpl = vi.fn();
+    vi.stubGlobal('fetch', fetchImpl);
+    initTracking();
+
+    expect(() =>
+      track('tracker_viewed', { order_id: ORDER_ID, minutes_since_order: 0, view_number: 1 }),
+    ).not.toThrow();
+    expect(() => track('order_delivered', { order_id: ORDER_ID, minutes_since_order: 7 })).not.toThrow();
+    expect(() =>
+      track('rating_submitted', { order_id: ORDER_ID, stars: 5, tags: ['fast'] }),
+    ).not.toThrow();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});

@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { computeTrackerView, FRESH_MS, GIVEN_UP_MS } from './tracker-state';
+import {
+  computeTrackerView,
+  DELIVERED_MS,
+  ON_THE_WAY_MS,
+  PICKED_UP_MS,
+  PREPARING_MS,
+} from './tracker-state';
 import type { PlacedOrder } from './order-store';
 
-function orderPlacedAt(msAgo: number): PlacedOrder {
+function orderPlacedAt(msAgo: number, rating: PlacedOrder['rating'] = null): PlacedOrder {
   return {
     orderId: 'order-1',
     placedAt: new Date(Date.now() - msAgo).toISOString(),
@@ -16,46 +22,69 @@ function orderPlacedAt(msAgo: number): PlacedOrder {
     appliedVoucherIds: [],
     savedAmountMinor: 0,
     viewCount: 0,
+    deliveredEventFired: false,
+    rating,
   };
 }
 
 describe('computeTrackerView (AC1)', () => {
-  it('is empty with no order — the tracker never shows a delivered state, and this is the "nothing to show" floor', () => {
+  it('is empty with no order', () => {
     expect(computeTrackerView(null)).toEqual({ kind: 'empty' });
   });
 
-  it('is fresh just after placing, stepping through steps by elapsed time', () => {
+  it('is at "Placed" (step 0) just after placing', () => {
     const view = computeTrackerView(orderPlacedAt(0));
-    expect(view.kind).toBe('fresh');
-    if (view.kind === 'fresh') expect(view.currentStepIndex).toBe(0);
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 0 });
   });
 
-  it('advances the current step as elapsed time within the fresh window grows', () => {
-    const view = computeTrackerView(orderPlacedAt(FRESH_MS - 1000));
-    expect(view.kind).toBe('fresh');
-    if (view.kind === 'fresh') expect(view.currentStepIndex).toBe(3);
+  it('advances to "Preparing" (step 1) at the preparing threshold', () => {
+    const view = computeTrackerView(orderPlacedAt(PREPARING_MS));
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 1 });
   });
 
-  it('settles on "On the way" once the fresh window passes, and never advances to a fifth/delivered step', () => {
-    const view = computeTrackerView(orderPlacedAt(FRESH_MS + 1000));
-    expect(view.kind).toBe('settled');
+  it('is still on "Placed" one millisecond short of the preparing threshold', () => {
+    const view = computeTrackerView(orderPlacedAt(PREPARING_MS - 1));
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 0 });
   });
 
-  it('is still settled, never delivered, arbitrarily far short of the give-up cutoff', () => {
-    const view = computeTrackerView(orderPlacedAt(GIVEN_UP_MS - 1000));
-    expect(view.kind).toBe('settled');
+  it('advances to "Picked up" (step 2) at the picked-up threshold', () => {
+    const view = computeTrackerView(orderPlacedAt(PICKED_UP_MS));
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 2 });
   });
 
-  it('gives up at the 24h cutoff', () => {
-    const view = computeTrackerView(orderPlacedAt(GIVEN_UP_MS));
-    expect(view).toEqual({ kind: 'given-up' });
+  it('advances to "On the way" (step 3) at the on-the-way threshold', () => {
+    const view = computeTrackerView(orderPlacedAt(ON_THE_WAY_MS));
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 3 });
+  });
+
+  it('is still on "On the way", not yet delivered, one millisecond short of the delivered threshold', () => {
+    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS - 1));
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 3 });
+  });
+
+  it('reaches Delivered, unrated, at the delivered threshold', () => {
+    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS));
+    expect(view).toEqual({ kind: 'delivered', rated: false });
+  });
+
+  it('stays Delivered arbitrarily long after the threshold — the tracker never stalls or resets', () => {
+    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS + 24 * 60 * 60 * 1000));
+    expect(view).toEqual({ kind: 'delivered', rated: false });
+  });
+
+  it('reports the stored rating once one has been submitted', () => {
+    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS, { stars: 4, tags: ['fast'] }));
+    expect(view).toEqual({ kind: 'delivered', rated: true, stars: 4, tags: ['fast'] });
   });
 
   it('reading the same stored order twice in a row never resets — elapsed time only ever counts up (AC1, "refresh never resets")', () => {
-    const order = orderPlacedAt(FRESH_MS + 1000);
+    const order = orderPlacedAt(ON_THE_WAY_MS);
     const first = computeTrackerView(order, Date.now());
     const second = computeTrackerView(order, Date.now() + 5000);
-    expect(first.kind).toBe('settled');
-    expect(second.kind).toBe('settled');
+    expect(first).toEqual({ kind: 'active', currentStepIndex: 3 });
+    expect(second.kind).toBe('active');
+    if (first.kind === 'active' && second.kind === 'active') {
+      expect(second.currentStepIndex).toBeGreaterThanOrEqual(first.currentStepIndex);
+    }
   });
 });

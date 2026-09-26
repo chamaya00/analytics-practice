@@ -9,13 +9,13 @@
 // server-side check.
 //
 // `location_selected`, `home_viewed`, `restaurant_opened` (#82),
-// `cart_viewed`, `checkout_viewed`, `order_placed` (#94), and now
+// `cart_viewed`, `checkout_viewed`, `order_placed` (#94),
 // `flash_sheet_shown`/`flash_sheet_closed` and `order_placed`'s real voucher
-// fields (#89) are on the merged §7 contract. `tracker_viewed` and
-// `order_abandoned` are left in their pre-#81 shape for #83 to bring forward
-// (#83 also owns retiring `order_abandoned` outright) — a call using the old
-// shape is simply dropped by `isValidEventProps` below rather than reaching
-// the sender.
+// fields (#89), and `tracker_viewed` (unchanged), `order_delivered` and
+// `rating_submitted` (#83) are all on the merged §7 contract. `order_abandoned`
+// is retired outright (#83, contract §6) — its old name is no longer a case
+// below, so a call using it falls to the `default: false` branch and is
+// simply dropped by `isValidEventProps` rather than reaching the sender.
 
 import { CITIES } from './money';
 import { VOUCHER_IDS as CATALOGUE_VOUCHER_IDS } from './vouchers';
@@ -30,7 +30,8 @@ export type EventName =
   | 'flash_sheet_closed'
   | 'order_placed'
   | 'tracker_viewed'
-  | 'order_abandoned';
+  | 'order_delivered'
+  | 'rating_submitted';
 
 export type EventProps = Record<string, string | number | boolean | string[]>;
 
@@ -41,6 +42,10 @@ export type DropOffPreset = (typeof DROP_OFF_PRESETS)[number];
 
 export const DELIVERY_INSTRUCTIONS = ['leave_at_door', 'hand_to_me', 'meet_downstairs', 'call_on_arrival'] as const;
 export type DeliveryInstructions = (typeof DELIVERY_INSTRUCTIONS)[number];
+
+/** `rating_submitted.tags` (contract §7) — the tracker's Delivered-state rating prompt's optional preset tag chips. */
+export const RATING_TAGS = ['fast', 'great_packaging', 'order_was_correct'] as const;
+export type RatingTag = (typeof RATING_TAGS)[number];
 
 /** The ten fixed catalogue voucher ids §7's `order_placed` row names, and `flash_sheet_shown`/`flash_sheet_closed`'s own `restaurant_slugs` draw from — vouchers.ts (#87's catalogue) is the single source, re-exported here so this shape mirror doesn't drift from it. */
 export const VOUCHER_IDS = CATALOGUE_VOUCHER_IDS;
@@ -81,6 +86,13 @@ function isAmountMinorInBounds(value: unknown, currency: unknown, allowZero: boo
 function isValidVoucherIds(value: unknown): value is string[] {
   if (!Array.isArray(value) || value.length > 2) return false;
   if (!value.every((id) => isOneOf(id, VOUCHER_IDS))) return false;
+  return new Set(value).size === value.length;
+}
+
+/** `rating_submitted.tags`: 0–3 known tags, no duplicates (contract §7). */
+function isValidRatingTags(value: unknown): value is RatingTag[] {
+  if (!Array.isArray(value) || value.length > 3) return false;
+  if (!value.every((tag) => isOneOf(tag, RATING_TAGS))) return false;
   return new Set(value).size === value.length;
 }
 
@@ -192,12 +204,18 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
         isNumberAtLeast(props.minutes_since_order, 0) &&
         isIntInRange(props.view_number, 1, Number.MAX_SAFE_INTEGER)
       );
-    case 'order_abandoned':
+    case 'order_delivered':
       return (
-        hasOnly(['order_id', 'minutes_since_order', 'view_count']) &&
+        hasOnly(['order_id', 'minutes_since_order']) &&
         isUuid(props.order_id) &&
-        isNumberAtLeast(props.minutes_since_order, 0) &&
-        isIntInRange(props.view_count, 1, Number.MAX_SAFE_INTEGER)
+        isNumberAtLeast(props.minutes_since_order, 0)
+      );
+    case 'rating_submitted':
+      return (
+        hasOnly(['order_id', 'stars', 'tags']) &&
+        isUuid(props.order_id) &&
+        isIntInRange(props.stars, 1, 5) &&
+        isValidRatingTags(props.tags)
       );
     default:
       return false;

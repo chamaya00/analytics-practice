@@ -11,11 +11,13 @@ import {
   getOrder,
   getSessionId,
   getVisitorId,
+  markOrderDelivered,
   minutesSinceOrder,
   placeOrder,
   recordTrackerView,
   removeFromCart,
   setItemQuantity,
+  submitRating,
 } from './order-store';
 
 const LINE = {
@@ -242,6 +244,59 @@ describe('recordTrackerView (AC3)', () => {
 
   it('does nothing when there is no stored order', () => {
     expect(recordTrackerView(window.localStorage)).toBe(0);
+  });
+});
+
+describe('markOrderDelivered (contract §10)', () => {
+  it('sets deliveredEventFired on the stored order, defaulting to false', () => {
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+    expect(getOrder(window.localStorage)?.deliveredEventFired).toBe(false);
+
+    markOrderDelivered(window.localStorage);
+    expect(getOrder(window.localStorage)?.deliveredEventFired).toBe(true);
+  });
+
+  it('does nothing when there is no stored order', () => {
+    expect(() => markOrderDelivered(window.localStorage)).not.toThrow();
+    expect(getOrder(window.localStorage)).toBeNull();
+  });
+});
+
+describe('submitRating (contract §7’s rating_submitted invariant)', () => {
+  it('records the rating on the stored order, defaulting to null', () => {
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+    expect(getOrder(window.localStorage)?.rating).toBeNull();
+
+    const updated = submitRating(window.localStorage, 4, ['fast']);
+    expect(updated?.rating).toEqual({ stars: 4, tags: ['fast'] });
+    expect(getOrder(window.localStorage)?.rating).toEqual({ stars: 4, tags: ['fast'] });
+  });
+
+  it('returns null and leaves the stored rating untouched on a second call — a second Submit is impossible', () => {
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+    submitRating(window.localStorage, 4, ['fast']);
+
+    expect(submitRating(window.localStorage, 2, [])).toBeNull();
+    expect(getOrder(window.localStorage)?.rating).toEqual({ stars: 4, tags: ['fast'] });
+  });
+
+  it('does nothing when there is no stored order', () => {
+    expect(submitRating(window.localStorage, 4, [])).toBeNull();
   });
 });
 

@@ -22,6 +22,7 @@ import { flashFeeForRestaurant, getFlashDraw } from './flash-deal';
 import { clearOffersState, getOffersState, setOffersState } from './offers-store';
 import { appliedDiscountAmountMinor, appliedVoucherIds, entriesForCity, syncOffersState } from './vouchers';
 import type { City } from './money';
+import { renderDemoDisclosure } from './demo-disclosure';
 
 interface ChoiceOption<T> {
   value: T;
@@ -165,24 +166,6 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
   wrapper.append(total);
 
   return wrapper;
-}
-
-/** #80's "Demo disclosure" — sits directly above "Place order", identical copy everywhere it appears. */
-function renderDemoDisclosure(): HTMLElement {
-  const disclosure = document.createElement('div');
-  disclosure.className = 'demo-disclosure';
-  disclosure.setAttribute('data-testid', 'demo-disclosure');
-
-  const text = document.createElement('span');
-  text.textContent = 'This is a demo. No payment is taken and no food is sent. ';
-
-  const link = document.createElement('a');
-  link.href = '/about/';
-  link.textContent = 'What we log, and why →';
-
-  text.append(link);
-  disclosure.append(text);
-  return disclosure;
 }
 
 export interface CheckoutView {

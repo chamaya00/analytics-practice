@@ -135,7 +135,6 @@ main {
      the results link, and the two read as one pair of controls only at the
      same size. */
   font-size: inherit;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--color-text);
   background: var(--color-surface);

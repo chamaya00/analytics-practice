@@ -58,8 +58,41 @@ describe('isValidEventProps (AC3)', () => {
     expect(
       isValidEventProps('tracker_viewed', { order_id: ORDER_ID, minutes_since_order: 0, view_number: 1 }),
     ).toBe(true);
+    expect(isValidEventProps('order_delivered', { order_id: ORDER_ID, minutes_since_order: 7 })).toBe(true);
+    expect(isValidEventProps('rating_submitted', { order_id: ORDER_ID, stars: 5, tags: [] })).toBe(true);
+  });
+
+  it('rejects the retired order_abandoned shape outright — no case accepts it anymore (contract §6)', () => {
     expect(
-      isValidEventProps('order_abandoned', { order_id: ORDER_ID, minutes_since_order: 12, view_count: 3 }),
+      isValidEventProps('order_abandoned' as never, {
+        order_id: ORDER_ID,
+        minutes_since_order: 12,
+        view_count: 3,
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects rating_submitted with a stars value outside 1–5', () => {
+    expect(isValidEventProps('rating_submitted', { order_id: ORDER_ID, stars: 0, tags: [] })).toBe(false);
+    expect(isValidEventProps('rating_submitted', { order_id: ORDER_ID, stars: 6, tags: [] })).toBe(false);
+  });
+
+  it('rejects rating_submitted with an unknown tag or a duplicate tag', () => {
+    expect(
+      isValidEventProps('rating_submitted', { order_id: ORDER_ID, stars: 4, tags: ['not_a_real_tag'] }),
+    ).toBe(false);
+    expect(
+      isValidEventProps('rating_submitted', { order_id: ORDER_ID, stars: 4, tags: ['fast', 'fast'] }),
+    ).toBe(false);
+  });
+
+  it('accepts rating_submitted with all three tags and rejects a fourth', () => {
+    expect(
+      isValidEventProps('rating_submitted', {
+        order_id: ORDER_ID,
+        stars: 4,
+        tags: ['fast', 'great_packaging', 'order_was_correct'],
+      }),
     ).toBe(true);
   });
 
