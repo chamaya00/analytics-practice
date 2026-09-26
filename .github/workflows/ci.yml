@@ -15,15 +15,25 @@ name: ci
 # `checks` is left at the default (`typecheck,lint,test,build`), which is
 # exactly this repository's four scripts.
 #
-# `check-name` is pinned explicitly as of v1.34.0. The reusable workflow's own
-# default changed there, from the literal string `typecheck, lint, test,
-# build` to the generic `checks` - deliberately, so a future repository's
-# required check name survives a `checks` list changing under it. This
-# repository's branch protection was already pointed at the old default's
-# name, so leaving `check-name` unset here would have silently stopped that
-# required check reporting the moment this pin moved. Pinning it keeps the
-# required check reporting as `ci / typecheck, lint, test, build`, exactly as
-# before.
+# `check-name` is the string branch protection matches on, and it is now the
+# factory's generic default, `checks`. It used to be the literal
+# `typecheck, lint, test, build`, which was this repository's own four scripts
+# spelled out - a name that described what the gate ran rather than what the
+# gate was. That is the failure mode the generic name exists to prevent: with
+# a descriptive name, adding a fifth script or dropping one means renaming the
+# required check, and until somebody re-points branch protection the required
+# check no longer reports and every merge is blocked - including the pull
+# request that would put the name back.
+#
+# So the name is deliberately a stable identifier for "this repository's
+# gate", not a description of it. What the gate currently runs is in the run
+# summary, where it is free to change. Protection is pointed at
+# `ci / checks` once and never has to move again.
+#
+# Renaming it back, or to anything else, is a breaking change: the rename and
+# the branch-protection update have to happen in one sitting, in that order,
+# because the pull request making the change cannot itself satisfy a required
+# check it has just renamed away.
 # ---------------------------------------------------------------------------
 
 on:
@@ -36,4 +46,4 @@ jobs:
     uses: chamaya00/agent-factory/.github/workflows/ci.yml@v1.38.0
     with:
       node-version: '22'
-      check-name: 'typecheck, lint, test, build'
+      check-name: 'checks'

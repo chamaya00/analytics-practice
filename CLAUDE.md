@@ -32,13 +32,18 @@ the store, the write path, and the anti-spam bounds enforced in
 
 The checks above are what CI runs. `.github/workflows/ci.yml` calls the
 factory's reusable Node path with the defaults (`checks:
-'typecheck,lint,test,build'`), so the required check reports as
-`ci / typecheck, lint, test, build`.
+'typecheck,lint,test,build'`), so the required check reports as `ci / checks`.
 
-Whatever the gate runs, the rule is the same. If a check is renamed here,
-rename it in `.github/workflows/ci.yml` in the same commit, and re-point the
-branch protection rule in the same sitting, or the gate silently stops checking
-that thing.
+That name is generic on purpose. It identifies this repository's gate rather
+than describing what the gate currently runs, so the list above can gain or
+lose a check without the required check's name moving. Branch protection is
+pointed at `ci / checks` once and stays there.
+
+Whatever the gate runs, the rule is the same. If a check is added or removed,
+change it in `.github/workflows/ci.yml` in the same commit, or the gate
+silently stops checking that thing. Renaming `check-name` itself is the one
+change that also needs branch protection re-pointed in the same sitting - see
+the comment in that file for why the order matters.
 
 **Publishing gap.** Closed - see ADR 0001. Vercel auto-detects Astro and runs
 `npm run build` (`astro build`) with no adapter for this static site, so the
