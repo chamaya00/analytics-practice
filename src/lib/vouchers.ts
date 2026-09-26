@@ -11,6 +11,7 @@
 // applied without a live in-memory session between them.
 
 import type { City } from './money';
+import { flashSecondsRemaining, getFlashDraw, isFlashLive } from './flash-deal';
 
 export type StackGroup = 'discount' | 'delivery';
 export type Tier = 1 | 2 | 3 | 'entry' | 'flash';
@@ -210,6 +211,16 @@ export function pickLargest(qualifying: CatalogueEntry[]): VoucherId | null {
     }
   }
   return best.id;
+}
+
+/** This city's static catalogue plus, only while a flash window is live, that session's own flash entry — never included once its window has ended (#87, "At 00:00": the row disappears outright rather than ever showing greyed). The one function both the Offers screen and checkout build their entry list from, so the two routes never disagree about what's currently offerable. */
+export function entriesForCity(city: City, sessionStorage: Storage, now: number): CatalogueEntry[] {
+  const entries = [...catalogueForCity(city)];
+  const draw = getFlashDraw(sessionStorage, city);
+  if (draw && isFlashLive(draw, now)) {
+    entries.push(flashCatalogueEntry(city, draw.amountMinor, flashSecondsRemaining(draw, now)));
+  }
+  return entries;
 }
 
 export interface OffersState {

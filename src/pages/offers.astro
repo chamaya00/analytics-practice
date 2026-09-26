@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Offers — Dontdropthatpromo">
+  <div id="offers-root" data-testid="offers-root"></div>
+  <script>
+    import { initOffersPage } from '../lib/offers-dom';
+
+    const root = document.getElementById('offers-root');
+    if (root) initOffersPage(root);
+  </script>
+</BaseLayout>

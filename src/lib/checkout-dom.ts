@@ -1,11 +1,10 @@
 // Checkout screen (docs/design/80-two-city-brand-and-flow.md, "Checkout"):
 // two preset-choice fields (Drop-off, Delivery instructions), a utensils
-// toggle, a price breakdown (Subtotal, Delivery fee, Service fee, Total —
-// no Offers row, Discount line or "You saved" line yet, #89's scope), a demo
-// disclosure directly above the CTA, and "Place order" — nothing typed
-// anywhere. "Place order" disables itself on first tap (contract §7's
-// invariant) so a double-tap cannot fire two order_placed events for one
-// order_id.
+// toggle, the Offers row and price breakdown (Subtotal, Delivery fee,
+// Service fee, Discount, "You saved," Total — #87/#89), a demo disclosure
+// directly above the CTA, and "Place order" — nothing typed anywhere.
+// "Place order" disables itself on first tap (contract §7's invariant) so a
+// double-tap cannot fire two order_placed events for one order_id.
 
 import {
   cartItemCount,
@@ -19,6 +18,10 @@ import type { DeliveryInstructions, DropOffPreset } from './tracking';
 import { track } from './tracking';
 import { formatMoney } from './money';
 import { getRestaurant } from './restaurants';
+import { flashFeeForRestaurant, getFlashDraw } from './flash-deal';
+import { clearOffersState, getOffersState, setOffersState } from './offers-store';
+import { appliedDiscountAmountMinor, appliedVoucherIds, entriesForCity, syncOffersState } from './vouchers';
+import type { City } from './money';
 
 interface ChoiceOption<T> {
   value: T;
@@ -116,11 +119,40 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
     return el;
   }
 
-  wrapper.append(
-    row('breakdown-subtotal', 'Subtotal', breakdown.subtotalMinor),
-    row('breakdown-delivery-fee', 'Delivery fee', breakdown.deliveryFeeMinor),
-    row('breakdown-service-fee', 'Service fee', breakdown.serviceFeeMinor),
-  );
+  wrapper.append(row('breakdown-subtotal', 'Subtotal', breakdown.subtotalMinor));
+
+  const deliveryRow = document.createElement('div');
+  deliveryRow.className = 'breakdown-row';
+  deliveryRow.setAttribute('data-testid', 'breakdown-delivery-fee');
+  const deliveryLabel = document.createElement('span');
+  deliveryLabel.className = 'muted';
+  deliveryLabel.textContent = 'Delivery fee';
+  const deliveryValue = document.createElement('span');
+  if (breakdown.deliveryFeeOriginalMinor !== null) {
+    const struck = document.createElement('span');
+    struck.className = 'struck';
+    struck.textContent = formatMoney(breakdown.deliveryFeeOriginalMinor, breakdown.currency);
+    const current = document.createElement('span');
+    current.className = 'free';
+    current.textContent = breakdown.deliveryFeeMinor === 0 ? 'Free' : formatMoney(breakdown.deliveryFeeMinor, breakdown.currency);
+    deliveryValue.append(struck, document.createTextNode(' '), current);
+  } else {
+    deliveryValue.textContent = formatMoney(breakdown.deliveryFeeMinor, breakdown.currency);
+  }
+  deliveryRow.append(deliveryLabel, deliveryValue);
+  wrapper.append(deliveryRow, row('breakdown-service-fee', 'Service fee', breakdown.serviceFeeMinor));
+
+  if (breakdown.discountAmountMinor > 0) {
+    wrapper.append(row('breakdown-discount', 'Discount', -breakdown.discountAmountMinor, 'discount'));
+  }
+
+  if (breakdown.savedAmountMinor > 0) {
+    const saved = document.createElement('div');
+    saved.className = 'saved-line';
+    saved.setAttribute('data-testid', 'breakdown-saved');
+    saved.textContent = `You saved ${formatMoney(breakdown.savedAmountMinor, breakdown.currency)}`;
+    wrapper.append(saved);
+  }
 
   const total = document.createElement('div');
   total.className = 'breakdown-row total';
@@ -163,6 +195,8 @@ export function renderCheckout(
   navigate: (path: string) => void = (path) => {
     window.location.href = path;
   },
+  sessionStorage: Storage = window.sessionStorage,
+  now: number = Date.now(),
 ): CheckoutView {
   root.innerHTML = '';
 
@@ -222,10 +256,46 @@ export function renderCheckout(
   miniFields.className = 'checkout-field';
   miniFields.append(utensilsField.element);
 
-  const deliveryFeeMinor = getRestaurant(lines[0].restaurantSlug)?.deliveryFeeMinor ?? 0;
-  const breakdown = computeCheckoutBreakdown(lines, deliveryFeeMinor);
+  const city: City = lines[0].currency === 'VND' ? 'hcmc' : 'sf';
+  const subtotalMinor = cartSubtotalMinor(lines);
+  const entries = entriesForCity(city, sessionStorage, now);
+  const previousOffers = getOffersState(storage);
+  const sync = syncOffersState(previousOffers, entries, subtotalMinor);
+  setOffersState(storage, sync.state);
+
+  const restaurant = getRestaurant(lines[0].restaurantSlug);
+  const normalDeliveryFeeMinor = restaurant?.deliveryFeeMinor ?? 0;
+  const flashDraw = getFlashDraw(sessionStorage, city);
+  const flashDeliveryFeeMinor =
+    restaurant && flashDraw ? flashFeeForRestaurant(flashDraw, city, restaurant.slug, normalDeliveryFeeMinor, now) : null;
+
+  const breakdown = computeCheckoutBreakdown(lines, normalDeliveryFeeMinor, {
+    deliveryVoucherApplied: sync.state.deliveryId !== null,
+    discountAmountMinor: appliedDiscountAmountMinor(sync.state, entries),
+    flashDeliveryFeeMinor,
+  });
   if (breakdown === null) return { cartIsEmpty: true };
   const breakdownEl = renderBreakdown(breakdown);
+
+  const offersRow = document.createElement('button');
+  offersRow.type = 'button';
+  offersRow.className = 'offers-row';
+  offersRow.setAttribute('data-testid', 'offers-row');
+  const appliedCount = appliedVoucherIds(sync.state).length;
+  offersRow.textContent =
+    appliedCount === 0
+      ? 'Offers  ›  Select an offer'
+      : `Offers  ›  ${appliedCount} applied · You saved ${formatMoney(breakdown.savedAmountMinor, breakdown.currency)}`;
+  offersRow.addEventListener('click', () => navigate('/offers/'));
+
+  const dropNotice = document.createElement('p');
+  dropNotice.className = 'offers-drop-notice';
+  dropNotice.setAttribute('data-testid', 'offers-drop-notice');
+  if (sync.discountDropped || sync.deliveryDropped) {
+    dropNotice.textContent = 'Discount removed — it no longer qualifies at this subtotal.';
+  } else {
+    dropNotice.hidden = true;
+  }
 
   const disclosure = renderDemoDisclosure();
 
@@ -248,7 +318,10 @@ export function renderCheckout(
       dropOffPreset: dropOff.getValue(),
       deliveryInstructions: deliveryInstructions.getValue(),
       utensils: utensilsField.getValue() === 'yes',
+      appliedVoucherIds: appliedVoucherIds(sync.state),
+      savedAmountMinor: breakdown.savedAmountMinor,
     });
+    clearOffersState(storage);
 
     track('order_placed', {
       order_id: order.orderId,
@@ -265,7 +338,16 @@ export function renderCheckout(
     navigate('/order-placed/');
   });
 
-  root.append(dropOff.element, deliveryInstructions.element, miniFields, breakdownEl, disclosure, placeOrderButton);
+  root.append(
+    offersRow,
+    dropNotice,
+    dropOff.element,
+    deliveryInstructions.element,
+    miniFields,
+    breakdownEl,
+    disclosure,
+    placeOrderButton,
+  );
   return { cartIsEmpty: false };
 }
 
@@ -275,8 +357,9 @@ export function initCheckoutPage(
   navigate: (path: string) => void = (path) => {
     window.location.href = path;
   },
+  sessionStorage: Storage = window.sessionStorage,
 ): void {
-  const view = renderCheckout(root, storage, navigate);
+  const view = renderCheckout(root, storage, navigate, sessionStorage);
   if (view.cartIsEmpty) return;
 
   const lines = getCart(storage);

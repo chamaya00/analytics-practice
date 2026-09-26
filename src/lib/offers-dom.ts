@@ -4,21 +4,19 @@
 // sticky "You saved"/"Apply" footer. Every control here is a checkbox or a
 // button — no typed field anywhere (#80's settled decision, AC5).
 
-import { formatMoney, type City, type Currency } from './money';
+import { formatMoney, type Currency } from './money';
 import { cartSubtotalMinor, getCart, otherwiseDeliveryFeeMinor } from './order-store';
 import { getStoredCity } from './location';
-import { getFlashDraw, flashFeeForRestaurant, flashSecondsRemaining, isFlashLive } from './flash-deal';
+import { getFlashDraw, flashFeeForRestaurant } from './flash-deal';
 import { getRestaurant } from './restaurants';
 import { getOffersState, setOffersState } from './offers-store';
 import {
   appliedDiscountAmountMinor,
   appliedVoucherIds,
-  catalogueForCity,
   cheapestMinimumSpendMinor,
-  flashCatalogueEntry,
+  entriesForCity,
   manualSelect,
   syncOffersState,
-  type CatalogueEntry,
   type StackGroup,
   type VoucherView,
 } from './vouchers';
@@ -29,16 +27,6 @@ export function prefersReducedMotion(): boolean {
   } catch {
     return false;
   }
-}
-
-/** This city's static catalogue plus, only while a flash window is live, that session's own flash entry — never included once its window has ended (#87, "At 00:00"). */
-export function entriesForCity(city: City, sessionStorage: Storage, now: number): CatalogueEntry[] {
-  const entries = [...catalogueForCity(city)];
-  const draw = getFlashDraw(sessionStorage, city);
-  if (draw && isFlashLive(draw, now)) {
-    entries.push(flashCatalogueEntry(city, draw.amountMinor, flashSecondsRemaining(draw, now)));
-  }
-  return entries;
 }
 
 function badgeIcon(): string {
