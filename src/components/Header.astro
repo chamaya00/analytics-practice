@@ -6,34 +6,40 @@ interface Props {
 const { currentPath } = Astro.props;
 
 const links = [
-  { href: '/restaurants/', label: 'Restaurants' },
+  { href: '/', label: 'Home' },
   { href: '/cart/', label: 'Cart' },
   { href: '/tracker/', label: 'Tracker' },
 ];
 ---
 
 <header class="site-header">
-  <p class="site-name">
-    <svg
-      class="drop-glyph"
-      width="14"
-      height="20"
-      viewBox="0 0 16 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      aria-hidden="true"
-    >
-      <path d="M4 2C4 2 8 0.5 12 2" />
-      <line x1="8" y1="2" x2="8" y2="8" />
-      <path
-        d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z"
-        fill="currentColor"
-        stroke="none"
-      />
-    </svg>
-    Dontdropthatpromo
-  </p>
+  <div class="brand-group">
+    <p class="site-name">
+      <svg
+        class="drop-glyph"
+        width="14"
+        height="20"
+        viewBox="0 0 16 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        aria-hidden="true"
+      >
+        <path d="M4 2C4 2 8 0.5 12 2" />
+        <line x1="8" y1="2" x2="8" y2="8" />
+        <path
+          d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z"
+          fill="currentColor"
+          stroke="none"
+        />
+      </svg>
+      <span class="wordmark"
+        ><span class="wordmark-strong">dont</span><wbr /><span class="wordmark-light">drop</span><wbr /><span
+          class="wordmark-light">that</span
+        ><wbr /><span class="wordmark-light">promo</span></span
+      >
+    </p>
+  </div>
   <nav aria-label="Primary" class="site-nav">
     {
       links.map((link) => {
@@ -80,16 +86,35 @@ const links = [
     border-bottom: 1px solid var(--color-border);
   }
 
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: none;
+  }
+
   .site-name {
     margin: 0;
     display: flex;
     align-items: center;
     gap: var(--space-xs);
     font-size: var(--font-size-nav-title);
-    font-weight: 800;
     line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: normal;
+  }
+
+  /* docs/design/80-two-city-brand-and-flow.md: lowercase, weight-split,
+     one word — no display:flex on this element itself, because flex's
+     `gap` also applies between the anonymous boxes it creates for the
+     bare <wbr> elements, visibly splitting the word into chunks (found
+     rendering the mock, round 4). */
+  .wordmark {
+    flex: none;
+    font-weight: 500;
+  }
+
+  .wordmark-strong {
+    font-weight: 800;
   }
 
   .drop-glyph {
