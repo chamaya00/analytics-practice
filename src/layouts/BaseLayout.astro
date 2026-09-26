@@ -135,15 +135,27 @@ const { title } = Astro.props;
     margin-top: var(--space-md);
     padding: var(--space-md);
     display: flex;
-    align-items: center;
-    gap: var(--space-md);
+    /* Column, not the row this started as (#82 review round 2, item 1): a
+       row with a fixed-size image had no room left for the text at 375px
+       and pushed it off the right edge, widening the whole page. Stacking
+       keeps the image inside the box at any width and puts the heading
+       directly beneath it, one of the two placements the mock allows. */
+    flex-direction: column;
+    gap: var(--space-sm);
     background: var(--color-surface);
     border: 1px solid var(--color-accent-a);
     border-radius: 12px;
   }
 
   .promo-banner img {
-    flex: none;
+    /* Scales to the box's own width instead of the SVG's intrinsic 343px,
+       which is what overflowed a 375px viewport once the border/padding
+       above were subtracted from it. Height follows from the img's own
+       width/height attributes (343x96), so no separate aspect-ratio rule
+       is needed here. */
+    display: block;
+    width: 100%;
+    height: auto;
     border-radius: 8px;
     object-fit: cover;
   }

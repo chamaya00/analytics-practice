@@ -96,3 +96,22 @@ describe('landing hero wordmark fits at 375px (driver review, #67)', () => {
     expect(rule).toContain('overflow-wrap:anywhere');
   });
 });
+
+describe('home feed promo banner fits at 375px (#82 review round 2, item 1)', () => {
+  // A row layout with the banner image's fixed 343px intrinsic width had no
+  // room left for the heading once the surrounding padding/border were
+  // subtracted at a 375px viewport — the image spilled past the box and the
+  // heading rendered beside it, off-screen, widening the whole page
+  // (measured scrollWidth 453 on 938d004). This fails against that commit
+  // and passes once the banner stacks and the image scales to its box.
+  it('the banner stacks the image above the heading rather than placing them side by side', () => {
+    const rule = css.match(/\.promo-banner\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('flex-direction:column');
+  });
+
+  it("the banner image scales to the box's own width instead of its 343px intrinsic size", () => {
+    const rule = css.match(/\.promo-banner img\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('width:100%');
+    expect(rule).not.toMatch(/(?<!max-)width:343px/);
+  });
+});
