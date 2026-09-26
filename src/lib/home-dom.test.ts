@@ -105,6 +105,9 @@ describe('home feed contents (AC2)', () => {
     const card = el.querySelector(`[data-testid="restaurant-card-${dealRestaurant.slug}"]`);
     expect(card?.querySelector('img.restaurant-card-photo')).not.toBeNull();
     expect(card?.textContent).toContain(dealRestaurant.rating.toFixed(1));
+    // #82 review round 2, item 2: the fee reads "$1.99 delivery" / "15.000 ₫ delivery",
+    // not the bare amount — the word was dropped when the card was laid out in round 1.
+    expect(card?.querySelector('.restaurant-card-meta')?.textContent).toMatch(/delivery$/);
     expect(card?.querySelector(`[data-testid="deal-badge-${dealRestaurant.slug}"]`)).not.toBeNull();
 
     const noDealRestaurant = restaurantsForCity('sf').find((restaurant) => !restaurant.hasDeal)!;

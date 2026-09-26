@@ -119,7 +119,7 @@ function renderRestaurantCard(restaurant: Restaurant): HTMLElement {
   meta.className = 'restaurant-card-meta';
   const feeLabel =
     restaurant.deliveryFeeMinor === 0 ? 'Free' : formatMoneyForCity(restaurant.deliveryFeeMinor, restaurant.city);
-  meta.textContent = `★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel}`;
+  meta.textContent = `★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel} delivery`;
 
   body.append(name, tag, meta);
 
