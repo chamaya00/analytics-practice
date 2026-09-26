@@ -7,24 +7,25 @@ import { deliveredCss } from '../../test-support/dist-css';
 // test run in vitest.global-setup.ts, not here - see that file for why.
 const css = deliveredCss('dist/index.html');
 
-describe('dark theme palette (AC1)', () => {
-  it('a prefers-color-scheme: dark block re-declares the design spec\'s dark hex values, including the tab-active-bg token the spec\'s table omits', () => {
+describe('dark theme palette (#82 review round 1: #80\'s chosen violet direction)', () => {
+  it('a prefers-color-scheme: dark block re-declares #80\'s dark hex values, including the tab-active-bg and badge-ink tokens the spec leaves to the engineer', () => {
     const start = css.indexOf('@media (prefers-color-scheme:dark)');
     expect(start).toBeGreaterThan(-1);
     const block = css.slice(start, css.indexOf('}}', start) + 2);
-    expect(block).toContain('--color-bg:#1c1712');
-    expect(block).toContain('--color-surface:#241e17');
-    expect(block).toContain('--color-text:#f0e6d2');
-    expect(block).toContain('--color-text-muted:#b3a58c');
-    expect(block).toContain('--color-border:#45392c');
-    expect(block).toContain('--color-tab-active-bg:#382d20');
+    expect(block).toContain('--color-bg:#16101f');
+    expect(block).toContain('--color-surface:#1e1730');
+    expect(block).toContain('--color-text:#f1e9ff');
+    expect(block).toContain('--color-text-muted:#b7a6d9');
+    expect(block).toContain('--color-border:#3a2e52');
+    expect(block).toContain('--color-tab-active-bg:#2e2444');
+    expect(block).toContain('--color-badge-ink:#16101f');
   });
 
-  it('both accents resolve to the values the spec named as cool/warm', () => {
+  it('both accents resolve to #80\'s chosen-direction dark values', () => {
     const start = css.indexOf('@media (prefers-color-scheme:dark)');
     const block = css.slice(start, css.indexOf('}}', start) + 2);
-    expect(block).toContain('--color-accent-a:#7fb2e8');
-    expect(block).toContain('--color-accent-b:#e8935a');
+    expect(block).toContain('--color-accent-a:#b79cff');
+    expect(block).toContain('--color-accent-b:#ffa36b');
   });
 });
 
