@@ -1,5 +1,11 @@
 # Naming, brand, and flow for the order-that-never-comes parody
 
+**Superseded by `docs/design/80-two-city-brand-and-flow.md` (issue #80,
+objective #79), kept as history only.** The parody product this document
+specifies — name, flow, and the tracker that never delivers — is being
+replaced wholesale by a realistic two-city delivery app; nothing here should
+be built against going forward.
+
 Spec for issue #65, serving parent objective #63. This replaces the swipe
 poll's entire product surface — nav, pages, everything a visitor does — with
 a food-delivery parody, so this document treats the *mechanics* of
