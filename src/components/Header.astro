@@ -10,6 +10,16 @@ const links = [
   { href: '/cart/', label: 'Cart' },
   { href: '/tracker/', label: 'Tracker' },
 ];
+
+// Tab bar icons only — docs/design/80-two-city-brand-and-flow.md's mocks
+// (80-home-sf.html) show an icon above each phone tab bar label; the
+// desktop nav (.site-nav) stays text-only, unchanged. Markup copied from
+// that mock so the shapes match exactly.
+const TAB_ICON_PATHS: Record<string, string> = {
+  Home: '<path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/>',
+  Cart: '<path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/>',
+  Tracker: '<circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/>',
+};
 ---
 
 <header class="site-header">
@@ -61,7 +71,8 @@ const links = [
       const isCurrent = currentPath === link.href;
       return (
         <a href={link.href} aria-current={isCurrent ? 'page' : undefined} class:list={{ current: isCurrent }}>
-          {isCurrent ? <span class="pill">{link.label}</span> : link.label}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={TAB_ICON_PATHS[link.label]} />
+          {isCurrent ? <span class="pill tab-label">{link.label}</span> : <span class="tab-label">{link.label}</span>}
           {link.label === 'Cart' && <span class="cart-badge" data-testid="cart-badge-phone" hidden></span>}
         </a>
       );
@@ -205,20 +216,25 @@ const links = [
       flex: 1;
       min-height: 44px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 2px;
       color: var(--color-text-muted);
       text-decoration: none;
       font-size: var(--font-size-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: var(--space-sm);
+      padding: var(--space-xs) var(--space-sm);
       transition: transform 100ms ease-out;
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       -moz-user-select: none;
       user-select: none;
+    }
+
+    .tab-bar a svg {
+      width: 20px;
+      height: 20px;
     }
 
     .tab-bar a:active {
