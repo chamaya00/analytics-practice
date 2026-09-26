@@ -591,6 +591,16 @@ Eight PNGs total (four files × two widths), committed alongside.
   375×812 — nothing below the sheet's own restaurant rows was added, on
   purpose, per this repository's own render-viewport lesson: this mock's
   most important content is what's on screen without scrolling.
+- **Round 2 finding (flagged in review): the "×" dismiss glyph overlapped
+  the purple header's top-right corner at 375px.** `.sheet-close` is
+  absolutely positioned against `.sheet`, and the header's own top edge sat
+  only 12px below the close button's bottom edge — close enough to collide.
+  Gave `.sheet-header` a `margin-top: var(--space-lg)` (20px) so the header
+  starts clear of the close button entirely; re-rendered both widths and the
+  glyph now sits fully above the header with visible clearance, confirmed on
+  the new PNGs. Also updated the countdown tiles from `23:47` to `08:32` so
+  the mock's own displayed time no longer exceeds the 15-minute window this
+  round's revision settled on.
 - **Covering `--color-accent` with my hand** on the Offers screen and both
   checkout renders: the discount line and the qualifying rows' borders both
   still read as distinct from an ordinary row, from the bold weight and the
