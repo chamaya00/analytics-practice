@@ -111,13 +111,17 @@ function renderRestaurantCard(restaurant: Restaurant): HTMLElement {
   name.className = 'restaurant-card-name';
   name.textContent = restaurant.name;
 
+  const tag = document.createElement('span');
+  tag.className = 'restaurant-card-tag';
+  tag.textContent = restaurant.cuisineTag;
+
   const meta = document.createElement('span');
   meta.className = 'restaurant-card-meta';
   const feeLabel =
     restaurant.deliveryFeeMinor === 0 ? 'Free' : formatMoneyForCity(restaurant.deliveryFeeMinor, restaurant.city);
   meta.textContent = `★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel}`;
 
-  body.append(name, meta);
+  body.append(name, tag, meta);
 
   if (restaurant.hasDeal) {
     const badge = document.createElement('span');
@@ -206,7 +210,7 @@ function renderFeed(root: HTMLElement, city: City): void {
   for (const cuisine of CUISINE_SHORTCUTS[city]) {
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'chip';
+    chip.className = 'cuisine-chip';
     chip.textContent = cuisine;
     chip.setAttribute('data-testid', `cuisine-${cuisine.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
     chip.addEventListener('click', () => {
