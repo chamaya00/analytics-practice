@@ -45,12 +45,16 @@ getting a surprisingly good deal."
 - The exact voucher amounts and minimum spends (plausible, checked against
   the ₫5.000–₫50.000 range and the cross-city ratio bound below — not a
   number anyone measured).
-- The flash window's own clock time (12:00–12:15 local, below) — a
-  plausible slot, not a measured one, same caveat #80 attached to its own
-  tracker-timing guesses. Its 15-minute length is fixed, not guessed: it
-  matches the owner's reference countdown ("about 15:00"). The sheet's
-  24-hour display cooldown is likewise a plausible shape, not a measured
-  value.
+- The flash deal's own frequency is now settled by the owner (revision
+  round 2, #87): drawn once per browser session, not scheduled by clock —
+  see "The flash-deal sheet," below, for the replaced mechanism. Still this
+  document's own guess, within that settled shape: the drawn amount's exact
+  range and step (₫10.000–₫30.000 step ₫5.000 in HCMC, proportional in SF),
+  the fixed restaurant count (two, matching the rendered mock), and the two
+  fixed per-restaurant fee options — plausible choices inside the owner's
+  ₫5.000–₫50.000 bound, not measured ones. The 15-minute countdown length is
+  fixed, not guessed, unchanged from round 1: it matches the owner's
+  reference countdown ("about 15:00").
 - Whether the better tier auto-selects on unlock — the owner's comment asks
   this be designed deliberately and doesn't settle it; this document decides
   yes, and says why, below.
@@ -106,8 +110,8 @@ Three rungs by basket size, applied within the `discount` group. `tier`
 below is the catalogue's own column; "entry" marks the `delivery` voucher,
 which isn't part of the size ladder — it has its own single always-available
 threshold — and "flash" marks the time-boxed voucher, which substitutes into
-the `discount` group only while its own window is live (see Flash deal,
-below) rather than sitting on the size ladder permanently.
+the `discount` group only while its own session-drawn window is live (see
+Flash deal, below) rather than sitting on the size ladder permanently.
 
 ## Voucher catalogue — Ho Chi Minh City (₫, `vi-VN` formatting)
 
@@ -117,10 +121,10 @@ below) rather than sitting on the size ladder permanently.
 | `hcmc-discount-t1` | ₫10.000 off | ₫10.000 | ₫100.000 | 3 days | `discount` | 1 |
 | `hcmc-discount-t2` | ₫25.000 off | ₫25.000 | ₫200.000 | 3 days | `discount` | 2 |
 | `hcmc-discount-t3` | ₫45.000 off | ₫45.000 | ₫350.000 | 1 day | `discount` | 3 |
-| `hcmc-flash` | ₫15.000 off flash deals | ₫15.000 | ₫80.000 | live countdown (see Flash deal) | `discount` | flash |
+| `hcmc-flash` | ₫X off flash deals (X drawn per session, ₫10.000–₫30.000) | ₫10.000–₫30.000 | ₫80.000 | live countdown (see Flash deal) | `discount` | flash |
 
-Every HCMC amount (₫10.000–₫45.000) sits inside the owner's ₫5.000–₫50.000
-range.
+Every HCMC amount (₫10.000–₫45.000, including the flash voucher's full drawn
+range) sits inside the owner's ₫5.000–₫50.000 range.
 
 ## Voucher catalogue — San Francisco ($, `en-US` formatting)
 
@@ -130,7 +134,7 @@ range.
 | `sf-discount-t1` | $2 off | $2.00 | $20.00 | 3 days | `discount` | 1 |
 | `sf-discount-t2` | $5 off | $5.00 | $40.00 | 3 days | `discount` | 2 |
 | `sf-discount-t3` | $8 off | $8.00 | $60.00 | 1 day | `discount` | 3 |
-| `sf-flash` | $2 off flash deals | $2.00 | $10.00 | live countdown (see Flash deal) | `discount` | flash |
+| `sf-flash` | $X off flash deals (X drawn per session, $2.00–$6.00) | $2.00–$6.00 | $10.00 | live countdown (see Flash deal) | `discount` | flash |
 
 The SF delivery amount ($2.99) is #80's own SF checkout mock's actual
 delivery fee, not a rounded stand-in — the voucher waives what the fee
@@ -145,7 +149,14 @@ the HCMC tier of the same label — the owner's factor-of-two bound):
 | 1 | 10.000/100.000 = 0.100 | 2/20 = 0.100 | 1.00 | yes |
 | 2 | 25.000/200.000 = 0.125 | 5/40 = 0.125 | 1.00 | yes |
 | 3 | 45.000/350.000 = 0.129 | 8/60 = 0.133 | 1.04 | yes |
-| flash | 15.000/80.000 = 0.188 | 2/10 = 0.200 | 1.07 | yes |
+| flash (min draw) | 10.000/80.000 = 0.125 | 2.00/10.00 = 0.200 | 1.60 | yes |
+| flash (max draw) | 30.000/80.000 = 0.375 | 6.00/10.00 = 0.600 | 1.60 | yes |
+
+The flash voucher's amount is drawn per session (below), so the check is
+run at both ends of its range rather than at one fixed value; the ratio of
+ratios holds at exactly 1.60 across every step in between too, since both
+cities' steps (₫5.000 / $1.00) scale the amount linearly against a fixed
+minimum spend.
 
 ## The Offers screen
 
@@ -351,25 +362,36 @@ different, correctly-computed amounts — the same subtotal, two live nudges.
 
 ## Worked example — flash live (HCMC), the default-selection rule in practice
 
-Same catalogue, `hcmc-flash` now also qualifying because its window is live
-(see "The flash-deal sheet," below, for when that is). This is what "largest
-amount wins, not newest unlock" (above) actually decides between:
+Same catalogue, `hcmc-flash` now also qualifying because its session's
+window is live (see "The flash-deal sheet," below, for when that is). Its
+amount is drawn per session (₫10.000–₫30.000, above) rather than fixed; the
+first two rows below use ₫15.000 as one example draw — the same value round
+1's example used, so its numbers and the ₫250.000 worked example above hold
+unchanged. This is what "largest amount wins, not newest unlock" (above)
+actually decides between:
 
 | Subtotal | Qualifying `discount` vouchers (amount, min spend) | Largest amount | Checked |
 |---|---|---|---|
-| ₫120.000 | `hcmc-discount-t1` (₫10.000, ₫100.000), `hcmc-flash` (₫15.000, ₫80.000) | `hcmc-flash` — ₫15.000 > ₫10.000 | `hcmc-flash` |
-| ₫250.000 | `hcmc-discount-t1`, `hcmc-discount-t2` (₫25.000, ₫200.000), `hcmc-flash` | `hcmc-discount-t2` — ₫25.000 > ₫15.000 | `hcmc-discount-t2` |
+| ₫120.000 | `hcmc-discount-t1` (₫10.000, ₫100.000), `hcmc-flash` (₫15.000 drawn, ₫80.000) | `hcmc-flash` — ₫15.000 > ₫10.000 | `hcmc-flash` |
+| ₫250.000 | `hcmc-discount-t1`, `hcmc-discount-t2` (₫25.000, ₫200.000), `hcmc-flash` (₫15.000 drawn) | `hcmc-discount-t2` — ₫25.000 > ₫15.000 | `hcmc-discount-t2` |
+| ₫250.000, higher draw | same basket, but this session's `hcmc-flash` drew the top of its range: ₫30.000 | `hcmc-flash` — ₫30.000 > ₫25.000 | `hcmc-flash` |
 
 The second row is the same ₫250.000 basket as the HCMC worked example above:
-whether or not the flash window happens to be live, `hcmc-discount-t2`
-still wins on amount, so that example's result and breakdown hold unchanged
-either way. The first row is where the two rules would have disagreed: if a
-visitor's cart crossed ₫100.000 (unlocking `t1`) before the flash window
-opened, a "newest unlock wins" rule would leave `t1` checked even after the
-window opens and `hcmc-flash` starts qualifying too — the wrong outcome,
-since `hcmc-flash` is worth more. "Largest amount wins" gets it right
-regardless of which one became qualifying last, which is exactly why the
-rule is stated as an amount comparison rather than as unlock order.
+whether or not the flash window happens to be live, a ₫15.000 draw still
+loses to `hcmc-discount-t2` on amount, so that example's result and
+breakdown hold unchanged either way. The first row is where the two rules
+would have disagreed: if a visitor's cart crossed ₫100.000 (unlocking `t1`)
+before the flash window opened, a "newest unlock wins" rule would leave
+`t1` checked even after the window opens and `hcmc-flash` starts qualifying
+too — the wrong outcome, since `hcmc-flash` is worth more at that draw.
+"Largest amount wins" gets it right regardless of which one became
+qualifying last, which is exactly why the rule is stated as an amount
+comparison rather than as unlock order. **The third row is why that framing
+still has to hold at the top of the range:** a draw of ₫30.000 or more
+outranks `hcmc-discount-t2`'s fixed ₫25.000 too, at the same basket where a
+mid-range draw did not — the rule needs no special case for this, since it
+was never "flash never beats t2," only "whichever amount is largest," and
+it already compares whatever this session actually drew.
 
 ## The flash-deal sheet
 
@@ -377,8 +399,9 @@ A bottom sheet over the home feed, matching the owner's reference anatomy
 exactly:
 
 - a **drag handle** at the top
-- a header: **"₫15.000 off flash deals"** (HCMC) / **"$2 off flash deals"**
-  (SF)
+- a header: **"₫X off flash deals"** (HCMC) / **"$X off flash deals"** (SF),
+  X being whatever amount this session drew (below) — **"₫15.000 off flash
+  deals"** is this mock's own example draw
 - an **mm:ss countdown** in two dark tiles (minutes, seconds), fixed dark
   colors in both app themes — see Contrast, below, for why fixed rather than
   theme-following
@@ -414,66 +437,90 @@ exactly:
   a flash-window restaurant, so their ₫15.000/$2.99 delivery "You saved"
   figures are rule-3 cases and unaffected by this.
 
-**The flash window schedule (deterministic, client-computable):** one window
-per calendar day, **12:00:00–12:15:00 in each city's own local time** —
-`Asia/Ho_Chi_Minh` for HCMC, `America/Los_Angeles` for SF, read via
-`Intl.DateTimeFormat`'s `timeZone` option against the visitor's device
-clock. This needs no server clock and no geolocation: it's the same
-per-city split #80 already uses for currency and the restaurant catalogue,
-applied to a clock instead of a price list. The window is 15 minutes long,
-matching the owner's reference countdown ("about 15:00"); the countdown
-always counts down to that day's 12:15:00 end. A visitor arriving outside
-12:00–12:15 local time sees the ordinary home feed: no sheet, and (below)
-no flash voucher in Offers at all — both exist only while the window is
-live.
+**The flash window is drawn once per browser session, not scheduled by a
+clock (revision round 2, owner's decision on
+[#87](https://github.com/chamaya00/analytics-practice/issues/87)):**
 
-**When it appears:** on landing at the home feed, only while the day's
-window is currently live by that clock (the sheet is never shown with a
-dead countdown, and never shown outside the daily 15-minute slot).
+> "Every time a user opens they get the flash sale and a random amount off.
+> The list of vendors is also picked randomly."
 
-**How often:** not every load, even within a live window. A 24-hour
-cooldown, enforced by one `localStorage` key, `flashSheetLastShown`, holding
-a single ISO-8601 timestamp — no restaurant ids, no voucher ids, no
+This replaces round 1's fixed 12:00:00–12:15:00 daily clock window and the
+`flashSheetLastShown` 24-hour `localStorage` cooldown outright — both are
+removed. "Session" here is the same boundary the event contract uses for
+`session_id`: `sessionStorage`, which persists across a refresh or in-app
+navigation but not across a new tab or a reopened browser.
+
+**The draw**, keyed per city (`flashDeal:hcmc` / `flashDeal:sf` in
+`sessionStorage`, each holding `{ drawnAt, amount, restaurantIds }` — no
 personal data, matching `order-store.ts`'s existing pattern of storing only
-what a pure function needs to recompute state. The sheet opens when a flash
-window is live and either no timestamp is stored or the stored one is more
-than 24 hours old; opening it (not merely closing it) writes the current
-timestamp.
+what a pure function needs to recompute state):
 
-**How the cooldown interacts with the schedule:** the cooldown gates only
-the sheet's own pop-up, never the flash voucher's presence in Offers. A
-visitor who dismisses (or lets time out) today's sheet still sees
-`hcmc-flash`/`sf-flash` in the Offers list for the rest of that same window,
-qualifying or greyed exactly like any other voucher — they just don't get
-the bottom-sheet nudge again until the cooldown clears. Because there's one
-window a day at a fixed clock time, a sheet shown at or after 12:00 today
-clears its 24-hour cooldown before 12:00 tomorrow, so the common case is
-exactly once per day; a visitor who happens to open the sheet very early
-inside one window and returns right at the next window's own start may
-occasionally have it suppressed one extra day, which is accepted here as a
-demo-scale approximation, not an exactly-once-per-window guarantee.
+- **When it happens:** the first time, in this session, that the visitor's
+  home feed loads for a given city. A fresh 15-minute countdown starts at
+  that moment (`drawnAt`), and the sheet opens.
+- **Returning to the home feed again in the same session, for the same
+  city, doesn't re-draw or reopen the sheet** — the stored draw is what the
+  rest of that session's Offers list and checkout show too, through any
+  number of refreshes.
+- **Switching to the other city for the first time this session performs
+  that city's own independent draw** (its own `sessionStorage` key) — the
+  visitor hasn't seen that city's flash set yet, so it draws and opens the
+  same way the first city did.
+- **A new tab, or reopening the browser, is a new session** by
+  `sessionStorage`'s own semantics — no key is present yet, so it draws
+  again, with nothing to check a cooldown against.
+- **The amount:** drawn uniformly from a fixed set of steps — HCMC
+  ₫10.000 / ₫15.000 / ₫20.000 / ₫25.000 / ₫30.000 (step ₫5.000), SF $2.00 /
+  $3.00 / $4.00 / $5.00 / $6.00 (step $1.00), holding the 1.60
+  ratio-of-ratios (above) at every step, not only the endpoints. **The
+  minimum spend stays fixed** — ₫80.000 (HCMC) / $10.00 (SF), unchanged from
+  round 1 — only the amount is drawn; scaling the minimum spend too would
+  redraw every worked-example arithmetic on every session, for no benefit
+  the owner asked for.
+- **The restaurant list:** two restaurants (a fixed count, matching this
+  document's own rendered mock), drawn at random from that city's own
+  restaurant catalogue (#80's `RestaurantCard` data) and stored alongside
+  the amount. This mock's two named restaurants (`Bánh Mì Ông Tư`, `Cơm Tấm
+  Cô Ba`) are one example draw, not a fixed pair — a different session
+  shows a different two.
+  - **Per-restaurant flash delivery fee:** drawn from two fixed options,
+    not a third random number — `Free` (full waiver) or a flat ₫10.000
+    (HCMC) / $2.00 (SF) reduction off that restaurant's own normal fee. The
+    mock's two rows show one of each: `Free` (waiving a ₫15.000 normal fee)
+    and `₫5.000` (a ₫10.000 reduction off that same ₫15.000 normal fee).
+
+**For #81:** the drawn amount and the drawn restaurant ids vary per
+session, so the flash-sheet-shown event needs fields for both, not just the
+fixed catalogue id — two sessions' events can legitimately differ on both.
+The event design itself is #81's; this is the note the round-2 review
+asked this document to carry.
 
 **Dismissal:** dragging the handle down past a threshold, tapping the scrim
 behind the sheet, a small "×" at the sheet's top-right, or tapping any
 restaurant row (which navigates into that restaurant's menu, dismissing the
 sheet as a side effect of leaving the feed).
 
-**At 00:00:** the sheet auto-closes if still open, using the same 320ms
+**At 00:00 (the countdown reaching zero, not a clock):** unchanged from
+round 1 — the sheet auto-closes if still open, using the same 320ms
 ease-out-expo exit #80 already uses elsewhere (removed under reduced
 motion), the home feed's flash badges and per-restaurant deal fees disappear
 immediately, and the flash voucher's Offers-screen entry — if it was
 qualifying or applied — is removed outright rather than ever shown greyed:
 unlike a basket voucher, no future amount of spending brings a lapsed flash
 window back, so a "spend more" nudge on it would be a nudge with no honest
-answer.
+answer. **New in round 2:** this lasts for the rest of the current
+session — the visitor doesn't see that city's flash set again until their
+*next session's* first home-feed load draws a new one.
 
-**How it then shows up in Offers at checkout:** while the window is live,
-`hcmc-flash`/`sf-flash` appears at the top of the `discount` group's list
-(qualifying or greyed exactly like any other voucher, by the live subtotal
-against its own minimum spend), marked with a small "Flash" tag beside its
-badge, and its expiry label shows the same live mm:ss the sheet's tiles
-show — the one voucher whose expiry label ticks rather than reading a
-static day count.
+**How it then shows up in Offers at checkout:** unchanged in mechanism —
+while the session's window is live, `hcmc-flash`/`sf-flash` appears at the
+top of the `discount` group's list (qualifying or greyed exactly like any
+other voucher, by the live subtotal against its fixed minimum spend),
+marked with a small "Flash" tag beside its badge, and its expiry label shows
+the same live mm:ss the sheet's tiles show — the one voucher whose expiry
+label ticks rather than reading a static day count. What's different in
+round 2 is only the amount itself: it's whatever this session's draw was,
+not a fixed ₫15.000/$2.
 
 ## The points/coins toggle — skipped, and why
 
@@ -538,6 +585,13 @@ current.
 - `docs/design/87-flash-sheet-hcmc.html` — the flash-deal sheet over a
   dimmed home feed, at 375×812: drag handle, header, countdown tiles,
   min-spend line, two restaurant rows with struck-through original fees.
+  Its header figure (₫15.000) and its two named restaurants are one valid
+  session draw from round 2's ranges and rule, not the only possible one.
+  **No re-render this round:** the owner's frequency decision (round 2)
+  changes *when* and *how often* a draw happens, not what a drawn state
+  looks like on screen — a session that draws ₫15.000 and these same two
+  restaurants renders exactly this picture, which is why it still stands as
+  the mock.
 - `docs/design/80-checkout-hcmc.html` (updated) — the Offers row and the
   worked example's breakdown (discount line, struck-through delivery,
   "You saved," total), replacing the old promo chip-group entirely.
@@ -591,6 +645,15 @@ Eight PNGs total (four files × two widths), committed alongside.
   375×812 — nothing below the sheet's own restaurant rows was added, on
   purpose, per this repository's own render-viewport lesson: this mock's
   most important content is what's on screen without scrolling.
+- **Round 2, second review — no mock change.** The owner's flash-frequency
+  decision governs *when* a draw happens and *how random* it is, not the
+  rendered anatomy of a drawn state: a session that draws ₫15.000 and these
+  same two restaurants is indistinguishable on screen from what these PNGs
+  already show. Re-rendering would reproduce the identical pictures for a
+  cost the review itself said not to spend — confirmed against the mock's
+  markup (grepped for the old schedule/cooldown language; none of it
+  appears there, only in this document), so nothing rendered needed to
+  change.
 - **Round 2 finding (flagged in review): the "×" dismiss glyph overlapped
   the purple header's top-right corner at 375px.** `.sheet-close` is
   absolutely positioned against `.sheet`, and the header's own top edge sat
@@ -626,7 +689,10 @@ ships.
 
 - **#81** (event contract): voucher ids, stack groups, and tiers are the
   catalogue tables above, verbatim — an event naming a voucher should use
-  its `id` column, never its display label.
+  its `id` column, never its display label. The flash voucher's amount and
+  its drawn restaurant list vary per session (see "The flash-deal sheet,"
+  below) — its event needs fields for the drawn amount and restaurant ids
+  too, not just the catalogue id.
 - **#82** (the build): the Offers screen, the stacking/tier arithmetic, the
   "spend X more" nudge, and the flash sheet are specified above in full,
   including both worked examples' exact numbers to test against.
