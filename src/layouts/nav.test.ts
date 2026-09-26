@@ -125,6 +125,19 @@ describe('safe-area insets pad for hardware, not just the viewport rectangle (AC
   });
 });
 
+describe('wordmark breaks only at word boundaries (#82 AC2)', () => {
+  it('the wordmark is dontdropthatpromo with <wbr> only between dont/drop/that/promo, never mid-word', () => {
+    const html = readHtml('dist/index.html');
+    const match = html.match(/<span class="wordmark"[^>]*>([\s\S]*?)<\/p>/);
+    expect(match).not.toBeNull();
+    const inner = match![1];
+    // Strip attributes and the nested spans' tags so this reads as plain
+    // text with only the <wbr> breaks left: dont<wbr>drop<wbr>that<wbr>promo.
+    const stripped = inner.replace(/ data-astro-cid-[\w-]+/g, '').replace(/<\/?span[^>]*>/g, '');
+    expect(stripped).toBe('dont<wbr>drop<wbr>that<wbr>promo');
+  });
+});
+
 describe('sitewide footer link (AC2, AC5)', () => {
   it('every page carries a footer link to /about/ reading "What we log, and why"', () => {
     for (const distPath of ['dist/index.html', 'dist/restaurants/north-beach-pizzeria/index.html', 'dist/checkout/index.html']) {
