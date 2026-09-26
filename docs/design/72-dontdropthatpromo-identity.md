@@ -1,5 +1,11 @@
 # Dontdropthatpromo: replacing Phantom Fork's identity
 
+**Superseded by `docs/design/80-two-city-brand-and-flow.md` (issue #80,
+objective #79), kept as history only.** The Dontdropthatpromo identity and
+the flow it renames are being replaced wholesale by a realistic two-city
+delivery app under a new brand; nothing here should be built against going
+forward.
+
 Spec for issue #72, serving parent objective #63. The owner picked
 **Dontdropthatpromo** on #63 — neither of #65's two directions — and asked
 for a voice built around the name itself, not a reskin of Phantom Fork's

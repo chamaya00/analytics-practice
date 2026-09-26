@@ -692,54 +692,102 @@ rather than fighting it with spacing:
 Each rendered at both widths with `scripts/design-render`, eight PNGs total,
 committed alongside.
 
-## Critique, after opening the eight rendered pictures
+## Critique, after opening the rendered pictures (three passes, not one)
 
-- **First narrow render of both checkout files clipped before "Place
-  order"** — the same failure 65 and 72 both found and fixed, for the same
-  reason: five stacked sections (delivery details, instructions, utensils,
-  promo, breakdown) plus the demo disclosure box is more vertical content
-  than 375×812 holds at this site's existing spacing. Fixed the same way
-  65/72 did, one step further given one more section than either had:
-  collapsed "Utensils & napkins" to a single inline row instead of its own
-  labelled section, tightened the promo chip group's own internal spacing
-  (chips wrap two-per-row instead of stacking one-per-row), and reduced the
-  gap between the price-breakdown rows from `--space-md` to `--space-sm` (the
-  breakdown is a list of numbers, not a set of independent sections, so the
-  larger inter-section spacing was never earning its keep there). Re-rendered
-  until "Place order" cleared the tab bar with the discount line still
-  visible above the fold, not just the total.
-- **Checkout, wide, both cities:** the eye lands on the wordmark, then the
-  promo chip group (the one row with a color fill, since the deal chips carry
-  `--color-accent-secondary`), then the discount line, then Total — the
-  promo is structurally the second thing seen on the page, which is the
-  point of Direction Swoop's "structural idea" above: the deal isn't merely
-  present, it's what the layout leads with after the identity itself.
-- **Checkout, narrow, both cities (after the fix):** the discount line, "You
-  saved $X," and the full "Place order" button are all visible without
-  scrolling; the demo disclosure box sits directly above the button and is
-  not clipped.
+The mocks went through three real rounds of "render, look, fix" — recorded
+here as what actually happened, not what I expected going in, because the
+first two guesses in that process were wrong in specific, checkable ways.
+
+- **Round 1 finding: the cuisine-shortcut row clips its last chip flush
+  against the viewport edge, both widths, both cities** ("Bakery" / "Chè" cut
+  mid-word with no visual cue that the row scrolls further). An abrupt clip
+  reads as a bug, not a scrollable list. Fixed with a right-edge mask
+  (`mask-image: linear-gradient(to right, black 88%, transparent)`) so the
+  last visible chip fades rather than snapping off — confirmed in the
+  re-render on both cities.
+- **Round 1 finding: the promo comparison chips were unreadable.** The spec
+  calls for each chip to show its label and its savings figure; the first
+  render put both in one flex row with no line break, so "SWOOP20 — 20%
+  offBest deal" ran together as one string. Fixed by making each promo chip
+  its own flex column (label line, then a bold sub-line) — confirmed
+  legible at both widths in the re-render, both cities.
+- **Round 1 finding: the demo-disclosure icon rendered as an empty glyph box**
+  in the headless render (`ⓘ`, U+24D8, isn't covered by the environment's
+  default font) — a real finding a text-only read of the markup would never
+  catch, which is the entire argument for opening the picture rather than
+  trusting the HTML. Replaced with an inline SVG (a circle, a stem, a dot)
+  for the info icon and the same treatment for the discount line's tag icon,
+  which had been relying on an emoji glyph with the identical risk. Both
+  render correctly in the re-render, both cities.
+- **Round 1 finding: the checkout mocks omitted the fixed bottom tab bar**
+  that the real page will actually have (`Header.astro`'s phone nav), so the
+  first pass proved nothing about whether "Place order" clears it. Added the
+  tab bar to both checkout files before judging the narrow render at all —
+  the omission would have been the same mistake 65/72's own critique
+  sections warn against: comparing a mock to a page it doesn't actually
+  represent.
+- **Round 2 finding, and the real version of the "Place order clips" risk:**
+  once the tab bar was added *and* the promo chips became two-line stacks
+  (the round 1 fix above), the narrow checkout render clipped before "Place
+  order" on both cities — the same failure shape 65 and 72 both hit, arrived
+  at for a new reason each time. Fixed by tightening what was actually
+  costing the space: chip min-height 36px→32px, chip padding tightened,
+  section-title top margin `--space-md`→`--space-sm`, the promo chip's own
+  padding reduced, and the breakdown rows' vertical padding 3px→2px. Did
+  **not** cut a field or a state to make room — the fix is spacing, not
+  scope. Re-rendered until "Place order," the discount line, and the demo
+  disclosure were all visible with no scroll, both cities.
+- **Round 2 finding: the header's location bar wrapped onto three lines at
+  desktop width** ("San / Francisco / ▾") once the wide layout put it inline
+  next to the wordmark and nav links — it had been sized only for its
+  original stacked-on-phone layout. Fixed with `white-space: nowrap` and
+  `flex: none`. Confirmed in the re-render that "Ho Chi Minh City ▾," the
+  longer of the two city names, also stays on one line at desktop width,
+  which is the actual test the fix has to pass, not just the shorter name.
+- **Round 2 finding: the phone tab bar stayed visible at desktop width**,
+  overlapping the home feed's own top nav links, because the CSS rule
+  hiding it at ≥481px was declared *before* the tab bar's own base styles in
+  source order and lost the cascade to a later, unconditional rule. This
+  wasn't a design decision to re-argue, it was a bug in the mock's own CSS —
+  fixed by moving the hide rule after the base rule it overrides, and
+  confirmed in the re-render that wide shows the top nav only and narrow
+  shows the tab bar only, on both home feed files.
+- **Round 3, the corrected reading — checkout, wide, both cities:** the eye
+  lands on "CHECKOUT" first (the largest, boldest thing on the page, as it
+  should), then on the filled violet "SWOOP20 — Best deal" chip as the first
+  solid block of color the eye crosses scanning down, then on the bold
+  violet discount/total figures at the bottom. This is a *correction* to an
+  earlier draft of this section, which claimed the promo group was
+  "structurally the second thing seen" — it isn't; three preset-choice
+  sections (drop-off, instructions, utensils) sit above it. What survives
+  the correction is the actual point: the promo is still the first and only
+  *colored* thing the eye crosses before the total, which is what Direction
+  Swoop's "structural idea" argued for, and that part held up under
+  re-reading the picture rather than the earlier assumption.
+- **Checkout, narrow, both cities (final):** drop-off, delivery instructions,
+  utensils, all three promo chips with the ineligible one's reason text,
+  the full price breakdown including "You saved $X.XX" / "Bạn đã tiết kiệm
+  X ₫", the demo disclosure, and the complete "Place order" / "Đặt đơn"
+  button are all visible with no scrolling past the tab bar, on both cities.
 - **Home feed, wide, both cities:** blurring my eyes, the composition that
-  survives is location bar / search / one promo banner / restaurant cards in
-  a grid — the single-banner discipline from the Grab-banner critique above
-  reads correctly: nothing on the page is competing with the cards for
-  attention the way a five-banner carousel would.
-- **Home feed, narrow, both cities:** the location bar, search field, and
-  first two restaurant cards (including at least one deal badge) are visible
-  without scrolling in both cities — confirmed by looking, since the deal
-  badge is exactly the element an acceptance criterion could plausibly ask
-  for and a scroll could hide.
+  survives is nav row / search / one promo banner / restaurant cards in a
+  column — the single-banner discipline from the Grab-banner critique above
+  reads correctly: nothing on the page competes with the cards for attention
+  the way a five-banner carousel would.
+- **Home feed, narrow, both cities:** the location bar, search field, promo
+  banner, and first two restaurant cards (each with its deal badge) are
+  visible without scrolling.
 - Covering `--color-accent` with my hand on both checkout renders: the
   discount line still reads as distinct from an ordinary breakdown row from
   its bold weight and its tag icon alone — checked deliberately, since a
   discount line is exactly the kind of element that quietly ends up
   color-only if nobody checks.
-- The HCMC checkout's total is a six-figure VND number next to the SF
-  checkout's two-figure dollar number — first render set both amounts in the
-  same fixed-width numeral style and the six-figure total wrapped to two
-  lines at narrow width, which read as broken rather than "just a bigger
-  number." Fixed by letting the total's line wrap naturally rather than
-  forcing a fixed width, and confirmed in the re-render that a wrapped total
-  still reads as one number, not two.
+- **The HCMC total ("395.000 ₫") does not wrap at either width** — worth
+  recording as a non-finding rather than silently deleting the question,
+  since a six-figure VND number next to an SF two-figure dollar total was a
+  real risk going in. It didn't materialize because the total's line is
+  allowed to size to its content rather than sitting in a fixed-width
+  column; no fix was needed here, unlike every other item in this list.
 - What I'd remove if forced to cut one thing: the cuisine shortcut chip row
   on the home feed. It stayed because it's the fastest way a returning
   visitor narrows the feed without typing, and removing it would leave

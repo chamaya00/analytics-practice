@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Swoop — home feed mock, Ho Chi Minh City (VND)</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #FBF7FF;
+    --color-surface: #F7F1FF;
+    --color-text: #241B33;
+    --color-text-muted: #6B5D85;
+    --color-border: #E3D6FA;
+    --color-accent: #6C3CE0;
+    --color-accent-secondary: #FF7A45;
+    --color-tab-active-bg: #EDE1FF;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.5;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+  main { max-width: 26rem; margin: 0 auto; padding: 0 var(--space-lg) calc(64px + var(--space-xl)); }
+
+  header.site-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .brand-group { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .site-nav { display: none; gap: var(--space-md); }
+  .site-nav a { color: var(--color-text); text-decoration: none; font-weight: 700; font-size: var(--font-size-body); min-height: 44px; display: inline-flex; align-items: center; }
+  .site-nav a.current { text-decoration: underline; }
+  @media (min-width: 481px) {
+    header.site-header { flex-direction: row; align-items: center; justify-content: space-between; }
+    .brand-group { flex-direction: row; align-items: center; gap: var(--space-md); }
+    .site-nav { display: flex; }
+  }
+  .wordmark {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-nav-title);
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .wordmark .tail { position: relative; }
+  .wordmark .tail::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    bottom: -2px;
+    width: 6px;
+    height: 6px;
+    border-bottom: 2px solid var(--color-accent);
+    border-right: 2px solid var(--color-accent);
+    border-radius: 0 0 6px 0;
+  }
+  .location-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    align-self: flex-start;
+    flex: none;
+    white-space: nowrap;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: var(--space-xs) var(--space-md);
+    min-height: 32px;
+  }
+
+  .search {
+    margin-top: var(--space-md);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-body);
+  }
+
+  .promo-banner {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  .promo-banner .claim {
+    font-weight: 800;
+    font-size: var(--font-size-body);
+    color: var(--color-accent);
+  }
+  .promo-banner .sub { font-size: var(--font-size-muted); color: var(--color-text-muted); }
+
+  .cuisine-row {
+    margin-top: var(--space-md);
+    display: flex;
+    gap: var(--space-sm);
+    overflow-x: auto;
+    -webkit-mask-image: linear-gradient(to right, black 88%, transparent);
+    mask-image: linear-gradient(to right, black 88%, transparent);
+    padding-right: var(--space-lg);
+  }
+  .cuisine-chip {
+    flex: none;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  h2.section-title {
+    font-size: var(--font-size-h2);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: var(--space-lg) 0 var(--space-sm);
+  }
+
+  .restaurant-list { display: flex; flex-direction: column; gap: var(--space-md); }
+  .restaurant-card {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    position: relative;
+  }
+  .photo-placeholder {
+    flex: none;
+    width: 84px;
+    height: 84px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-border) 100%);
+    color: #fff;
+    font-size: 0.625rem;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-xs);
+  }
+  .restaurant-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+  .restaurant-name { font-weight: 800; font-size: var(--font-size-body); }
+  .restaurant-tag { font-size: var(--font-size-muted); color: var(--color-text-muted); }
+  .restaurant-meta { font-size: var(--font-size-muted); color: var(--color-text-muted); display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+  .deal-badge {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    background: var(--color-accent-secondary);
+    color: var(--color-text);
+    font-size: 0.625rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .tab-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+  .tab-bar a {
+    flex: 1;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+  .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+  .tab-bar a.current span { background: var(--color-tab-active-bg); padding: var(--space-xs) var(--space-md); border-radius: 999px; }
+  @media (min-width: 481px) { .tab-bar { display: none; } }
+
+  .reference-only {
+    margin-top: var(--space-xxl);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="site-header">
+    <div class="brand-group">
+      <p class="wordmark"><span class="tail">swoop</span></p>
+      <span class="location-bar">Ho Chi Minh City ▾</span>
+    </div>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#" class="current">Home</a>
+      <a href="#">Cart</a>
+      <a href="#">Tracker</a>
+    </nav>
+  </header>
+
+  <div class="search">Tìm nhà hàng hoặc món ăn</div>
+
+  <div class="promo-banner">
+    <div>
+      <div class="claim">Giảm 20% đơn đầu tiên — SWOOP20</div>
+      <div class="sub">Tự động áp dụng ở trang thanh toán</div>
+    </div>
+  </div>
+
+  <div class="cuisine-row">
+    <span class="cuisine-chip">Phở</span>
+    <span class="cuisine-chip">Bánh mì</span>
+    <span class="cuisine-chip">Cơm</span>
+    <span class="cuisine-chip">Bún</span>
+    <span class="cuisine-chip">Chè</span>
+  </div>
+
+  <h2 class="section-title">Gần bạn</h2>
+  <div class="restaurant-list">
+    <div class="restaurant-card">
+      <div class="deal-badge">GIẢM 20%</div>
+      <div class="photo-placeholder">[photo: vietnamese street food stall]</div>
+      <div class="restaurant-info">
+        <span class="restaurant-name">Phở Ông Tư</span>
+        <span class="restaurant-tag">Phở</span>
+        <span class="restaurant-meta"><span>4.7 ★</span><span>20–30 phút</span><span>15.000 ₫ ship</span></span>
+      </div>
+    </div>
+    <div class="restaurant-card">
+      <div class="deal-badge">GIẢM 20%</div>
+      <div class="photo-placeholder">[photo: banh mi shop vietnam]</div>
+      <div class="restaurant-info">
+        <span class="restaurant-name">Bánh Mì 37</span>
+        <span class="restaurant-tag">Bánh mì</span>
+        <span class="restaurant-meta"><span>4.6 ★</span><span>15–25 phút</span><span>10.000 ₫ ship</span></span>
+      </div>
+    </div>
+    <div class="restaurant-card">
+      <div class="photo-placeholder">[photo: com tam restaurant vietnam]</div>
+      <div class="restaurant-info">
+        <span class="restaurant-name">Cơm Tấm Sài Gòn</span>
+        <span class="restaurant-tag">Cơm tấm</span>
+        <span class="restaurant-meta"><span>4.5 ★</span><span>25–35 phút</span><span>15.000 ₫ ship</span></span>
+      </div>
+    </div>
+    <div class="restaurant-card">
+      <div class="photo-placeholder">[photo: bun noodle restaurant vietnam]</div>
+      <div class="restaurant-info">
+        <span class="restaurant-name">Bún Chả Hà Nội Quán</span>
+        <span class="restaurant-tag">Bún</span>
+        <span class="restaurant-meta"><span>4.8 ★</span><span>20–30 phút</span><span>12.000 ₫ ship</span></span>
+      </div>
+    </div>
+  </div>
+
+  <p class="reference-only">Reference only, not part of the shipped page — this line and the dashed rule above it exist so a reader of the render can tell the mock's own scaffolding from the page it depicts.</p>
+</main>
+<nav class="tab-bar">
+  <a href="#" class="current"><span>Home</span></a>
+  <a href="#">Cart</a>
+  <a href="#">Tracker</a>
+</nav>
+</body>
+</html>
