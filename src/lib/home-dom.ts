@@ -4,10 +4,12 @@
 // (first visit or no persisted city) or the current city's feed (location
 // bar, search, one promo banner, cuisine shortcuts, restaurant cards).
 
-import { CITIES, CITY_NAMES, formatMoneyForCity, type City } from './money';
+import { CITIES, CITY_CURRENCY, CITY_NAMES, formatMoneyForCity, type City } from './money';
 import { getStoredCity, setStoredCity } from './location';
 import { CUISINE_SHORTCUTS, restaurantsForCity, etaRangeLabel, type Restaurant } from './restaurants';
 import { track } from './tracking';
+import { ensureFlashDraw, flashFeeForRestaurant, flashSecondsRemaining, isFlashLive, type FlashDraw } from './flash-deal';
+import { renderFlashSheet } from './flash-sheet-dom';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
@@ -90,7 +92,13 @@ function matchesFilter(restaurant: Restaurant, query: string, cuisine: string | 
   return haystack.includes(query.toLowerCase());
 }
 
-function renderRestaurantCard(restaurant: Restaurant): HTMLElement {
+/** A restaurant's flash fee, in minor units, while this session's draw is live for it — `null` otherwise (#87, "the effective delivery fee"). Read fresh on every render so the fee and the "Flash" badge disappear together the instant the window ends (AC4). */
+function flashFeeFor(restaurant: Restaurant, draw: FlashDraw | null, now: number): number | null {
+  if (!draw) return null;
+  return flashFeeForRestaurant(draw, restaurant.city, restaurant.slug, restaurant.deliveryFeeMinor, now);
+}
+
+function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, now: number): HTMLElement {
   const card = document.createElement('a');
   card.className = 'restaurant-card';
   card.href = `/restaurants/${restaurant.slug}/`;
@@ -115,10 +123,12 @@ function renderRestaurantCard(restaurant: Restaurant): HTMLElement {
   tag.className = 'restaurant-card-tag';
   tag.textContent = restaurant.cuisineTag;
 
+  const flashFeeMinor = flashFeeFor(restaurant, draw, now);
+  const effectiveFeeMinor = flashFeeMinor ?? restaurant.deliveryFeeMinor;
+
   const meta = document.createElement('span');
   meta.className = 'restaurant-card-meta';
-  const feeLabel =
-    restaurant.deliveryFeeMinor === 0 ? 'Free' : formatMoneyForCity(restaurant.deliveryFeeMinor, restaurant.city);
+  const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
   meta.textContent = `★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel} delivery`;
 
   body.append(name, tag, meta);
@@ -131,11 +141,22 @@ function renderRestaurantCard(restaurant: Restaurant): HTMLElement {
     body.append(badge);
   }
 
+  if (flashFeeMinor !== null) {
+    const flashBadge = document.createElement('span');
+    flashBadge.className = 'flash-badge';
+    flashBadge.setAttribute('data-testid', `flash-badge-${restaurant.slug}`);
+    flashBadge.textContent = 'Flash';
+    body.append(flashBadge);
+  }
+
   card.append(img, body);
   return card;
 }
 
-function renderFeed(root: HTMLElement, city: City): void {
+function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): void {
+  const now = Date.now();
+  const { draw, isNewDraw } = ensureFlashDraw(sessionStorage, city, now);
+
   const feed = document.createElement('div');
   feed.className = 'home-feed';
   feed.setAttribute('data-testid', 'home-feed');
@@ -149,7 +170,7 @@ function renderFeed(root: HTMLElement, city: City): void {
     root.innerHTML = '';
     renderLocationPicker(root, window.localStorage, (pickedCity) => {
       root.innerHTML = '';
-      renderFeed(root, pickedCity);
+      renderFeed(root, pickedCity, sessionStorage);
     });
   });
 
@@ -189,9 +210,11 @@ function renderFeed(root: HTMLElement, city: City): void {
     const restaurants = restaurantsForCity(city);
     const matches = restaurants.filter((restaurant) => matchesFilter(restaurant, search.value, activeCuisine));
 
+    const liveDraw = isFlashLive(draw, Date.now()) ? draw : null;
+
     list.innerHTML = '';
     for (const restaurant of matches) {
-      list.append(renderRestaurantCard(restaurant));
+      list.append(renderRestaurantCard(restaurant, liveDraw, Date.now()));
     }
 
     if (matches.length === 0) {
@@ -227,21 +250,42 @@ function renderFeed(root: HTMLElement, city: City): void {
 
   feed.append(locationBar, search, banner, chipRow, list, empty);
   root.append(feed);
+
+  if (isFlashLive(draw, Date.now())) {
+    const remainingMs = flashSecondsRemaining(draw, Date.now()) * 1000;
+    setTimeout(renderList, remainingMs);
+  }
+
+  if (isNewDraw) {
+    track('flash_sheet_shown', {
+      city,
+      amount_minor: draw.amountMinor,
+      currency: CITY_CURRENCY[city],
+      restaurant_slugs: [draw.restaurants[0].slug, draw.restaurants[1].slug],
+    });
+    renderFlashSheet(root, city, draw, (path) => {
+      window.location.href = path;
+    });
+  }
 }
 
-export function initHomePage(root: HTMLElement, storage: Storage = window.localStorage): void {
+export function initHomePage(
+  root: HTMLElement,
+  storage: Storage = window.localStorage,
+  sessionStorage: Storage = window.sessionStorage,
+): void {
   root.innerHTML = '';
   const city = getStoredCity(storage);
 
   if (city === null) {
     renderLocationPicker(root, storage, (pickedCity) => {
       root.innerHTML = '';
-      renderFeed(root, pickedCity);
+      renderFeed(root, pickedCity, sessionStorage);
       track('home_viewed', { city: pickedCity });
     });
     return;
   }
 
-  renderFeed(root, city);
+  renderFeed(root, city, sessionStorage);
   track('home_viewed', { city });
 }

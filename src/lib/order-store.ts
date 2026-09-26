@@ -100,28 +100,81 @@ export function cartCurrency(lines: CartLine[]): Currency | null {
 
 export interface CheckoutBreakdown {
   subtotalMinor: number;
+  /** The fee actually charged — 0 whenever the delivery voucher is applied. */
   deliveryFeeMinor: number;
+  /** The restaurant's normal fee, shown struck through, only when the charged fee above is lower than it (a live flash reduction and/or the delivery voucher) — `null` when the charged fee already is the normal fee. */
+  deliveryFeeOriginalMinor: number | null;
   serviceFeeMinor: number;
+  /** The discount-group voucher's amount — 0 when none is applied (no Discount line then, #87). */
+  discountAmountMinor: number;
+  /** Sum of every applied voucher's saving — 0 when nothing is applied (no "You saved" line then, #87). */
+  savedAmountMinor: number;
   totalMinor: number;
   currency: Currency;
 }
 
 /**
- * The checkout price breakdown (#80's "Price breakdown": Subtotal, Delivery
- * fee, Service fee, Total — no Offers/Discount/"You saved" line yet, #89's to
- * add). `null` for an empty cart, so the caller renders #80's empty state
- * rather than a $0 breakdown.
+ * Applied-voucher effect on the breakdown (#87's "Offers" mechanics, #89) —
+ * everything computeCheckoutBreakdown needs beyond the cart and the
+ * restaurant's own normal fee, kept as one small object so the function
+ * itself stays a pure arithmetic step over values the caller (checkout-dom.ts)
+ * has already resolved from vouchers.ts/flash-deal.ts.
  */
-export function computeCheckoutBreakdown(lines: CartLine[], deliveryFeeMinor: number): CheckoutBreakdown | null {
+export interface AppliedVoucherEffect {
+  /** Whether the `delivery`-group voucher is currently applied. */
+  deliveryVoucherApplied: boolean;
+  /** The `discount`-group voucher's amount, in minor units — 0 when none is applied. */
+  discountAmountMinor: number;
+  /** The restaurant's own flash-window fee, in minor units, when a live flash window applies to it (#87, "The effective delivery fee, in order," rule 2) — `null` when no flash window is live for this restaurant. */
+  flashDeliveryFeeMinor: number | null;
+}
+
+export const NO_VOUCHERS_APPLIED: AppliedVoucherEffect = {
+  deliveryVoucherApplied: false,
+  discountAmountMinor: 0,
+  flashDeliveryFeeMinor: null,
+};
+
+/** The fee that would apply absent the delivery voucher — the restaurant's live flash fee if one is live, else its normal fee (#87, "the effective delivery fee," rules 2–3). Exported so the Offers screen's own "You saved" footer (offers-dom.ts) computes the identical figure checkout will show. */
+export function otherwiseDeliveryFeeMinor(normalDeliveryFeeMinor: number, flashDeliveryFeeMinor: number | null): number {
+  return flashDeliveryFeeMinor ?? normalDeliveryFeeMinor;
+}
+
+/**
+ * The checkout price breakdown (#80's "Price breakdown," extended by #87/#89
+ * with the Discount line and "You saved" sub-line). `null` for an empty
+ * cart, so the caller renders #80's empty state rather than a $0 breakdown.
+ *
+ * `normalDeliveryFeeMinor` is the restaurant's own everyday fee (unchanged
+ * from #94). `applied` resolves #87's "effective delivery fee, in order":
+ * free if the delivery voucher is applied; otherwise the restaurant's live
+ * flash fee; otherwise its normal fee — and the discount-group voucher's
+ * fixed or drawn amount, subtracted once as its own Discount line.
+ */
+export function computeCheckoutBreakdown(
+  lines: CartLine[],
+  normalDeliveryFeeMinor: number,
+  applied: AppliedVoucherEffect = NO_VOUCHERS_APPLIED,
+): CheckoutBreakdown | null {
   if (lines.length === 0) return null;
   const currency = lines[0].currency;
   const subtotalMinor = cartSubtotalMinor(lines);
   const serviceFeeMinor = SERVICE_FEE_MINOR[currency];
+
+  const otherwiseFeeMinor = otherwiseDeliveryFeeMinor(normalDeliveryFeeMinor, applied.flashDeliveryFeeMinor);
+  const deliveryFeeMinor = applied.deliveryVoucherApplied ? 0 : otherwiseFeeMinor;
+  const deliveryFeeOriginalMinor = deliveryFeeMinor < normalDeliveryFeeMinor ? normalDeliveryFeeMinor : null;
+  const deliverySavedMinor = applied.deliveryVoucherApplied ? otherwiseFeeMinor : 0;
+  const savedAmountMinor = deliverySavedMinor + applied.discountAmountMinor;
+
   return {
     subtotalMinor,
     deliveryFeeMinor,
+    deliveryFeeOriginalMinor,
     serviceFeeMinor,
-    totalMinor: subtotalMinor + deliveryFeeMinor + serviceFeeMinor,
+    discountAmountMinor: applied.discountAmountMinor,
+    savedAmountMinor,
+    totalMinor: subtotalMinor + deliveryFeeMinor + serviceFeeMinor - applied.discountAmountMinor,
     currency,
   };
 }

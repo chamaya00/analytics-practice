@@ -80,6 +80,130 @@ describe('isValidEventProps (AC3)', () => {
   });
 });
 
+describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', () => {
+  it('accepts a well-shaped flash_sheet_shown for each city, bounded to its own drawn range', () => {
+    expect(
+      isValidEventProps('flash_sheet_shown', {
+        city: 'hcmc',
+        amount_minor: 15000,
+        currency: 'VND',
+        restaurant_slugs: ['ben-thanh-banh-mi', 'saigon-pho-quan'],
+      }),
+    ).toBe(true);
+    expect(
+      isValidEventProps('flash_sheet_shown', {
+        city: 'sf',
+        amount_minor: 400,
+        currency: 'USD',
+        restaurant_slugs: ['mission-taqueria', 'north-beach-pizzeria'],
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects a drawn amount outside the city’s own range even though it is inside the general per-currency bound', () => {
+    expect(
+      isValidEventProps('flash_sheet_shown', {
+        city: 'hcmc',
+        amount_minor: 45000, // a valid discount-tier amount, but outside the flash draw's own 10.000–30.000 range
+        currency: 'VND',
+        restaurant_slugs: ['ben-thanh-banh-mi', 'saigon-pho-quan'],
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects restaurant_slugs with anything but exactly 2 entries', () => {
+    expect(
+      isValidEventProps('flash_sheet_shown', {
+        city: 'hcmc',
+        amount_minor: 15000,
+        currency: 'VND',
+        restaurant_slugs: ['ben-thanh-banh-mi'],
+      }),
+    ).toBe(false);
+  });
+
+  it('accepts flash_sheet_closed for each outcome, with restaurant_slug carrying the fixed literal "none" except restaurant_tapped', () => {
+    expect(
+      isValidEventProps('flash_sheet_closed', {
+        city: 'hcmc',
+        outcome: 'dismissed',
+        seconds_remaining: 512,
+        restaurant_slug: 'none',
+      }),
+    ).toBe(true);
+    expect(
+      isValidEventProps('flash_sheet_closed', {
+        city: 'hcmc',
+        outcome: 'expired',
+        seconds_remaining: 0,
+        restaurant_slug: 'none',
+      }),
+    ).toBe(true);
+    expect(
+      isValidEventProps('flash_sheet_closed', {
+        city: 'hcmc',
+        outcome: 'restaurant_tapped',
+        seconds_remaining: 700,
+        restaurant_slug: 'ben-thanh-banh-mi',
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects restaurant_tapped with the "none" literal, and a non-tapped outcome with a real slug', () => {
+    expect(
+      isValidEventProps('flash_sheet_closed', {
+        city: 'hcmc',
+        outcome: 'restaurant_tapped',
+        seconds_remaining: 700,
+        restaurant_slug: 'none',
+      }),
+    ).toBe(false);
+    expect(
+      isValidEventProps('flash_sheet_closed', {
+        city: 'hcmc',
+        outcome: 'dismissed',
+        seconds_remaining: 700,
+        restaurant_slug: 'ben-thanh-banh-mi',
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isValidEventProps — order_placed with real vouchers (AC3, AC4, AC6)', () => {
+  it('accepts up to 2 known catalogue voucher ids with a nonzero saved_amount_minor', () => {
+    expect(
+      isValidEventProps('order_placed', {
+        ...VALID_ORDER_PLACED,
+        applied_voucher_ids: ['hcmc-discount-t2', 'hcmc-delivery-entry'],
+        currency: 'VND',
+        amount_minor: 250000,
+        saved_amount_minor: 40000,
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects a typed free-text string standing in for a voucher id', () => {
+    expect(
+      isValidEventProps('order_placed', { ...VALID_ORDER_PLACED, applied_voucher_ids: ['SAVE10'] }),
+    ).toBe(false);
+  });
+
+  it('rejects more than 2 voucher ids, and duplicate ids', () => {
+    expect(
+      isValidEventProps('order_placed', {
+        ...VALID_ORDER_PLACED,
+        applied_voucher_ids: ['hcmc-discount-t1', 'hcmc-discount-t2', 'hcmc-delivery-entry'],
+      }),
+    ).toBe(false);
+    expect(
+      isValidEventProps('order_placed', {
+        ...VALID_ORDER_PLACED,
+        applied_voucher_ids: ['hcmc-discount-t1', 'hcmc-discount-t1'],
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('track (AC3)', () => {
   it('forwards a valid call to the injected stub with the exact event name and props', () => {
     const stub = vi.fn();
