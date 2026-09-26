@@ -9,6 +9,19 @@ import { getStoredCity, setStoredCity } from './location';
 import { CUISINE_SHORTCUTS, restaurantsForCity, etaRangeLabel, type Restaurant } from './restaurants';
 import { track } from './tracking';
 
+const STORAGE_PROBE_KEY = 'parody.storageProbe';
+
+/** Storage-blocked (private browsing) is detected up front, not only after a failed write — #80's error state is a property of the sheet itself, shown before any tap rather than for the instant between a tap and the sheet dismissing. */
+function isStorageBlocked(storage: Storage): boolean {
+  try {
+    storage.setItem(STORAGE_PROBE_KEY, '1');
+    storage.removeItem(STORAGE_PROBE_KEY);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (city: City) => void): void {
   const sheet = document.createElement('div');
   sheet.className = 'location-picker';
@@ -46,27 +59,27 @@ function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (ci
     card.append(img, name, currencyNote);
     card.addEventListener('click', () => {
       const previous = getStoredCity(storage);
-      const persisted = setStoredCity(storage, city);
+      setStoredCity(storage, city);
       const isSwitch = previous !== null && previous !== city;
       track('location_selected', { city, is_switch: isSwitch });
-
-      if (!persisted) {
-        const notice = document.createElement('p');
-        notice.className = 'location-blocked-notice';
-        notice.setAttribute('data-testid', 'location-blocked-notice');
-        notice.textContent = "Your city won't be remembered after you close this.";
-        sheet.append(notice);
-        // The in-memory fallback: the sheet still functions for this page
-        // load even though nothing persisted, so the caller proceeds exactly
-        // as if the pick had been stored.
-      }
-
+      // The in-memory fallback: the sheet still functions for this page load
+      // even when storage is blocked (the notice above already said so), so
+      // the caller proceeds exactly as if the pick had been stored.
       onPicked(city);
     });
     cards.append(card);
   }
 
   sheet.append(cards);
+
+  if (isStorageBlocked(storage)) {
+    const notice = document.createElement('p');
+    notice.className = 'location-blocked-notice';
+    notice.setAttribute('data-testid', 'location-blocked-notice');
+    notice.textContent = "Your city won't be remembered after you close this.";
+    sheet.append(notice);
+  }
+
   root.append(sheet);
 }
 
