@@ -171,14 +171,14 @@ begin
       )
       and (
         select count(distinct v) from jsonb_array_elements_text(props->'applied_voucher_ids') v
-      ) = jsonb_array_length(props->'applied_voucher_ids')
-      -- Contract §7's own invariant on this row: "saved_amount_minor is 0
-      -- if and only if applied_voucher_ids is []".
-      and (
-        (jsonb_array_length(props->'applied_voucher_ids') = 0 and (props->>'saved_amount_minor')::bigint = 0)
-        or
-        (jsonb_array_length(props->'applied_voucher_ids') > 0 and (props->>'saved_amount_minor')::bigint > 0)
-      );
+      ) = jsonb_array_length(props->'applied_voucher_ids');
+      -- Contract §7's cross-field invariant on this row — "saved_amount_minor
+      -- is 0 iff applied_voucher_ids is []" — is deliberately NOT enforced
+      -- here. Decided on #79 (2026-09-26 11:47): a CHECK here would turn a
+      -- client arithmetic bug into an order_placed row the store silently
+      -- drops, on the primary metric's numerator. An inconsistent row that
+      -- lands can be counted and excluded later; a refused one is gone. The
+      -- invariant is #89's to enforce client-side. See ADR 0007.
 
   elsif event_name = 'tracker_viewed' then
     return keys = array['minutes_since_order', 'order_id', 'view_number']

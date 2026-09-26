@@ -31,8 +31,13 @@ const VALID_HCMC_ORDER_PLACED_PROPS = {
   drop_off_preset: 'home',
   delivery_instructions: 'leave_at_door',
   utensils: true,
-  applied_voucher_ids: ['hcmc-discount-t1', 'hcmc-discount-t3'],
-  saved_amount_minor: 45000,
+  // #87's own worked example: one discount voucher plus the delivery
+  // voucher — ₫25.000 discount plus the ₫15.000 delivery fee waived. Two
+  // discount-group vouchers (as in an earlier draft of this fixture) would
+  // violate #87's stacking rules even though the store doesn't check stack
+  // groups; this fixture is what #82 and #89 copy, so it should be real.
+  applied_voucher_ids: ['hcmc-discount-t2', 'hcmc-delivery-entry'],
+  saved_amount_minor: 40000,
 };
 
 const OLD_PARODY_ORDER_PLACED_PROPS = {
@@ -343,22 +348,20 @@ describe('order_placed cross-field and enum invariants (AC1, contract §7)', () 
     ).rejects.toThrow();
   });
 
-  it('refuses a nonempty applied_voucher_ids with saved_amount_minor of 0', async () => {
-    await expect(
-      insertEvent(db, {
-        eventName: 'order_placed',
-        props: { ...VALID_HCMC_ORDER_PLACED_PROPS, saved_amount_minor: 0 },
-      }),
-    ).rejects.toThrow();
-  });
-
-  it('refuses an empty applied_voucher_ids with a nonzero saved_amount_minor', async () => {
+  it('accepts an applied_voucher_ids/saved_amount_minor pair that disagrees with each other', async () => {
+    // Contract §7's "saved_amount_minor is 0 iff applied_voucher_ids is []"
+    // invariant is deliberately NOT enforced by the store (decided on #79,
+    // 2026-09-26 11:47, see ADR 0007): a CHECK here would turn a client
+    // arithmetic bug into an order_placed row silently dropped on the
+    // primary metric's numerator. It's #89's client-side invariant to
+    // enforce; an inconsistent row that lands here can be counted and
+    // excluded later.
     await expect(
       insertEvent(db, {
         eventName: 'order_placed',
         props: { ...VALID_HCMC_ORDER_PLACED_PROPS, applied_voucher_ids: [], saved_amount_minor: 45000 },
       }),
-    ).rejects.toThrow();
+    ).resolves.toBeDefined();
   });
 
   it('refuses a drop_off_preset outside the new preset enum', async () => {

@@ -67,6 +67,14 @@ four times; `flash_sheet_shown`'s `amount_minor` uses its own narrower,
 fixed drawn range instead (§7) and is checked inline, since it isn't the
 shared bound.
 
+`event_is_valid` does **not** enforce the contract's §7 cross-field
+invariant on `order_placed` (`saved_amount_minor` is `0` iff
+`applied_voucher_ids` is `[]`) — decided on #79 (2026-09-26 11:47): a CHECK
+here would turn a client arithmetic bug into an `order_placed` row the
+store drops without telling anyone, on the primary metric's numerator; an
+inconsistent row that lands can be counted and excluded later, a refused
+one is gone. That invariant is #89's to enforce client-side.
+
 ## Consequences
 
 **Easy:** the store refuses every retired event name and every retired enum
