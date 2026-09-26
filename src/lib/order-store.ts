@@ -16,6 +16,13 @@ export interface CartLine {
   restaurantSlug: string;
   restaurantName: string;
   name: string;
+  /**
+   * Despite the name, this is the item's `amountMinor` (restaurants.ts) as
+   * committed to cart/checkout unchanged — cents for a USD item, whole đồng
+   * for a VND one. Renaming this and PlacedOrder's `subtotalCents`, and
+   * fixing cart/checkout's own display to format per currency, is #94's
+   * (cart, checkout and vouchers are that issue's scope, not #82's).
+   */
   priceCents: number;
   quantity: number;
 }
