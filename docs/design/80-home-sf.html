@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Swoop — home feed mock, San Francisco (USD)</title>
+<title>Dontdropthatpromo — home feed mock, San Francisco (USD)</title>
 <style>
   :root {
     --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
@@ -60,9 +60,13 @@
     align-items: center;
     gap: var(--space-xs);
     font-size: var(--font-size-nav-title);
-    font-weight: 800;
+    font-weight: 500;
     line-height: 1.2;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
   }
+  .wordmark .word-strong { font-weight: 800; }
   .wordmark .tail { position: relative; }
   .wordmark .tail::after {
     content: '';
@@ -142,15 +146,11 @@
     background: var(--color-surface);
     font-size: var(--font-size-muted);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
   h2.section-title {
     font-size: var(--font-size-h2);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     margin: var(--space-lg) 0 var(--space-sm);
   }
 
@@ -206,16 +206,17 @@
     flex: 1;
     min-height: 56px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     font-size: var(--font-size-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     color: var(--color-text-muted);
     text-decoration: none;
   }
+  .tab-bar a svg { width: 20px; height: 20px; }
   .tab-bar a.current { color: var(--color-text); font-weight: 700; }
-  .tab-bar a.current span { background: var(--color-tab-active-bg); padding: var(--space-xs) var(--space-md); border-radius: 999px; }
+  .tab-bar a.current .tab-label { background: var(--color-tab-active-bg); padding: 1px var(--space-md); border-radius: 999px; }
   @media (min-width: 481px) { .tab-bar { display: none; } }
 
   .reference-only {
@@ -231,7 +232,7 @@
 <main>
   <header class="site-header">
     <div class="brand-group">
-      <p class="wordmark"><span class="tail">swoop</span></p>
+      <p class="wordmark"><span class="word-strong">dont</span><wbr>drop<wbr>that<wbr>prom<span class="tail">o</span></p>
       <span class="location-bar">San Francisco ▾</span>
     </div>
     <nav class="site-nav" aria-label="Primary">
@@ -245,7 +246,7 @@
 
   <div class="promo-banner">
     <div>
-      <div class="claim">20% off your first order — SWOOP20</div>
+      <div class="claim">$2 off your first order</div>
       <div class="sub">Applied automatically at checkout</div>
     </div>
   </div>
@@ -299,9 +300,9 @@
   <p class="reference-only">Reference only, not part of the shipped page — this line and the dashed rule above it exist so a reader of the render can tell the mock's own scaffolding from the page it depicts.</p>
 </main>
 <nav class="tab-bar">
-  <a href="#" class="current"><span>Home</span></a>
-  <a href="#">Cart</a>
-  <a href="#">Tracker</a>
+  <a href="#" class="current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">Home</span></a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><span class="tab-label">Cart</span></a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg><span class="tab-label">Tracker</span></a>
 </nav>
 </body>
 </html>
