@@ -143,6 +143,26 @@ describe('cart/checkout breakdown, chip groups and CTA fit at 375px (#94 review 
   });
 });
 
+describe('tracker stepper and rating prompt fit at 375px (#83)', () => {
+  it('the stepper does not set a fixed pixel width wider than the 335px content column', () => {
+    const rules = css.match(/\.stepper\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .stepper rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).not.toMatch(/width:\d+px/);
+  });
+
+  it('the star picker wraps rather than forcing five 44px touch targets onto one fixed-width row', () => {
+    const rules = css.match(/\.star-picker\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .star-picker rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('flex-wrap:wrap');
+  });
+
+  it('the rating tag chips wrap rather than forcing three chips onto one line (shared .chip-group rule)', () => {
+    const rules = css.match(/\.chip-group\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .chip-group rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('flex-wrap:wrap');
+  });
+});
+
 describe('Offers screen voucher icons stay explicitly sized at 375px (driver review, #89 revision round 1)', () => {
   // Before this round's styling fix, .badge and .voucher-expiry rendered
   // their SVGs at intrinsic size with no width/height rule at all, so each
