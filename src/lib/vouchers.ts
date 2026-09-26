@@ -230,10 +230,6 @@ function sortedIds(entries: CatalogueEntry[]): VoucherId[] {
   return entries.map((entry) => entry.id).sort();
 }
 
-function sameIds(a: VoucherId[], b: VoucherId[]): boolean {
-  return a.length === b.length && a.every((id, index) => id === b[index]);
-}
-
 /** True when `next` contains an id `previous` didn't — an "unlock," #87's own trigger for auto-select. A voucher merely dropping out of the qualifying set is not a gain, and does not reselect a replacement (the doc's HCMC error-scenario worked example: dropping below t2's minimum leaves t1 qualifying-but-unchecked, not auto-applied). */
 function gainedMember(previous: VoucherId[], next: VoucherId[]): boolean {
   return next.some((id) => !previous.includes(id));

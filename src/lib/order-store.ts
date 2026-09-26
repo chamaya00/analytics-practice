@@ -135,6 +135,11 @@ export const NO_VOUCHERS_APPLIED: AppliedVoucherEffect = {
   flashDeliveryFeeMinor: null,
 };
 
+/** The fee that would apply absent the delivery voucher — the restaurant's live flash fee if one is live, else its normal fee (#87, "the effective delivery fee," rules 2–3). Exported so the Offers screen's own "You saved" footer (offers-dom.ts) computes the identical figure checkout will show. */
+export function otherwiseDeliveryFeeMinor(normalDeliveryFeeMinor: number, flashDeliveryFeeMinor: number | null): number {
+  return flashDeliveryFeeMinor ?? normalDeliveryFeeMinor;
+}
+
 /**
  * The checkout price breakdown (#80's "Price breakdown," extended by #87/#89
  * with the Discount line and "You saved" sub-line). `null` for an empty
@@ -156,7 +161,7 @@ export function computeCheckoutBreakdown(
   const subtotalMinor = cartSubtotalMinor(lines);
   const serviceFeeMinor = SERVICE_FEE_MINOR[currency];
 
-  const otherwiseFeeMinor = applied.flashDeliveryFeeMinor ?? normalDeliveryFeeMinor;
+  const otherwiseFeeMinor = otherwiseDeliveryFeeMinor(normalDeliveryFeeMinor, applied.flashDeliveryFeeMinor);
   const deliveryFeeMinor = applied.deliveryVoucherApplied ? 0 : otherwiseFeeMinor;
   const deliveryFeeOriginalMinor = deliveryFeeMinor < normalDeliveryFeeMinor ? normalDeliveryFeeMinor : null;
   const deliverySavedMinor = applied.deliveryVoucherApplied ? otherwiseFeeMinor : 0;

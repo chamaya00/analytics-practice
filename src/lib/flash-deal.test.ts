@@ -13,6 +13,7 @@ import {
   getFlashDraw,
   isFlashLive,
   setFlashDraw,
+  type FlashDraw,
 } from './flash-deal';
 
 /** Returns 0, then the next value, ... cycling — lets a test predict exactly which array index `pickIndex`/the fee-mode coin flip lands on. */
@@ -107,12 +108,12 @@ describe('session persistence — one draw per city per session (AC4)', () => {
 });
 
 describe('flashFeeForRestaurant — the effective delivery fee ordering (AC4)', () => {
-  const draw = {
+  const draw: FlashDraw = {
     drawnAt: 0,
     amountMinor: 15000,
     restaurants: [
-      { slug: 'free-one', feeMode: 'free' as const },
-      { slug: 'reduced-one', feeMode: 'reduced' as const },
+      { slug: 'free-one', feeMode: 'free' },
+      { slug: 'reduced-one', feeMode: 'reduced' },
     ],
   };
 
