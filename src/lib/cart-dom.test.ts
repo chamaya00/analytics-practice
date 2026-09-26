@@ -4,11 +4,12 @@ import { addToCart } from './order-store';
 import { resetTrack, setTrack } from './tracking';
 
 const LINE = {
-  itemId: 'one-job-pizza-margherita',
-  restaurantSlug: 'one-job-pizza',
-  restaurantName: 'One Job Pizza',
-  name: 'Margherita, carried flat',
-  priceCents: 1400,
+  itemId: 'north-beach-pizzeria-margherita',
+  restaurantSlug: 'north-beach-pizzeria',
+  restaurantName: 'North Beach Pizzeria',
+  name: 'Margherita',
+  amountMinor: 1400,
+  currency: 'USD' as const,
 };
 
 beforeEach(() => {
@@ -26,7 +27,7 @@ function root(): HTMLElement {
 }
 
 describe('initCartPage (AC1, AC3)', () => {
-  it('shows the empty state with a CTA back to Restaurants when the cart is empty, and still fires cart_viewed', () => {
+  it('shows the empty state with a CTA back to the home feed when the cart is empty, and still fires cart_viewed', () => {
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
@@ -34,11 +35,11 @@ describe('initCartPage (AC1, AC3)', () => {
     initCartPage(el, window.localStorage);
 
     expect(el.querySelector('[data-testid="cart-empty"]')).not.toBeNull();
-    expect(el.querySelector('a[href="/restaurants/"]')).not.toBeNull();
-    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 0, subtotal_cents: 0 });
+    expect(el.querySelector('a[href="/"]')).not.toBeNull();
+    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' });
   });
 
-  it('fires cart_viewed with the populated cart’s item_count and subtotal_cents', () => {
+  it('fires cart_viewed with the populated cart’s item_count, amount_minor, and currency', () => {
     addToCart(window.localStorage, LINE);
     addToCart(window.localStorage, LINE);
     const stub = vi.fn();
@@ -46,7 +47,7 @@ describe('initCartPage (AC1, AC3)', () => {
 
     initCartPage(root(), window.localStorage);
 
-    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 2, subtotal_cents: 2800 });
+    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 2, amount_minor: 2800, currency: 'USD' });
   });
 
   it('removing the last item switches to the empty state', () => {

@@ -54,3 +54,15 @@ export function formatMoney(amountMinor: number, currency: Currency): string {
 export function formatMoneyForCity(amountMinor: number, city: City): string {
   return formatMoney(amountMinor, currencyForCity(city));
 }
+
+/**
+ * The checkout's fixed service fee, one value per currency — #80's checkout
+ * mocks (`docs/design/80-checkout-{sf,hcmc}.html`) use $1.50 / ₫20.000, and
+ * there is no per-restaurant service fee in the catalogue the way there is
+ * a delivery fee, so this is the one figure the checkout breakdown supplies
+ * itself rather than reading from `restaurants.ts`.
+ */
+export const SERVICE_FEE_MINOR: Record<Currency, number> = {
+  USD: 150,
+  VND: 20000,
+};

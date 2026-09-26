@@ -4,7 +4,9 @@
 // browser storage, cleared only by an explicit "start over" action (never a
 // refresh), the same pattern ADR 0004 established for the swipe poll.
 
-import type { DropOffSpot, HandlingInstructions, PromoCode, TipPercent } from './tracking';
+import type { DeliveryInstructions, DropOffPreset } from './tracking';
+import type { Currency } from './money';
+import { SERVICE_FEE_MINOR } from './money';
 
 export const VISITOR_ID_KEY = 'parody.visitorId';
 export const SESSION_ID_KEY = 'parody.sessionId';
@@ -16,14 +18,9 @@ export interface CartLine {
   restaurantSlug: string;
   restaurantName: string;
   name: string;
-  /**
-   * Despite the name, this is the item's `amountMinor` (restaurants.ts) as
-   * committed to cart/checkout unchanged — cents for a USD item, whole đồng
-   * for a VND one. Renaming this and PlacedOrder's `subtotalCents`, and
-   * fixing cart/checkout's own display to format per currency, is #94's
-   * (cart, checkout and vouchers are that issue's scope, not #82's).
-   */
-  priceCents: number;
+  /** The item's `amountMinor` (restaurants.ts) as committed to cart/checkout — cents for a USD item, whole đồng for a VND one, per its own `currency`. */
+  amountMinor: number;
+  currency: Currency;
   quantity: number;
 }
 
@@ -32,12 +29,16 @@ export interface PlacedOrder {
   placedAt: string;
   items: CartLine[];
   itemCount: number;
-  subtotalCents: number;
-  dropOffSpot: DropOffSpot;
-  handlingInstructions: HandlingInstructions;
+  /** The subtotal — §2's `amount_minor`, not the total the breakdown shows. */
+  amountMinor: number;
+  currency: Currency;
+  dropOffPreset: DropOffPreset;
+  deliveryInstructions: DeliveryInstructions;
   utensils: boolean;
-  tipPercent: TipPercent;
-  promoCode: PromoCode;
+  /** 0–2 catalogue voucher ids (contract §7) — always `[]` for an order this child places; #89's to populate. */
+  appliedVoucherIds: string[];
+  /** 0 iff `appliedVoucherIds` is `[]` (contract §7's invariant, #89's to prove) — always 0 here. */
+  savedAmountMinor: number;
   /** The last `tracker_viewed.view_number` fired for this order — carried into `order_abandoned.view_count`. */
   viewCount: number;
 }
@@ -88,8 +89,41 @@ export function cartItemCount(lines: CartLine[]): number {
   return lines.reduce((total, line) => total + line.quantity, 0);
 }
 
-export function cartSubtotalCents(lines: CartLine[]): number {
-  return lines.reduce((total, line) => total + line.priceCents * line.quantity, 0);
+export function cartSubtotalMinor(lines: CartLine[]): number {
+  return lines.reduce((total, line) => total + line.amountMinor * line.quantity, 0);
+}
+
+/** The cart's own currency — every line shares one (one city's catalogue at a time). `null` for an empty cart, since there's nothing to infer it from. */
+export function cartCurrency(lines: CartLine[]): Currency | null {
+  return lines[0]?.currency ?? null;
+}
+
+export interface CheckoutBreakdown {
+  subtotalMinor: number;
+  deliveryFeeMinor: number;
+  serviceFeeMinor: number;
+  totalMinor: number;
+  currency: Currency;
+}
+
+/**
+ * The checkout price breakdown (#80's "Price breakdown": Subtotal, Delivery
+ * fee, Service fee, Total — no Offers/Discount/"You saved" line yet, #89's to
+ * add). `null` for an empty cart, so the caller renders #80's empty state
+ * rather than a $0 breakdown.
+ */
+export function computeCheckoutBreakdown(lines: CartLine[], deliveryFeeMinor: number): CheckoutBreakdown | null {
+  if (lines.length === 0) return null;
+  const currency = lines[0].currency;
+  const subtotalMinor = cartSubtotalMinor(lines);
+  const serviceFeeMinor = SERVICE_FEE_MINOR[currency];
+  return {
+    subtotalMinor,
+    deliveryFeeMinor,
+    serviceFeeMinor,
+    totalMinor: subtotalMinor + deliveryFeeMinor + serviceFeeMinor,
+    currency,
+  };
 }
 
 /** Adds one unit of an item, or increments its quantity if already in the cart. */
@@ -142,11 +176,13 @@ function setOrder(storage: Storage, order: PlacedOrder): void {
 }
 
 export interface PlaceOrderFields {
-  dropOffSpot: DropOffSpot;
-  handlingInstructions: HandlingInstructions;
+  dropOffPreset: DropOffPreset;
+  deliveryInstructions: DeliveryInstructions;
   utensils: boolean;
-  tipPercent: TipPercent;
-  promoCode: PromoCode;
+  /** 0–2 catalogue voucher ids — omitted (defaults to `[]`) by this issue's checkout, which has no Offers control yet; #89's to pass real values. */
+  appliedVoucherIds?: string[];
+  /** Defaults to 0 — must be 0 whenever `appliedVoucherIds` is `[]` (contract §7's invariant). */
+  savedAmountMinor?: number;
 }
 
 /**
@@ -162,8 +198,13 @@ export function placeOrder(storage: Storage, fields: PlaceOrderFields): PlacedOr
     placedAt: new Date().toISOString(),
     items,
     itemCount: cartItemCount(items),
-    subtotalCents: cartSubtotalCents(items),
-    ...fields,
+    amountMinor: cartSubtotalMinor(items),
+    currency: cartCurrency(items) ?? 'USD',
+    dropOffPreset: fields.dropOffPreset,
+    deliveryInstructions: fields.deliveryInstructions,
+    utensils: fields.utensils,
+    appliedVoucherIds: fields.appliedVoucherIds ?? [],
+    savedAmountMinor: fields.savedAmountMinor ?? 0,
     viewCount: 0,
   };
   setOrder(storage, order);

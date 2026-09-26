@@ -6,12 +6,13 @@ const ORDER_ID = '11111111-2222-4333-8444-555555555555';
 const VALID_ORDER_PLACED = {
   order_id: ORDER_ID,
   item_count: 2,
-  subtotal_cents: 1800,
-  drop_off_spot: 'couch',
-  handling_instructions: 'guard_it',
+  amount_minor: 1800,
+  currency: 'USD',
+  drop_off_preset: 'home',
+  delivery_instructions: 'hand_to_me',
   utensils: true,
-  tip_percent: 10,
-  promo_code: 'dont_drop10',
+  applied_voucher_ids: [],
+  saved_amount_minor: 0,
 };
 
 const NORMAL_NAVIGATOR = { webdriver: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' };
@@ -88,7 +89,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
       sessionStorage: window.sessionStorage,
     });
     sender('home_viewed', { city: 'sf' });
-    sender('cart_viewed', { item_count: 0, subtotal_cents: 0 });
+    sender('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' });
 
     const first = JSON.parse(fetchImpl.mock.calls[0][1].body);
     const second = JSON.parse(fetchImpl.mock.calls[1][1].body);
@@ -126,7 +127,7 @@ describe('anti-spam bounds enforced before sending (AC3)', () => {
   it('does not send a malformed event (fails the shape the store would also refuse)', () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
     const sender = createSupabaseSender({ ...config(), fetchImpl });
-    sender('order_placed', { ...VALID_ORDER_PLACED, promo_code: 'not_a_real_code' });
+    sender('order_placed', { ...VALID_ORDER_PLACED, drop_off_preset: 'not_a_real_preset' });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -189,6 +190,21 @@ describe('the three events this issue sends still complete with no error when th
     expect(() => track('location_selected', { city: 'sf', is_switch: false })).not.toThrow();
     expect(() => track('home_viewed', { city: 'sf' })).not.toThrow();
     expect(() => track('restaurant_opened', { city: 'sf', restaurant_slug: 'north-beach-pizzeria' })).not.toThrow();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe('#94’s three events still complete with no error when the store env vars are unset (AC3)', () => {
+  it('cart_viewed, checkout_viewed, and order_placed all call track() without throwing or reaching the network', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', '');
+    const fetchImpl = vi.fn();
+    vi.stubGlobal('fetch', fetchImpl);
+    initTracking();
+
+    expect(() => track('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' })).not.toThrow();
+    expect(() => track('checkout_viewed', { item_count: 1, amount_minor: 1800, currency: 'USD' })).not.toThrow();
+    expect(() => track('order_placed', VALID_ORDER_PLACED)).not.toThrow();
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

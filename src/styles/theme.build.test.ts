@@ -115,3 +115,30 @@ describe('home feed promo banner fits at 375px (#82 review round 2, item 1)', ()
     expect(rule).not.toMatch(/(?<!max-)width:343px/);
   });
 });
+
+describe('cart/checkout breakdown, chip groups and CTA fit at 375px (#94 review round 1, item 4)', () => {
+  // main's own padding (var(--space-lg) = 20px each side) leaves a 335px
+  // content column at a 375px viewport, so any of these three rules could
+  // overflow the page if it declared a fixed pixel width instead of sizing
+  // to that column.
+  it('the primary CTA (place-order, shared with "Go to checkout") fills its container rather than a fixed pixel width', () => {
+    const rule = css.match(/\.place-order\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('width:100%');
+    expect(rule).not.toMatch(/width:\d+px/);
+  });
+
+  it('a chip group (drop-off, delivery instructions) wraps its chips instead of forcing them onto one line', () => {
+    const rule = css.match(/\.chip-group\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('flex-wrap:wrap');
+  });
+
+  it('the checkout breakdown does not set a fixed pixel width wider than the 335px content column', () => {
+    const rule = css.match(/\.checkout-breakdown\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).not.toMatch(/width:\d+px/);
+  });
+
+  it('the demo disclosure does not set a fixed pixel width wider than the 335px content column', () => {
+    const rule = css.match(/\.demo-disclosure\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).not.toMatch(/width:\d+px/);
+  });
+});

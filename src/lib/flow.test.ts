@@ -107,7 +107,7 @@ describe('home → restaurant → items → cart → checkout → order-placed �
     expect(locationSelected[1][1]).toEqual({ city: 'hcmc', is_switch: true });
   });
 
-  it('pressing Back after ordering and hitting "Place order" again fires no second order_placed (AC9)', () => {
+  it('pressing Back after ordering and hitting "Place order" again fires no second order_placed', () => {
     const events: [string, unknown][] = [];
     setTrack((name, props) => events.push([name, props]));
 
@@ -123,13 +123,14 @@ describe('home → restaurant → items → cart → checkout → order-placed �
     checkoutRoot.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
 
     // Back to /checkout: the cart is now empty (placeOrder cleared it), so a
-    // fresh mount of the checkout page redirects to /cart/ instead of
-    // re-rendering "Place order" — there is no control left to press twice.
+    // fresh mount of the checkout page renders #80's inline empty state
+    // instead of "Place order" — there is no control left to press twice.
     const navigate = vi.fn();
     const secondCheckoutRoot = root();
     initCheckoutPage(secondCheckoutRoot, window.localStorage, navigate);
 
-    expect(navigate).toHaveBeenCalledWith('/cart/');
+    expect(navigate).not.toHaveBeenCalled();
+    expect(secondCheckoutRoot.querySelector('[data-testid="checkout-empty"]')).not.toBeNull();
     expect(secondCheckoutRoot.querySelector('[data-testid="place-order"]')).toBeNull();
     expect(events.filter(([name]) => name === 'order_placed')).toHaveLength(1);
   });

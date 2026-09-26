@@ -9,7 +9,8 @@ const LINE = {
   restaurantSlug: 'one-job-pizza',
   restaurantName: 'One Job Pizza',
   name: 'Margherita, carried flat',
-  priceCents: 1400,
+  amountMinor: 1400,
+  currency: 'USD' as const,
 };
 
 beforeEach(() => {
@@ -31,11 +32,9 @@ function root(): HTMLElement {
 function placeAnOrder() {
   addToCart(window.localStorage, LINE);
   return placeOrder(window.localStorage, {
-    dropOffSpot: 'couch',
-    handlingInstructions: 'guard_it',
+    dropOffPreset: 'home',
+    deliveryInstructions: 'hand_to_me',
     utensils: true,
-    tipPercent: 0,
-    promoCode: 'gotcha',
   });
 }
 

@@ -8,12 +8,12 @@
 // than forwarding it — a defensive mirror, not a replacement for the
 // server-side check.
 //
-// Only `location_selected`, `home_viewed`, and `restaurant_opened`'s shapes
-// below are #82's — `cart_viewed`, `checkout_viewed`, `order_placed`,
-// `tracker_viewed`, and `order_abandoned` are left in their pre-#81 shape
-// for #94/#83/#89 to bring forward, per #82's own scope line. A call using
-// the old shape is simply dropped by `isValidEventProps` below rather than
-// reaching the sender — harmless, not wrong, until the owning issue lands.
+// `location_selected`, `home_viewed`, `restaurant_opened` (#82) and now
+// `cart_viewed`, `checkout_viewed`, `order_placed` (#94) below are on the
+// merged §7 contract. `tracker_viewed` and `order_abandoned` are left in
+// their pre-#81 shape for #83 to bring forward (#83 also owns retiring
+// `order_abandoned` outright) — a call using the old shape is simply dropped
+// by `isValidEventProps` below rather than reaching the sender.
 
 import { CITIES } from './money';
 
@@ -27,21 +27,34 @@ export type EventName =
   | 'tracker_viewed'
   | 'order_abandoned';
 
-export type EventProps = Record<string, string | number | boolean>;
+export type EventProps = Record<string, string | number | boolean | string[]>;
 
 export type Track = (eventName: EventName, props: EventProps) => void;
 
-export const DROP_OFF_SPOTS = ['couch', 'wherever_i_am', 'the_void', 'behind_you'] as const;
-export type DropOffSpot = (typeof DROP_OFF_SPOTS)[number];
+export const DROP_OFF_PRESETS = ['home', 'office', 'front_desk'] as const;
+export type DropOffPreset = (typeof DROP_OFF_PRESETS)[number];
 
-export const HANDLING_INSTRUCTIONS = ['guard_it', 'wing_it', 'two_hands', 'surprise_me'] as const;
-export type HandlingInstructions = (typeof HANDLING_INSTRUCTIONS)[number];
+export const DELIVERY_INSTRUCTIONS = ['leave_at_door', 'hand_to_me', 'meet_downstairs', 'call_on_arrival'] as const;
+export type DeliveryInstructions = (typeof DELIVERY_INSTRUCTIONS)[number];
 
-export const TIP_PERCENTS = [0, 10, 15, 20] as const;
-export type TipPercent = (typeof TIP_PERCENTS)[number];
-
-export const PROMO_CODES = ['dont_drop10', 'still_here', 'clumsy15', 'gotcha'] as const;
-export type PromoCode = (typeof PROMO_CODES)[number];
+/**
+ * The ten fixed catalogue voucher ids §7's `order_placed` row names —
+ * #87/#89's to define and apply; this child only ever sends `[]`, but the
+ * shape mirror validates the full set so a non-empty array #89 sends later
+ * doesn't need this file touched again.
+ */
+export const VOUCHER_IDS = [
+  'hcmc-delivery-entry',
+  'hcmc-discount-t1',
+  'hcmc-discount-t2',
+  'hcmc-discount-t3',
+  'hcmc-flash',
+  'sf-delivery-entry',
+  'sf-discount-t1',
+  'sf-discount-t2',
+  'sf-discount-t3',
+  'sf-flash',
+] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -64,6 +77,20 @@ function isNumberAtLeast(value: unknown, min: number): value is number {
 
 function isOneOf<T extends readonly unknown[]>(value: unknown, allowed: T): value is T[number] {
   return (allowed as readonly unknown[]).includes(value);
+}
+
+/** Contract §2: one shared bound per currency, zero allowed only for cart's own column. */
+function isAmountMinorInBounds(value: unknown, currency: unknown, allowZero: boolean): boolean {
+  const hi = currency === 'USD' ? 100000 : currency === 'VND' ? 5000000 : undefined;
+  if (hi === undefined) return false;
+  return isIntInRange(value, allowZero ? 0 : 1, hi);
+}
+
+/** `applied_voucher_ids`: 0–2 known catalogue ids, no duplicates (contract §7). */
+function isValidVoucherIds(value: unknown): value is string[] {
+  if (!Array.isArray(value) || value.length > 2) return false;
+  if (!value.every((id) => isOneOf(id, VOUCHER_IDS))) return false;
+  return new Set(value).size === value.length;
 }
 
 /**
@@ -94,36 +121,40 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
       );
     case 'cart_viewed':
       return (
-        hasOnly(['item_count', 'subtotal_cents']) &&
+        hasOnly(['amount_minor', 'currency', 'item_count']) &&
+        isOneOf(props.currency, ['USD', 'VND']) &&
         isIntInRange(props.item_count, 0, 999) &&
-        isIntInRange(props.subtotal_cents, 0, 100000)
+        isAmountMinorInBounds(props.amount_minor, props.currency, true)
       );
     case 'checkout_viewed':
       return (
-        hasOnly(['item_count', 'subtotal_cents']) &&
+        hasOnly(['amount_minor', 'currency', 'item_count']) &&
+        isOneOf(props.currency, ['USD', 'VND']) &&
         isIntInRange(props.item_count, 1, 999) &&
-        isIntInRange(props.subtotal_cents, 1, 100000)
+        isAmountMinorInBounds(props.amount_minor, props.currency, false)
       );
     case 'order_placed':
       return (
         hasOnly([
-          'order_id',
+          'amount_minor',
+          'applied_voucher_ids',
+          'currency',
+          'delivery_instructions',
+          'drop_off_preset',
           'item_count',
-          'subtotal_cents',
-          'drop_off_spot',
-          'handling_instructions',
+          'order_id',
+          'saved_amount_minor',
           'utensils',
-          'tip_percent',
-          'promo_code',
         ]) &&
         isUuid(props.order_id) &&
         isIntInRange(props.item_count, 1, 999) &&
-        isIntInRange(props.subtotal_cents, 1, 100000) &&
-        isOneOf(props.drop_off_spot, DROP_OFF_SPOTS) &&
-        isOneOf(props.handling_instructions, HANDLING_INSTRUCTIONS) &&
+        isOneOf(props.currency, ['USD', 'VND']) &&
+        isAmountMinorInBounds(props.amount_minor, props.currency, false) &&
+        isAmountMinorInBounds(props.saved_amount_minor, props.currency, true) &&
+        isOneOf(props.drop_off_preset, DROP_OFF_PRESETS) &&
+        isOneOf(props.delivery_instructions, DELIVERY_INSTRUCTIONS) &&
         isBoolean(props.utensils) &&
-        isOneOf(props.tip_percent, TIP_PERCENTS) &&
-        isOneOf(props.promo_code, PROMO_CODES)
+        isValidVoucherIds(props.applied_voucher_ids)
       );
     case 'tracker_viewed':
       return (

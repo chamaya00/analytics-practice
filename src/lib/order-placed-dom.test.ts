@@ -7,7 +7,8 @@ const LINE = {
   restaurantSlug: 'one-job-pizza',
   restaurantName: 'One Job Pizza',
   name: 'Margherita, carried flat',
-  priceCents: 1400,
+  amountMinor: 1400,
+  currency: 'USD' as const,
 };
 
 beforeEach(() => {
@@ -30,11 +31,9 @@ describe('initOrderPlacedPage (AC9)', () => {
   it('renders a confirmation with a link to /tracker/ once an order exists', () => {
     addToCart(window.localStorage, LINE);
     placeOrder(window.localStorage, {
-      dropOffSpot: 'couch',
-      handlingInstructions: 'guard_it',
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
       utensils: true,
-      tipPercent: 0,
-      promoCode: 'gotcha',
     });
 
     const el = root();

@@ -8,12 +8,13 @@ function orderPlacedAt(msAgo: number): PlacedOrder {
     placedAt: new Date(Date.now() - msAgo).toISOString(),
     items: [],
     itemCount: 1,
-    subtotalCents: 1000,
-    dropOffSpot: 'couch',
-    handlingInstructions: 'guard_it',
+    amountMinor: 1000,
+    currency: 'USD',
+    dropOffPreset: 'home',
+    deliveryInstructions: 'hand_to_me',
     utensils: true,
-    tipPercent: 0,
-    promoCode: 'gotcha',
+    appliedVoucherIds: [],
+    savedAmountMinor: 0,
     viewCount: 0,
   };
 }

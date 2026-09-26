@@ -7,7 +7,8 @@ const LINE = {
   restaurantSlug: 'one-job-pizza',
   restaurantName: 'One Job Pizza',
   name: 'Margherita, carried flat',
-  priceCents: 1400,
+  amountMinor: 1400,
+  currency: 'USD' as const,
 };
 
 beforeEach(() => {

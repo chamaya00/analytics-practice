@@ -5,7 +5,7 @@
 
 import type { Restaurant } from './restaurants';
 import { currencyForRestaurant } from './restaurants';
-import { addToCart, cartItemCount, cartSubtotalCents, getCart, setItemQuantity } from './order-store';
+import { addToCart, cartItemCount, cartSubtotalMinor, getCart, setItemQuantity } from './order-store';
 import { formatMoney } from './money';
 import { initCartBadge } from './header-dom';
 import { track } from './tracking';
@@ -94,7 +94,8 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
             restaurantSlug: restaurant.slug,
             restaurantName: restaurant.name,
             name: item.name,
-            priceCents: item.amountMinor,
+            amountMinor: item.amountMinor,
+            currency,
           });
           renderMenu(root, storage, restaurant);
           initCartBadge(document, storage);
@@ -114,7 +115,8 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
             restaurantSlug: restaurant.slug,
             restaurantName: restaurant.name,
             name: item.name,
-            priceCents: item.amountMinor,
+            amountMinor: item.amountMinor,
+            currency,
           });
           renderMenu(root, storage, restaurant);
           initCartBadge(document, storage);
@@ -136,7 +138,7 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
     summary.href = '/cart/';
     summary.className = 'cart-summary';
     summary.setAttribute('data-testid', 'cart-summary');
-    summary.textContent = `${itemCount} item${itemCount === 1 ? '' : 's'} — ${formatMoney(cartSubtotalCents(wholeCart), currency)}`;
+    summary.textContent = `${itemCount} item${itemCount === 1 ? '' : 's'} — ${formatMoney(cartSubtotalMinor(wholeCart), currency)}`;
     root.append(summary);
   }
 }
