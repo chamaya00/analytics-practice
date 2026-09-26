@@ -4,7 +4,7 @@
 // browser storage, cleared only by an explicit "start over" action (never a
 // refresh), the same pattern ADR 0004 established for the swipe poll.
 
-import type { DeliveryInstructions, DropOffPreset } from './tracking';
+import type { DeliveryInstructions, DropOffPreset, RatingTag } from './tracking';
 import type { Currency } from './money';
 import { SERVICE_FEE_MINOR } from './money';
 
@@ -39,8 +39,12 @@ export interface PlacedOrder {
   appliedVoucherIds: string[];
   /** 0 iff `appliedVoucherIds` is `[]` (contract §7's invariant, #89's to prove) — always 0 here. */
   savedAmountMinor: number;
-  /** The last `tracker_viewed.view_number` fired for this order — carried into `order_abandoned.view_count`. */
+  /** The last `tracker_viewed.view_number` fired for this order. */
   viewCount: number;
+  /** Whether `order_delivered` has already fired for this order — the client's own idempotency guard, since the store enforces no such constraint (contract §10). */
+  deliveredEventFired: boolean;
+  /** The rating submitted on the tracker's Delivered state, or `null` before "Submit" is tapped — also what makes that state render as already-rated on a later visit (contract §7's `rating_submitted` invariant). */
+  rating: { stars: number; tags: RatingTag[] } | null;
 }
 
 function generateId(): string {
@@ -259,24 +263,43 @@ export function placeOrder(storage: Storage, fields: PlaceOrderFields): PlacedOr
     appliedVoucherIds: fields.appliedVoucherIds ?? [],
     savedAmountMinor: fields.savedAmountMinor ?? 0,
     viewCount: 0,
+    deliveredEventFired: false,
+    rating: null,
   };
   setOrder(storage, order);
   clearCart(storage);
   return order;
 }
 
-/** The "Start over" control on the tracker's given-up state (7d) — clears the stored order only, matching ADR 0004's explicit-action pattern. `visitor_id` is never cleared by it (docs/measurement/66-parody-event-contract.md §2). */
+/** Clears the stored order only, matching ADR 0004's explicit-action pattern (never on a plain refresh). `visitor_id` is never cleared by it (docs/measurement/66-parody-event-contract.md §2). Not currently wired to any control — the tracker's old "give up" state this served (65's 7d) is retired now that the tracker always resolves (docs/design/80-two-city-brand-and-flow.md, "Tracker"; contract §6). */
 export function clearOrder(storage: Storage): void {
   storage.removeItem(ORDER_KEY);
 }
 
-/** Increments and persists the view count for the stored order, returning the new value — becomes both `tracker_viewed.view_number` and the `order_abandoned.view_count` carried later. */
+/** Increments and persists the view count for the stored order, returning the new value — becomes `tracker_viewed.view_number`. */
 export function recordTrackerView(storage: Storage): number {
   const order = getOrder(storage);
   if (!order) return 0;
   order.viewCount += 1;
   setOrder(storage, order);
   return order.viewCount;
+}
+
+/** Marks `order_delivered` as already fired for the stored order — tracker-dom.ts's own guard against firing it twice for one `order_id`, since the store enforces no such constraint (contract §10). No-op with no stored order. */
+export function markOrderDelivered(storage: Storage): void {
+  const order = getOrder(storage);
+  if (!order || order.deliveredEventFired) return;
+  order.deliveredEventFired = true;
+  setOrder(storage, order);
+}
+
+/** Records the rating for the stored order, the one write the tracker's Delivered state makes beyond reading it — `null` (a no-op) with no stored order or one already rated, which is what makes a second "Submit" impossible (contract §7's `rating_submitted` invariant). */
+export function submitRating(storage: Storage, stars: number, tags: RatingTag[]): PlacedOrder | null {
+  const order = getOrder(storage);
+  if (!order || order.rating) return null;
+  order.rating = { stars, tags };
+  setOrder(storage, order);
+  return order;
 }
 
 export function minutesSinceOrder(order: PlacedOrder, now: number = Date.now()): number {

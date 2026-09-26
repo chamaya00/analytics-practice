@@ -1,55 +1,52 @@
 // Pure computation of what /tracker shows, from a stored order's placed
-// timestamp and the current time — docs/design/65-parody-flow.md, screen 7
-// (states 7a-7e) as reworded by docs/design/72-dontdropthatpromo-identity.md's
-// replacement table. No DOM, no timers: tracker-dom.ts polls this on an
-// interval and re-renders.
+// timestamp and the current time — docs/design/80-two-city-brand-and-flow.md,
+// "Tracker": five stages (Placed, Preparing, Picked up, On the way,
+// Delivered), computed from elapsed time, never stalling. No DOM, no timers:
+// tracker-dom.ts polls this on an interval and re-renders.
 
 import type { PlacedOrder } from './order-store';
-import { minutesSinceOrder } from './order-store';
+import type { RatingTag } from './tracking';
 
-export const STEPS = ['Placed', 'Preparing', 'Picked up', 'On the way'] as const;
+export const STEPS = ['Placed', 'Preparing', 'Picked up', 'On the way', 'Delivered'] as const;
 
-/** How long the stepper spends visibly filling in before settling — design doc 7a, "a few seconds apart". */
-export const STEP_INTERVAL_MS = 15_000;
-/** First minute is state 7a; after it, the stepper is permanently stalled on "On the way" (7b/7c). */
-export const FRESH_MS = 60_000;
-/** Past this, the tracker gives up rather than showing "almost delivered" forever (7d) — design doc calls this "a plausible cut". */
-export const GIVEN_UP_MS = 24 * 60 * 60 * 1000;
-/** Below this, flavor text reads as "still the same visit" (7b) rather than counting elapsed time (7c). */
-const SETTLED_STABLE_MS = 60 * 60 * 1000;
-/** Past this, flavor text stops counting and calls it a record — design doc 7c. */
-const RECORD_MS = 3 * 60 * 60 * 1000;
+/** Elapsed-time thresholds driving the stepper — a plausible pacing guess (design doc's "Guesses"), not a measured value. */
+export const PREPARING_MS = 30_000;
+export const PICKED_UP_MS = 2 * 60_000;
+export const ON_THE_WAY_MS = 4 * 60_000;
+export const DELIVERED_MS = 7 * 60_000;
+
+/** One threshold per pre-Delivered step, in `STEPS` order — Delivered itself is handled separately below since reaching it changes `TrackerView`'s shape, not just its index. */
+const STEP_THRESHOLDS_MS = [0, PREPARING_MS, PICKED_UP_MS, ON_THE_WAY_MS] as const;
 
 export type TrackerView =
   | { kind: 'empty' }
-  | { kind: 'given-up' }
-  | { kind: 'fresh'; currentStepIndex: number; flavorText: string }
-  | { kind: 'settled'; flavorText: string };
+  | { kind: 'active'; currentStepIndex: number }
+  | { kind: 'delivered'; rated: false }
+  | { kind: 'delivered'; rated: true; stars: number; tags: RatingTag[] };
 
+/**
+ * A pure function of the stored order and the current time — a refresh or a
+ * later return visit calls this again with the same `placedAt` and gets the
+ * same (or later) state back, never earlier: elapsed time only ever counts
+ * up, and once `DELIVERED_MS` passes the result stays `delivered` permanently.
+ */
 export function computeTrackerView(order: PlacedOrder | null, now: number = Date.now()): TrackerView {
   if (!order) return { kind: 'empty' };
 
   const elapsedMs = Math.max(0, now - new Date(order.placedAt).getTime());
 
-  if (elapsedMs >= GIVEN_UP_MS) return { kind: 'given-up' };
-
-  if (elapsedMs < FRESH_MS) {
-    const currentStepIndex = Math.min(STEPS.length - 1, Math.floor(elapsedMs / STEP_INTERVAL_MS));
-    return {
-      kind: 'fresh',
-      currentStepIndex,
-      flavorText: "Your promo is still in your hand. Don't jinx it.",
-    };
+  if (elapsedMs >= DELIVERED_MS) {
+    return order.rating
+      ? { kind: 'delivered', rated: true, stars: order.rating.stars, tags: order.rating.tags }
+      : { kind: 'delivered', rated: false };
   }
 
-  if (elapsedMs < SETTLED_STABLE_MS) {
-    return { kind: 'settled', flavorText: 'Still holding it. Still not dropped. That’s something.' };
+  let currentStepIndex = 0;
+  for (let i = STEP_THRESHOLDS_MS.length - 1; i >= 0; i--) {
+    if (elapsedMs >= STEP_THRESHOLDS_MS[i]) {
+      currentStepIndex = i;
+      break;
+    }
   }
-
-  if (elapsedMs < RECORD_MS) {
-    const minutes = Math.floor(minutesSinceOrder(order, now));
-    return { kind: 'settled', flavorText: `${minutes} minutes and counting` };
-  }
-
-  return { kind: 'settled', flavorText: 'New personal record' };
+  return { kind: 'active', currentStepIndex };
 }
