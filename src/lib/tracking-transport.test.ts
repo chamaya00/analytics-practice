@@ -43,7 +43,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
       sessionStorage: window.sessionStorage,
     });
 
-    sender('restaurant_opened', { restaurant_slug: 'one-job-pizza' });
+    sender('restaurant_opened', { city: 'sf', restaurant_slug: 'north-beach-pizzeria' });
     await Promise.resolve();
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
@@ -56,7 +56,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
 
     const body = JSON.parse(init.body);
     expect(body.event_name).toBe('restaurant_opened');
-    expect(body.props).toEqual({ restaurant_slug: 'one-job-pizza' });
+    expect(body.props).toEqual({ city: 'sf', restaurant_slug: 'north-beach-pizzeria' });
     expect(body.variant).toBeNull();
     expect(typeof body.id).toBe('string');
     expect(typeof body.visitor_id).toBe('string');
@@ -73,7 +73,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
       localStorage: window.localStorage,
       sessionStorage: window.sessionStorage,
     });
-    sender('restaurants_viewed', {});
+    sender('home_viewed', { city: 'sf' });
     const [, init] = fetchImpl.mock.calls[0];
     expect(Object.values(init.headers)).not.toContain(expect.stringMatching(/service_role|secret/i));
   });
@@ -87,7 +87,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
       localStorage: window.localStorage,
       sessionStorage: window.sessionStorage,
     });
-    sender('restaurants_viewed', {});
+    sender('home_viewed', { city: 'sf' });
     sender('cart_viewed', { item_count: 0, subtotal_cents: 0 });
 
     const first = JSON.parse(fetchImpl.mock.calls[0][1].body);
@@ -99,8 +99,8 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
 });
 
 describe('buildEventRow', () => {
-  it('always sets variant to null (docs/measurement/66-parody-event-contract.md §3: no experiment ships)', () => {
-    const row = buildEventRow('restaurants_viewed', {}, { visitorId: 'v', sessionId: 's' });
+  it('always sets variant to null (docs/measurement/81-two-city-event-contract.md §5: no experiment ships)', () => {
+    const row = buildEventRow('home_viewed', { city: 'sf' }, { visitorId: 'v', sessionId: 's' });
     expect(row.variant).toBeNull();
   });
 });
@@ -134,7 +134,7 @@ describe('anti-spam bounds enforced before sending (AC3)', () => {
     vi.stubGlobal('navigator', { webdriver: true, userAgent: 'Mozilla/5.0' });
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
     const sender = createSupabaseSender({ ...config(), fetchImpl });
-    sender('restaurants_viewed', {});
+    sender('home_viewed', { city: 'sf' });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -142,14 +142,14 @@ describe('anti-spam bounds enforced before sending (AC3)', () => {
     vi.stubGlobal('navigator', { webdriver: false, userAgent: 'Googlebot/2.1' });
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
     const sender = createSupabaseSender({ ...config(), fetchImpl });
-    sender('restaurants_viewed', {});
+    sender('home_viewed', { city: 'sf' });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('never throws when the request itself rejects — best-effort, non-blocking', () => {
     const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
     const sender = createSupabaseSender({ ...config(), fetchImpl });
-    expect(() => sender('restaurants_viewed', {})).not.toThrow();
+    expect(() => sender('home_viewed', { city: 'sf' })).not.toThrow();
   });
 });
 
@@ -161,7 +161,6 @@ describe('initTracking (AC2: env var absent leaves track at its no-op default)',
     vi.stubGlobal('fetch', fetchImpl);
 
     expect(() => initTracking()).not.toThrow();
-    expect(() => track('restaurants_viewed', {})).not.toThrow();
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -172,9 +171,24 @@ describe('initTracking (AC2: env var absent leaves track at its no-op default)',
     vi.stubGlobal('fetch', fetchImpl);
 
     initTracking();
-    track('restaurants_viewed', {});
+    track('home_viewed', { city: 'sf' });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl.mock.calls[0][0]).toBe('https://abcdefgh.supabase.co/rest/v1/events');
+  });
+});
+
+describe('the three events this issue sends still complete with no error when the store env vars are unset (AC5)', () => {
+  it('location_selected, home_viewed, and restaurant_opened all call track() without throwing or reaching the network', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', '');
+    const fetchImpl = vi.fn();
+    vi.stubGlobal('fetch', fetchImpl);
+    initTracking();
+
+    expect(() => track('location_selected', { city: 'sf', is_switch: false })).not.toThrow();
+    expect(() => track('home_viewed', { city: 'sf' })).not.toThrow();
+    expect(() => track('restaurant_opened', { city: 'sf', restaurant_slug: 'north-beach-pizzeria' })).not.toThrow();
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
