@@ -2,16 +2,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Dontdropthatpromo">
-  <h1>Dontdropthatpromo</h1>
-  <p>The food's not the point. The promo is.</p>
-  <div id="order-banner-root" data-testid="order-banner-root"></div>
-  <p>Order real food. Guard a promo code the whole time. Neither one shows up.</p>
-  <a href="/restaurants/" class="place-order" data-testid="browse-restaurants">Browse restaurants</a>
+<BaseLayout title="dontdropthatpromo">
+  <div id="home-root" data-testid="home-root"></div>
   <script>
-    import { initLandingPage } from '../lib/landing-dom';
+    import { initHomePage } from '../lib/home-dom';
 
-    const root = document.getElementById('order-banner-root');
-    if (root) initLandingPage(root);
+    const root = document.getElementById('home-root');
+    if (root) initHomePage(root);
   </script>
 </BaseLayout>

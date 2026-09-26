@@ -37,9 +37,11 @@ describe('isValidEventProps (AC3, AC8)', () => {
   });
 
   it('accepts every event name in the contract with a minimal valid payload', () => {
-    expect(isValidEventProps('landing_viewed', { has_active_order: false })).toBe(true);
-    expect(isValidEventProps('restaurants_viewed', {})).toBe(true);
-    expect(isValidEventProps('restaurant_opened', { restaurant_slug: 'one-job-pizza' })).toBe(true);
+    expect(isValidEventProps('location_selected', { city: 'sf', is_switch: false })).toBe(true);
+    expect(isValidEventProps('home_viewed', { city: 'hcmc' })).toBe(true);
+    expect(isValidEventProps('restaurant_opened', { city: 'sf', restaurant_slug: 'north-beach-pizzeria' })).toBe(
+      true,
+    );
     expect(isValidEventProps('cart_viewed', { item_count: 0, subtotal_cents: 0 })).toBe(true);
     expect(isValidEventProps('checkout_viewed', { item_count: 1, subtotal_cents: 100 })).toBe(true);
     expect(
@@ -76,6 +78,6 @@ describe('track (AC3)', () => {
   });
 
   it('is a genuine no-op by default — calling track before any setTrack does not throw', () => {
-    expect(() => track('restaurants_viewed', {})).not.toThrow();
+    expect(() => track('home_viewed', { city: 'sf' })).not.toThrow();
   });
 });

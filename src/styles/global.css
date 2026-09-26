@@ -1,8 +1,13 @@
-/* Global stylesheet: Direction 4 hybrid (Signal/Field Notebook),
-   docs/design/5-second-pass-directions.md. Type scale, spacing scale, and
-   uppercase treatment are Signal's; the color palette and A/B accent are
-   Field Notebook's, replacing Signal's own dark palette entirely. Applied
-   via BaseLayout to every page. */
+/* Global stylesheet. Type scale and spacing scale are the site's own,
+   unchanged since Direction 4 (docs/design/5-second-pass-directions.md).
+   The color palette is docs/design/80-two-city-brand-and-flow.md's chosen
+   direction ("Direction A"): violet, replacing the earlier Signal/Field
+   Notebook palette entirely, kept under the same token names
+   (--color-accent-a/-b) so every existing consumer of them repaints
+   without a rename. --color-accent-a is that document's --color-accent
+   (primary, also the discount/success color); --color-accent-b is its
+   --color-accent-secondary (badge fill only, never text-on-background —
+   see --color-badge-ink below). Applied via BaseLayout to every page. */
 
 :root {
   --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial,
@@ -21,42 +26,46 @@
   --space-xl: 1.75rem;
   --space-xxl: 2.5rem;
 
-  --color-bg: #f7f1e3;
-  --color-surface: #fffaf0;
-  --color-text: #3a2e1f;
-  /* #8a7860 (the original) is only 4.09:1 against --color-surface
-     (#fffaf0), short of the 4.5:1 floor docs/design/46-phone-native.md
-     sets for the dark theme's own tokens. Darkened to clear it, verified
-     by contrast.test.ts. */
-  --color-text-muted: #7f6e58;
-  --color-border: #d8c9a8;
+  --color-bg: #fbf7ff;
+  --color-surface: #f7f1ff;
+  --color-text: #241b33;
+  --color-text-muted: #6b5d85;
+  --color-border: #e3d6fa;
 
-  --color-accent-a: #35608f;
-  /* #c1601f (the original) is only 4.07:1 against --color-surface for the
-     same reason - darkened for the same reason as --color-text-muted
-     above, keeping the same hue so it still reads warm against
-     accent-a's cool. */
-  --color-accent-b: #b1581c;
-  --color-tab-active-bg: #efe3c8;
+  --color-accent-a: #6c3ce0;
+  --color-accent-b: #ff7a45;
+  /* Surface tinted one step warmer, per #80's "an implementation detail
+     for the engineer, not a new value this document needs to separately
+     contrast-check, since the pill only ever holds --color-text at full
+     weight, already checked against --color-surface above" — taken
+     directly from the document's own rendered mock (docs/design/
+     80-home-sf.html). */
+  --color-tab-active-bg: #ede1ff;
+  /* The "dark ink on the fill, never white" rule #80's contrast section
+     establishes for --color-accent-b used as a badge background: white
+     text fails outright (2.59:1) in this direction, so the badge's own
+     text color is this token rather than --color-text, which swaps to a
+     near-white value in dark mode and would fail the same way. */
+  --color-badge-ink: #241b33;
 }
 
-/* docs/design/46-phone-native.md's dark palette: the same warm, paper-
-   adjacent identity as the light theme inverted in value, not Signal's
-   cool near-black palette (see that document's "Why these six" for the
-   reasoning). Follows the OS setting with no manual toggle. Contrast
-   against the dark surface is checked in contrast.test.ts. */
+/* #80's chosen direction, dark values — same token roles, same reasoning
+   as the light block above. Follows the OS setting with no manual toggle.
+   Contrast against the dark surface is checked in contrast.test.ts. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #1c1712;
-    --color-surface: #241e17;
-    --color-text: #f0e6d2;
-    --color-text-muted: #b3a58c;
-    --color-border: #45392c;
-    --color-accent-a: #7fb2e8;
-    --color-accent-b: #e8935a;
-    /* Not in the spec's own "New tokens" table — taken from its rendered
-       dark mock, docs/design/46-phone-native-dark.html line 39, instead. */
-    --color-tab-active-bg: #382d20;
+    --color-bg: #16101f;
+    --color-surface: #1e1730;
+    --color-text: #f1e9ff;
+    --color-text-muted: #b7a6d9;
+    --color-border: #3a2e52;
+    --color-accent-a: #b79cff;
+    --color-accent-b: #ffa36b;
+    /* Not in #80's own token table (light-only mock) — a step warmer than
+       this block's own --color-surface, the same relationship the light
+       value above has to its surface. */
+    --color-tab-active-bg: #2e2444;
+    --color-badge-ink: #16101f;
   }
 }
 
@@ -83,13 +92,10 @@ h1 {
   font-size: var(--font-size-h1);
   font-weight: 800;
   line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   margin: 0 0 var(--space-md);
-  /* The landing page's wordmark is one unbreakable word (#72 keeps it
-     run-together on purpose) and overflows a 375px viewport at this size
-     without this (driver review, #67) — lets it break mid-word rather than
-     widen the page, instead of inserting spaces the identity doesn't want. */
+  /* Defensive: a long unbreakable word still breaks rather than widening
+     the page at 375px (driver review, #67), even though no current page
+     title needs it. */
   overflow-wrap: anywhere;
 }
 
@@ -97,8 +103,6 @@ h2 {
   font-size: var(--font-size-h2);
   font-weight: 700;
   line-height: 1.3;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   margin: 0 0 var(--space-sm);
 }
 

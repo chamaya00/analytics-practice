@@ -1,15 +1,25 @@
 // The single injectable tracking function every funnel step fires through —
-// docs/measurement/66-parody-event-contract.md is the contract this module
-// mirrors client-side. Nothing here talks to a network: the default track
-// is a no-op, and wiring a real sender is #68's job, not this issue's.
-// `track()` validates a call's `props` against the same shape the store's
-// own `event_is_valid` (ADR 0005) will check server-side, and drops a
-// malformed call rather than forwarding it — a defensive mirror, not a
-// replacement for the server-side check.
+// docs/measurement/81-two-city-event-contract.md is the contract this module
+// mirrors client-side (superseding docs/measurement/66-parody-event-
+// contract.md). Nothing here talks to a network: the default track is a
+// no-op; the real sender lives in tracking-transport.ts. `track()` validates
+// a call's `props` against the same shape the store's own `event_is_valid`
+// (ADR 0005/0007) will check server-side, and drops a malformed call rather
+// than forwarding it — a defensive mirror, not a replacement for the
+// server-side check.
+//
+// Only `location_selected`, `home_viewed`, and `restaurant_opened`'s shapes
+// below are #82's — `cart_viewed`, `checkout_viewed`, `order_placed`,
+// `tracker_viewed`, and `order_abandoned` are left in their pre-#81 shape
+// for #94/#83/#89 to bring forward, per #82's own scope line. A call using
+// the old shape is simply dropped by `isValidEventProps` below rather than
+// reaching the sender — harmless, not wrong, until the owning issue lands.
+
+import { CITIES } from './money';
 
 export type EventName =
-  | 'landing_viewed'
-  | 'restaurants_viewed'
+  | 'location_selected'
+  | 'home_viewed'
   | 'restaurant_opened'
   | 'cart_viewed'
   | 'checkout_viewed'
@@ -57,10 +67,11 @@ function isOneOf<T extends readonly unknown[]>(value: unknown, allowed: T): valu
 }
 
 /**
- * Mirrors ADR 0005 §2's `event_is_valid(event_name, props)` for exactly the
- * shapes docs/measurement/66-parody-event-contract.md §4 defines. Returns
- * false for any prop set that check would refuse — an unknown enum value,
- * a missing key, an out-of-range number, or an extra key.
+ * Mirrors ADR 0005/0007 §2's `event_is_valid(event_name, props)` for the
+ * shapes docs/measurement/81-two-city-event-contract.md §7 defines (three
+ * of them — see the module comment above for the rest). Returns false for
+ * any prop set that check would refuse — an unknown enum value, a missing
+ * key, an out-of-range number, or an extra key.
  */
 export function isValidEventProps(eventName: EventName, props: EventProps): boolean {
   const keys = Object.keys(props);
@@ -68,13 +79,14 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
     keys.length === allowed.length && allowed.every((key) => key in props);
 
   switch (eventName) {
-    case 'landing_viewed':
-      return hasOnly(['has_active_order']) && isBoolean(props.has_active_order);
-    case 'restaurants_viewed':
-      return keys.length === 0;
+    case 'location_selected':
+      return hasOnly(['city', 'is_switch']) && isOneOf(props.city, CITIES) && isBoolean(props.is_switch);
+    case 'home_viewed':
+      return hasOnly(['city']) && isOneOf(props.city, CITIES);
     case 'restaurant_opened':
       return (
-        hasOnly(['restaurant_slug']) &&
+        hasOnly(['city', 'restaurant_slug']) &&
+        isOneOf(props.city, CITIES) &&
         typeof props.restaurant_slug === 'string' &&
         props.restaurant_slug.length >= 1 &&
         props.restaurant_slug.length <= 60 &&

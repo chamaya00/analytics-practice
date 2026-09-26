@@ -90,18 +90,178 @@ const { title } = Astro.props;
     text-decoration: none;
   }
 
+  /* ---- home feed: location bar, search, promo banner, cuisine chips ----
+     docs/design/80-two-city-brand-and-flow.md, screen 2 / 80-home-sf.html.
+     Rendered by home-dom.ts into #home-root, which BaseLayout gives no
+     scoped <style> of its own — these live here, unscoped, the same as
+     every other DOM-module component below. */
+
+  .location-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-family: inherit;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: var(--space-xs) var(--space-md);
+    min-height: 32px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .home-search {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-top: var(--space-md);
+    padding: 0 var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+
+  .home-search::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .promo-banner {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    display: flex;
+    /* Column, not the row this started as (#82 review round 2, item 1): a
+       row with a fixed-size image had no room left for the text at 375px
+       and pushed it off the right edge, widening the whole page. Stacking
+       keeps the image inside the box at any width and puts the heading
+       directly beneath it, one of the two placements the mock allows. */
+    flex-direction: column;
+    gap: var(--space-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-a);
+    border-radius: 12px;
+  }
+
+  .promo-banner img {
+    /* Scales to the box's own width instead of the SVG's intrinsic 343px,
+       which is what overflowed a 375px viewport once the border/padding
+       above were subtracted from it. Height follows from the img's own
+       width/height attributes (343x96), so no separate aspect-ratio rule
+       is needed here. */
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .promo-banner span {
+    font-weight: 800;
+    font-size: var(--font-size-body);
+    color: var(--color-accent-a);
+  }
+
+  .cuisine-chips {
+    margin-top: var(--space-md);
+    display: flex;
+    gap: var(--space-sm);
+    overflow-x: auto;
+    -webkit-mask-image: linear-gradient(to right, black 88%, transparent);
+    mask-image: linear-gradient(to right, black 88%, transparent);
+    padding-right: var(--space-lg);
+  }
+
+  .cuisine-chip {
+    flex: none;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    font-family: inherit;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .cuisine-chip.selected {
+    color: var(--color-accent-a);
+    border-color: var(--color-accent-a);
+  }
+
+  /* ---- location picker (home screen 1) ---- */
+
+  .location-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+  }
+
+  .location-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    color: var(--color-text);
+    text-align: left;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .location-card img {
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .location-card-name {
+    font-weight: 800;
+  }
+
+  .location-card-currency {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .location-blocked-notice {
+    margin-top: var(--space-md);
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
   /* ---- restaurant list ---- */
 
   .restaurant-list {
-    list-style: none;
-    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin: var(--space-md) 0 0;
     padding: 0;
   }
 
   .restaurant-card {
-    display: block;
-    padding: var(--space-md) 0;
-    border-bottom: 1px solid var(--color-border);
+    position: relative;
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
     color: var(--color-text);
     text-decoration: none;
     transition: transform 100ms ease-out;
@@ -120,13 +280,42 @@ const { title } = Astro.props;
     transform: scale(0.98);
   }
 
-  .restaurant-card .cuisine-tag,
-  .restaurant-card .eta {
-    display: block;
-    color: var(--color-text-muted);
+  .restaurant-card-photo {
+    flex: none;
+    width: 84px;
+    height: 84px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .restaurant-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .restaurant-card-name {
+    font-weight: 800;
+  }
+
+  .restaurant-card-tag,
+  .restaurant-card-meta {
     font-size: var(--font-size-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .deal-badge {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    background: var(--color-accent-b);
+    color: var(--color-badge-ink);
+    font-size: 0.625rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
   }
 
   /* ---- menu / cart line items, shared shape ---- */
@@ -148,10 +337,36 @@ const { title } = Astro.props;
     border-bottom: 1px solid var(--color-border);
   }
 
-  .menu-item-name,
   .cart-line-name {
     flex: 1;
     min-width: 8rem;
+  }
+
+  .menu-item-photo {
+    flex: none;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  /* The dish name, description and price sit in their own wrapping element
+     (menu-dom.ts's textWrap) rather than being direct .menu-item-row
+     children like .cart-line-name above — stacked here rather than left to
+     fall onto one run-together line (driver review, #82 round 1, item 4). */
+  .menu-item-text {
+    flex: 1;
+    min-width: 8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .menu-item-name {
+    font-weight: 700;
+  }
+
+  .menu-item-description {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
   }
 
   .menu-item-price,

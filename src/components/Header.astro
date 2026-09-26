@@ -6,34 +6,50 @@ interface Props {
 const { currentPath } = Astro.props;
 
 const links = [
-  { href: '/restaurants/', label: 'Restaurants' },
+  { href: '/', label: 'Home' },
   { href: '/cart/', label: 'Cart' },
   { href: '/tracker/', label: 'Tracker' },
 ];
+
+// Tab bar icons only — docs/design/80-two-city-brand-and-flow.md's mocks
+// (80-home-sf.html) show an icon above each phone tab bar label; the
+// desktop nav (.site-nav) stays text-only, unchanged. Markup copied from
+// that mock so the shapes match exactly.
+const TAB_ICON_PATHS: Record<string, string> = {
+  Home: '<path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/>',
+  Cart: '<path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/>',
+  Tracker: '<circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/>',
+};
 ---
 
 <header class="site-header">
-  <p class="site-name">
-    <svg
-      class="drop-glyph"
-      width="14"
-      height="20"
-      viewBox="0 0 16 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      aria-hidden="true"
-    >
-      <path d="M4 2C4 2 8 0.5 12 2" />
-      <line x1="8" y1="2" x2="8" y2="8" />
-      <path
-        d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z"
-        fill="currentColor"
-        stroke="none"
-      />
-    </svg>
-    Dontdropthatpromo
-  </p>
+  <div class="brand-group">
+    <p class="site-name">
+      <svg
+        class="drop-glyph"
+        width="14"
+        height="20"
+        viewBox="0 0 16 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        aria-hidden="true"
+      >
+        <path d="M4 2C4 2 8 0.5 12 2" />
+        <line x1="8" y1="2" x2="8" y2="8" />
+        <path
+          d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z"
+          fill="currentColor"
+          stroke="none"
+        />
+      </svg>
+      <span class="wordmark"
+        ><span class="wordmark-strong">dont</span><wbr /><span class="wordmark-light">drop</span><wbr /><span
+          class="wordmark-light">that</span
+        ><wbr /><span class="wordmark-light">promo</span></span
+      >
+    </p>
+  </div>
   <nav aria-label="Primary" class="site-nav">
     {
       links.map((link) => {
@@ -55,7 +71,8 @@ const links = [
       const isCurrent = currentPath === link.href;
       return (
         <a href={link.href} aria-current={isCurrent ? 'page' : undefined} class:list={{ current: isCurrent }}>
-          {isCurrent ? <span class="pill">{link.label}</span> : link.label}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={TAB_ICON_PATHS[link.label]} />
+          {isCurrent ? <span class="pill tab-label">{link.label}</span> : <span class="tab-label">{link.label}</span>}
           {link.label === 'Cart' && <span class="cart-badge" data-testid="cart-badge-phone" hidden></span>}
         </a>
       );
@@ -80,16 +97,35 @@ const links = [
     border-bottom: 1px solid var(--color-border);
   }
 
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: none;
+  }
+
   .site-name {
     margin: 0;
     display: flex;
     align-items: center;
     gap: var(--space-xs);
     font-size: var(--font-size-nav-title);
-    font-weight: 800;
     line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: normal;
+  }
+
+  /* docs/design/80-two-city-brand-and-flow.md: lowercase, weight-split,
+     one word — no display:flex on this element itself, because flex's
+     `gap` also applies between the anonymous boxes it creates for the
+     bare <wbr> elements, visibly splitting the word into chunks (found
+     rendering the mock, round 4). */
+  .wordmark {
+    flex: none;
+    font-weight: 500;
+  }
+
+  .wordmark-strong {
+    font-weight: 800;
   }
 
   .drop-glyph {
@@ -180,20 +216,25 @@ const links = [
       flex: 1;
       min-height: 44px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 2px;
       color: var(--color-text-muted);
       text-decoration: none;
       font-size: var(--font-size-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: var(--space-sm);
+      padding: var(--space-xs) var(--space-sm);
       transition: transform 100ms ease-out;
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       -moz-user-select: none;
       user-select: none;
+    }
+
+    .tab-bar a svg {
+      width: 20px;
+      height: 20px;
     }
 
     .tab-bar a:active {

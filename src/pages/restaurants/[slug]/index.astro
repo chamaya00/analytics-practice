@@ -1,9 +1,9 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { RESTAURANTS } from '../../../lib/restaurants';
+import { ALL_RESTAURANTS, etaRangeLabel } from '../../../lib/restaurants';
 
 export function getStaticPaths() {
-  return RESTAURANTS.map((restaurant) => ({
+  return ALL_RESTAURANTS.map((restaurant) => ({
     params: { slug: restaurant.slug },
     props: { restaurant },
   }));
@@ -12,9 +12,12 @@ export function getStaticPaths() {
 const { restaurant } = Astro.props;
 ---
 
-<BaseLayout title={`${restaurant.name} — Dontdropthatpromo`}>
+<BaseLayout title={`${restaurant.name} — dontdropthatpromo`}>
+  <img class="restaurant-hero" src={restaurant.heroImage} alt="" width="343" height="180" />
   <h1>{restaurant.name}</h1>
-  <p>{restaurant.cuisineTag}</p>
+  <p class="restaurant-meta" data-testid="restaurant-meta">
+    {restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} · {etaRangeLabel(restaurant)}
+  </p>
   <div id="menu-root" data-testid="menu-root" data-slug={restaurant.slug}></div>
   <script>
     import { getRestaurant } from '../../../lib/restaurants';

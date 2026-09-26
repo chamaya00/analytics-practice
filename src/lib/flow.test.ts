@@ -1,18 +1,21 @@
-// Integration test walking the full funnel — issue #67 AC1 ("landing to
-// restaurant to items to cart to checkout to order placed to tracker") and
-// AC9's Back-after-ordering case — one browser storage threaded through
-// every screen's init function, the same object a real page load would
-// share via window.localStorage.
+// Integration test walking the full funnel — home feed to restaurant to
+// items to cart to checkout to order placed to tracker — one browser
+// storage threaded through every screen's init function, the same object a
+// real page load would share via window.localStorage. Rewritten for #82:
+// the landing page and the `/restaurants` list route are gone, replaced by
+// the home feed at `/`; AC5's exact-props check for `location_selected`,
+// `home_viewed`, and `restaurant_opened` lives here rather than only in
+// tracking.test.ts, because only this integration walks the real sequence a
+// visitor triggers them in.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initLandingPage } from './landing-dom';
-import { initRestaurantsPage } from './restaurants-dom';
+import { initHomePage } from './home-dom';
 import { initMenuPage } from './menu-dom';
 import { initCartPage } from './cart-dom';
 import { initCheckoutPage } from './checkout-dom';
 import { initOrderPlacedPage } from './order-placed-dom';
 import { initTrackerPage } from './tracker-dom';
-import { RESTAURANTS } from './restaurants';
+import { restaurantsForCity } from './restaurants';
 import { resetTrack, setTrack } from './tracking';
 
 beforeEach(() => {
@@ -29,16 +32,18 @@ function root(): HTMLElement {
   return el;
 }
 
-describe('landing → restaurant → items → cart → checkout → order-placed → tracker (AC1)', () => {
-  it('walks the whole flow, firing every named event in order and never showing a delivered tracker state', () => {
+describe('home → restaurant → items → cart → checkout → order-placed → tracker (AC1, AC5)', () => {
+  it('walks the whole flow, firing location_selected/home_viewed/restaurant_opened with exact props, and never the retired landing_viewed/restaurants_viewed', () => {
     const events: [string, unknown][] = [];
     setTrack((name, props) => events.push([name, props]));
 
-    const restaurant = RESTAURANTS[0];
-    const item = restaurant.menu[0];
+    const homeRoot = root();
+    initHomePage(homeRoot, window.localStorage);
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
 
-    initLandingPage(root(), window.localStorage);
-    initRestaurantsPage();
+    const restaurant = restaurantsForCity('sf')[0];
+    const item = restaurant.menu[0].items[0];
+
     const menuRoot = root();
     initMenuPage(menuRoot, restaurant, window.localStorage);
     menuRoot.querySelector<HTMLButtonElement>(`[data-testid="add-${item.id}"]`)?.click();
@@ -54,27 +59,60 @@ describe('landing → restaurant → items → cart → checkout → order-place
     const trackerRoot = root();
     initTrackerPage(trackerRoot, window.localStorage, vi.fn());
 
-    expect(events.map(([name]) => name)).toEqual([
-      'landing_viewed',
-      'restaurants_viewed',
-      'restaurant_opened',
-      'cart_viewed',
-      'checkout_viewed',
-      'order_placed',
-      'tracker_viewed',
-    ]);
+    const names = events.map(([name]) => name);
+    expect(names).not.toContain('landing_viewed');
+    expect(names).not.toContain('restaurants_viewed');
 
-    // The joke: no fifth, delivered step, ever.
+    expect(events.find(([name]) => name === 'location_selected')?.[1]).toEqual({ city: 'sf', is_switch: false });
+    expect(events.find(([name]) => name === 'home_viewed')?.[1]).toEqual({ city: 'sf' });
+    expect(events.find(([name]) => name === 'restaurant_opened')?.[1]).toEqual({
+      city: 'sf',
+      restaurant_slug: restaurant.slug,
+    });
+
+    // The current tracker (#83's to finish) never resolves yet.
     expect(trackerRoot.textContent).not.toMatch(/delivered/i);
     expect(trackerRoot.querySelector('[data-testid="tracker-empty"]')).toBeNull();
+  });
+
+  it('reopening the location bar and picking the already-persisted city fires is_switch: false', () => {
+    const events: [string, unknown][] = [];
+    setTrack((name, props) => events.push([name, props]));
+
+    const homeRoot = root();
+    initHomePage(homeRoot, window.localStorage);
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
+
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
+
+    const locationSelected = events.filter(([name]) => name === 'location_selected');
+    expect(locationSelected).toHaveLength(2);
+    expect(locationSelected[1][1]).toEqual({ city: 'sf', is_switch: false });
+  });
+
+  it('reopening the location bar and picking a different city fires is_switch: true', () => {
+    const events: [string, unknown][] = [];
+    setTrack((name, props) => events.push([name, props]));
+
+    const homeRoot = root();
+    initHomePage(homeRoot, window.localStorage);
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
+
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
+    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
+
+    const locationSelected = events.filter(([name]) => name === 'location_selected');
+    expect(locationSelected).toHaveLength(2);
+    expect(locationSelected[1][1]).toEqual({ city: 'hcmc', is_switch: true });
   });
 
   it('pressing Back after ordering and hitting "Place order" again fires no second order_placed (AC9)', () => {
     const events: [string, unknown][] = [];
     setTrack((name, props) => events.push([name, props]));
 
-    const restaurant = RESTAURANTS[0];
-    const item = restaurant.menu[0];
+    const restaurant = restaurantsForCity('sf')[0];
+    const item = restaurant.menu[0].items[0];
 
     const menuRoot = root();
     initMenuPage(menuRoot, restaurant, window.localStorage);

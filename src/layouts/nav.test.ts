@@ -26,10 +26,10 @@ function readNav(distPath: string, selector: string) {
 }
 
 describe('shared header/nav, three destinations (AC1, AC2)', () => {
-  it('the landing page nav links to Restaurants, Cart, and Tracker', () => {
+  it('the home feed nav links to Home, Cart, and Tracker (#82: replaces Restaurants — the list route is gone, merged into the feed at /)', () => {
     const nav = readNav('dist/index.html', 'nav.site-nav');
     expect(nav).not.toBeNull();
-    expect(nav?.querySelector('a[href="/restaurants/"]')?.textContent).toContain('Restaurants');
+    expect(nav?.querySelector('a[href="/"]')?.textContent).toContain('Home');
     expect(nav?.querySelector('a[href="/cart/"]')?.textContent).toContain('Cart');
     expect(nav?.querySelector('a[href="/tracker/"]')?.textContent).toContain('Tracker');
   });
@@ -50,7 +50,7 @@ describe('shared header/nav, three destinations (AC1, AC2)', () => {
 
 describe('viewport meta covers the display, not just its safe rectangle (AC3)', () => {
   it('the viewport meta content includes viewport-fit=cover on every page', () => {
-    for (const distPath of ['dist/index.html', 'dist/restaurants/index.html', 'dist/cart/index.html']) {
+    for (const distPath of ['dist/index.html', 'dist/restaurants/north-beach-pizzeria/index.html', 'dist/cart/index.html']) {
       const window = new Window();
       window.document.write(readHtml(distPath));
       const meta = window.document.querySelector('meta[name="viewport"]');
@@ -63,7 +63,7 @@ describe('bottom tab bar at phone width (AC1)', () => {
   it('the tab bar carries the same three destinations as the desktop nav, each a 44px-minimum, evenly split tap target', () => {
     const tabBar = readNav('dist/index.html', 'nav.tab-bar');
     expect(tabBar).not.toBeNull();
-    expect(tabBar?.querySelector('a[href="/restaurants/"]')?.textContent).toContain('Restaurants');
+    expect(tabBar?.querySelector('a[href="/"]')?.textContent).toContain('Home');
     expect(tabBar?.querySelector('a[href="/cart/"]')?.textContent).toContain('Cart');
     expect(tabBar?.querySelector('a[href="/tracker/"]')?.textContent).toContain('Tracker');
     const css = deliveredCss('dist/index.html');
@@ -125,9 +125,22 @@ describe('safe-area insets pad for hardware, not just the viewport rectangle (AC
   });
 });
 
+describe('wordmark breaks only at word boundaries (#82 AC2)', () => {
+  it('the wordmark is dontdropthatpromo with <wbr> only between dont/drop/that/promo, never mid-word', () => {
+    const html = readHtml('dist/index.html');
+    const match = html.match(/<span class="wordmark"[^>]*>([\s\S]*?)<\/p>/);
+    expect(match).not.toBeNull();
+    const inner = match![1];
+    // Strip attributes and the nested spans' tags so this reads as plain
+    // text with only the <wbr> breaks left: dont<wbr>drop<wbr>that<wbr>promo.
+    const stripped = inner.replace(/ data-astro-cid-[\w-]+/g, '').replace(/<\/?span[^>]*>/g, '');
+    expect(stripped).toBe('dont<wbr>drop<wbr>that<wbr>promo');
+  });
+});
+
 describe('sitewide footer link (AC2, AC5)', () => {
   it('every page carries a footer link to /about/ reading "What we log, and why"', () => {
-    for (const distPath of ['dist/index.html', 'dist/restaurants/index.html', 'dist/checkout/index.html']) {
+    for (const distPath of ['dist/index.html', 'dist/restaurants/north-beach-pizzeria/index.html', 'dist/checkout/index.html']) {
       const window = new Window();
       window.document.write(readHtml(distPath));
       const link = window.document.querySelector('.site-footer a[href="/about/"]');
