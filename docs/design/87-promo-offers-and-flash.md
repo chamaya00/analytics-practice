@@ -465,7 +465,57 @@ Eight PNGs total (four files × two widths), committed alongside.
 
 ## Critique, after opening the rendered pictures
 
-_Filled in after rendering — see below._
+- **Real finding: a broken closing tag scrambled the entire Offers screen.**
+  Every voucher row's expiry `<p>` was written closing with `</span>`
+  instead of `</p>` (a copy-paste artifact). The markup read as correct on
+  inspection, but the mismatched tag sent the browser into HTML's
+  tag-soup recovery: the rendered picture showed each row's badge bleeding
+  into the *previous* row's box, badges appearing at the wrong vertical
+  position, and the qualifying section reading as one merged shape instead
+  of three distinct cards — exactly the kind of thing design-craft's "argue
+  with your own mock" step exists to catch, since the text-only markup gave
+  no hint anything was wrong. Isolated with a minimal reproduction (a
+  two-item version of the same structure, which rendered correctly and
+  proved the flex/label approach itself was sound), then found the actual
+  mismatched tag by re-reading the real file's markup line by line. Fixed
+  all four occurrences and re-rendered; the qualifying section now shows
+  three distinct, correctly bordered rows.
+- **Round 1 finding: the delivery voucher's badge icon read as an ambiguous
+  arrow/undo glyph, not as delivery.** The first hand-drawn car silhouette
+  didn't survive rendering at 18px legibly. Replaced with a simpler package/
+  box icon, which reads clearly at the same size in the re-render.
+- **Round 1 finding: the checkout mocks repeated "Offers" as both a section
+  heading and the new row's own label**, reading as "Offers / Offers 2
+  applied..." — redundant once the row carries the section's identity
+  itself. Removed the now-unneeded `<h2>Offers</h2>` heading from both
+  checkout mocks; the row alone is enough, matching how the row already
+  behaves as this section's only visible label.
+- **Checked, both checkout renders, both widths:** "Place order" clears the
+  fixed tab bar at 375px with no scrolling in either city, the tab bar is
+  hidden at desktop width in favor of the top nav (the existing CSS-order
+  fix from #80 held with no new change needed here), and the six-figure
+  HCMC total ("245.000 ₫") does not wrap next to the shorter SF total
+  ("$21.00") — no fix needed, consistent with #80's own earlier finding
+  that the total's own line sizes to its content.
+- **Checked, Offers screen, both widths:** the two checked rows (different
+  stack groups) sit above the qualifying-but-unchecked row, which sits above
+  the divider and the one greyed row, in that order, at both widths — the
+  hierarchy the acceptance criteria asks for reads correctly rather than
+  needing the eye to hunt for it.
+- **Checked, flash sheet, narrow:** the drag handle, header, both countdown
+  tiles, the min-spend line, and both restaurant rows (each with its
+  struck-through original fee) are all visible with no clipping inside
+  375×812 — nothing below the sheet's own restaurant rows was added, on
+  purpose, per this repository's own render-viewport lesson: this mock's
+  most important content is what's on screen without scrolling.
+- **Covering `--color-accent` with my hand** on the Offers screen and both
+  checkout renders: the discount line and the qualifying rows' borders both
+  still read as distinct from an ordinary row, from the bold weight and the
+  border alone — the accent isn't doing structural work alone.
+- What I'd remove if forced to cut one thing: the flash sheet's second
+  restaurant row. It stayed because a single row risks reading as a one-off
+  promotion on one restaurant rather than a citywide event across several,
+  which is what the owner's reference actually shows.
 
 ## No ADR
 

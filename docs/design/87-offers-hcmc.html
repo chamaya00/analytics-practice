@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Dontdropthatpromo — Offers screen mock, Ho Chi Minh City (VND)</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #FBF7FF;
+    --color-surface: #F7F1FF;
+    --color-text: #241B33;
+    --color-text-muted: #6B5D85;
+    --color-border: #E3D6FA;
+    --color-accent: #6C3CE0;
+    --color-accent-secondary: #FF7A45;
+    --color-tab-active-bg: #EDE1FF;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.4;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+  main { max-width: 26rem; margin: 0 auto; padding: var(--space-md) var(--space-lg) calc(96px + var(--space-lg)); }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+  .back { flex: none; width: 24px; height: 24px; color: var(--color-text); }
+  h1 { font-size: var(--font-size-h2); font-weight: 700; margin: 0; }
+
+  .subtotal-line {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-md);
+  }
+
+  h2.section-title {
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    margin: var(--space-md) 0 var(--space-xs);
+    text-transform: none;
+  }
+
+  .voucher-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+  .voucher-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+  }
+  .voucher-row.qualified { border-color: var(--color-accent); }
+  .voucher-row.greyed { background: transparent; }
+
+  .badge {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--color-accent-secondary);
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .voucher-row.greyed .badge { background: var(--color-border); color: var(--color-text-muted); }
+  .badge svg { width: 18px; height: 18px; }
+
+  .voucher-main { flex: 1; min-width: 0; }
+  .voucher-amount { font-weight: 800; font-size: var(--font-size-body); margin: 0; }
+  .voucher-row.greyed .voucher-amount { color: var(--color-text-muted); font-weight: 700; }
+  .flash-tag {
+    display: inline-block;
+    font-size: 0.625rem;
+    font-weight: 800;
+    color: #fff;
+    background: var(--color-accent);
+    border-radius: 4px;
+    padding: 0 4px;
+    margin-left: var(--space-xs);
+    vertical-align: 2px;
+  }
+  .voucher-min { font-size: var(--font-size-muted); color: var(--color-text-muted); margin: 2px 0 0; }
+  .voucher-expiry {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--font-size-muted);
+    color: var(--color-accent-secondary);
+    margin: 3px 0 0;
+    font-weight: 700;
+  }
+  .voucher-row.greyed .voucher-expiry { color: var(--color-text-muted); }
+  .voucher-expiry svg { flex: none; width: 13px; height: 13px; }
+  .voucher-nudge {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin: var(--space-xs) 0 0;
+  }
+
+  .checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--color-accent);
+    margin: 2px 0 0;
+    position: relative;
+    background: transparent;
+  }
+  .checkbox:checked {
+    background: var(--color-accent);
+  }
+  .checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 7px;
+    height: 11px;
+    border-bottom: 2px solid #fff;
+    border-right: 2px solid #fff;
+    transform: rotate(40deg);
+  }
+  .checkbox:disabled { border-color: var(--color-border); }
+
+  .footer-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-sm) var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+  }
+  .footer-saved { font-weight: 800; color: var(--color-accent); font-size: var(--font-size-body); }
+  .footer-apply {
+    border: none;
+    border-radius: 10px;
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 800;
+    font-size: var(--font-size-body);
+    min-height: 44px;
+    padding: 0 var(--space-lg);
+  }
+
+  .reference-only {
+    margin-top: var(--space-xxl);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="top-bar">
+    <svg class="back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5 8 12l7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h1>Offers</h1>
+  </div>
+  <p class="subtotal-line">Your subtotal: 250.000 ₫</p>
+
+  <h2 class="section-title">Qualifying now</h2>
+  <div class="voucher-list">
+    <label class="voucher-row qualified">
+      <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg></span>
+      <span class="voucher-main">
+        <p class="voucher-amount">25.000 ₫ off</p>
+        <p class="voucher-min">Minimum spend 200.000 ₫</p>
+        <p class="voucher-expiry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>3 days</p>
+      </span>
+      <input type="checkbox" class="checkbox" checked aria-label="Apply 25.000 ₫ off" />
+    </label>
+
+    <label class="voucher-row qualified">
+      <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 20 7v10l-8 4-8-4V7l8-4Z" stroke-linejoin="round"/><path d="M4 7l8 4 8-4M12 11v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="voucher-main">
+        <p class="voucher-amount">Free delivery</p>
+        <p class="voucher-min">Minimum spend 50.000 ₫</p>
+        <p class="voucher-expiry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>Today</p>
+      </span>
+      <input type="checkbox" class="checkbox" checked aria-label="Apply free delivery" />
+    </label>
+
+    <label class="voucher-row qualified">
+      <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg></span>
+      <span class="voucher-main">
+        <p class="voucher-amount">10.000 ₫ off</p>
+        <p class="voucher-min">Minimum spend 100.000 ₫</p>
+        <p class="voucher-expiry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>3 days</p>
+      </span>
+      <input type="checkbox" class="checkbox" aria-label="Apply 10.000 ₫ off" />
+    </label>
+  </div>
+
+  <h2 class="section-title">Not yet — keep adding to your cart</h2>
+  <div class="voucher-list">
+    <label class="voucher-row greyed">
+      <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg></span>
+      <span class="voucher-main">
+        <p class="voucher-amount">45.000 ₫ off</p>
+        <p class="voucher-min">Minimum spend 350.000 ₫</p>
+        <p class="voucher-expiry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>1 day</p>
+        <p class="voucher-nudge">Spend 100.000 ₫ more to enjoy this offer</p>
+      </span>
+      <input type="checkbox" class="checkbox" disabled aria-label="45.000 ₫ off — not yet eligible" />
+    </label>
+  </div>
+
+  <p class="reference-only">Reference only, not part of the shipped page — this line and the dashed rule above it exist so a reader of the render can tell the mock's own scaffolding from the page it depicts.</p>
+</main>
+<div class="footer-bar">
+  <span class="footer-saved">You saved 40.000 ₫</span>
+  <button class="footer-apply">Apply</button>
+</div>
+</body>
+</html>

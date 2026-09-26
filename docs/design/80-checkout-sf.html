@@ -100,17 +100,19 @@
   .toggle { display: flex; gap: var(--space-xs); }
   .toggle .chip { min-height: 32px; padding: 0 var(--space-sm); }
 
-  .promo-chip {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-    min-height: 40px;
-    padding: 4px var(--space-sm);
+  .offers-row {
+    margin-top: var(--space-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
   }
-  .promo-chip.eligible.best { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
-  .promo-chip .save { display: block; font-size: 0.625rem; font-weight: 700; }
-  .promo-chip.disabled { opacity: 0.55; }
-  .promo-reason { flex-basis: 100%; font-size: 0.625rem; color: var(--color-text-muted); margin-top: -2px; }
+  .offers-row .label { font-weight: 700; }
+  .offers-row .summary { display: flex; align-items: center; gap: 4px; font-size: var(--font-size-muted); color: var(--color-accent); font-weight: 700; }
+  .offers-row .chevron { flex: none; width: 14px; height: 14px; }
   .icon-info, .icon-tag { flex: none; width: 16px; height: 16px; vertical-align: -3px; }
   .icon-tag { color: var(--color-accent); margin-right: 4px; }
 
@@ -121,6 +123,8 @@
   }
   .breakdown-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: var(--font-size-body); }
   .breakdown-row .muted { color: var(--color-text-muted); }
+  .breakdown-row .struck { color: var(--color-text-muted); text-decoration: line-through; }
+  .breakdown-row .free { color: var(--color-accent); font-weight: 800; }
   .breakdown-row.discount { color: var(--color-accent); font-weight: 800; }
   .saved-line { font-size: var(--font-size-muted); font-weight: 800; color: var(--color-accent); text-align: right; margin: -2px 0 3px; }
   .strike { text-decoration: line-through; color: var(--color-text-muted); margin-right: var(--space-xs); }
@@ -210,21 +214,18 @@
     <span class="toggle"><span class="chip selected">Yes</span><span class="chip">No</span></span>
   </div>
 
-  <h2 class="section-title">Offers</h2>
-  <div class="chip-group">
-    <span class="chip promo-chip eligible best selected"><span>20% off</span><span class="save">Best deal</span></span>
-    <span class="chip promo-chip eligible"><span>Free delivery</span><span class="save">Save $2.99</span></span>
-    <span class="chip promo-chip disabled">$5 off</span>
-    <span class="promo-reason">Needs a $15 first order to unlock — not eligible on this cart.</span>
+  <div class="offers-row">
+    <span class="label">Offers</span>
+    <span class="summary">2 applied · You saved $4.99<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5 16 12 9 19" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
   </div>
 
   <div class="breakdown">
     <div class="breakdown-row"><span class="muted">Subtotal</span><span>$21.50</span></div>
-    <div class="breakdown-row"><span class="muted">Delivery fee</span><span>$2.99</span></div>
+    <div class="breakdown-row"><span class="muted">Delivery fee</span><span><span class="struck">$2.99</span> <span class="free">Free</span></span></div>
     <div class="breakdown-row"><span class="muted">Service fee</span><span>$1.50</span></div>
-    <div class="breakdown-row discount"><span><svg class="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>Discount</span><span>−$4.30</span></div>
-    <div class="saved-line">You saved $4.30</div>
-    <div class="breakdown-row total"><span>Total</span><span>$21.69</span></div>
+    <div class="breakdown-row discount"><span><svg class="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>Discount</span><span>−$2.00</span></div>
+    <div class="saved-line">You saved $4.99</div>
+    <div class="breakdown-row total"><span>Total</span><span>$21.00</span></div>
   </div>
 
   <div class="disclosure">
