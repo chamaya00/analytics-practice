@@ -45,9 +45,12 @@ getting a surprisingly good deal."
 - The exact voucher amounts and minimum spends (plausible, checked against
   the ₫5.000–₫50.000 range and the cross-city ratio bound below — not a
   number anyone measured).
-- The flash-deal cadence (24-hour cooldown) and countdown length (45
-  minutes) — plausible shapes, not measured values, same caveat #80 attached
-  to its own tracker-timing guesses.
+- The flash window's own clock time (12:00–12:15 local, below) — a
+  plausible slot, not a measured one, same caveat #80 attached to its own
+  tracker-timing guesses. Its 15-minute length is fixed, not guessed: it
+  matches the owner's reference countdown ("about 15:00"). The sheet's
+  24-hour display cooldown is likewise a plausible shape, not a measured
+  value.
 - Whether the better tier auto-selects on unlock — the owner's comment asks
   this be designed deliberately and doesn't settle it; this document decides
   yes, and says why, below.
@@ -238,13 +241,28 @@ sees isn't a delight beat, so it never plays against a closed screen):
    `--color-text` label, `--color-accent`-bordered badge, and an enabled
    checkbox — over 320ms, `cubic-bezier(0.22, 1, 0.36, 1)` (#80's own
    reused easing, not a new one).
-2. **Auto-select:** yes. The newly-qualifying row auto-checks itself,
-   replacing whichever other `discount`-group row was checked (that row's
-   own checkbox fades out over 160ms as it un-checks). The owner's comment
-   asks this be deliberate rather than a side effect: a visitor who just
-   crossed into a better tier should feel the upgrade happen, not have to
-   go find it, and it remains a starting point rather than a lock-in — they
-   can uncheck it and pick differently afterward.
+2. **Auto-select:** yes, under one stated rule rather than "whichever just
+   unlocked." **Whenever the qualifying set inside the `discount` group
+   changes** — a cart change, a flash window opening, or a flash window
+   ending — **the row that ends up checked is whichever qualifying
+   `discount`-group voucher currently has the single largest amount off**
+   (that row's own checkbox fades out over 160ms as any previously-checked
+   row un-checks). This is stated as an amount comparison, not "the tier
+   that just unlocked," because `hcmc-flash`/`sf-flash` don't sit on the
+   size ladder: once the flash voucher can qualify alongside a standing tier
+   voucher, "newest unlock wins" and "largest amount wins" can disagree (see
+   the worked example below), and only the second is the delight the owner
+   asked for — a visitor should always end up on their single best-value
+   option, never on whichever one happened to cross its line last.
+   **Tie-break:** if two qualifying `discount` vouchers ever tie exactly on
+   amount (no two catalogue entries in the same city do today, but #82
+   should implement this rather than assume the tie away), the one with the
+   sooner expiry wins, so a time-limited voucher isn't silently shadowed by
+   one that lasts longer anyway. The owner's comment asks this be designed
+   deliberately rather than a side effect: a visitor who just crossed into a
+   better tier should feel the upgrade happen, not have to go find it, and
+   it remains a starting point rather than a lock-in — they can uncheck it
+   and pick differently afterward.
 3. **What animates and for how long:** a single highlight sweep — an inset
    glow in `--color-accent` at low opacity — crosses the newly-qualified row
    once, over 480ms, then fully fades; it does not loop or repeat. The "You
@@ -331,6 +349,28 @@ Arithmetic: 21.50 + 0 + 1.50 − 2.00 = **21.00**. You saved = 2.99 + 2.00 =
 clears the entry rung and tier 1, and sits short of tiers 2 and 3 by two
 different, correctly-computed amounts — the same subtotal, two live nudges.
 
+## Worked example — flash live (HCMC), the default-selection rule in practice
+
+Same catalogue, `hcmc-flash` now also qualifying because its window is live
+(see "The flash-deal sheet," below, for when that is). This is what "largest
+amount wins, not newest unlock" (above) actually decides between:
+
+| Subtotal | Qualifying `discount` vouchers (amount, min spend) | Largest amount | Checked |
+|---|---|---|---|
+| ₫120.000 | `hcmc-discount-t1` (₫10.000, ₫100.000), `hcmc-flash` (₫15.000, ₫80.000) | `hcmc-flash` — ₫15.000 > ₫10.000 | `hcmc-flash` |
+| ₫250.000 | `hcmc-discount-t1`, `hcmc-discount-t2` (₫25.000, ₫200.000), `hcmc-flash` | `hcmc-discount-t2` — ₫25.000 > ₫15.000 | `hcmc-discount-t2` |
+
+The second row is the same ₫250.000 basket as the HCMC worked example above:
+whether or not the flash window happens to be live, `hcmc-discount-t2`
+still wins on amount, so that example's result and breakdown hold unchanged
+either way. The first row is where the two rules would have disagreed: if a
+visitor's cart crossed ₫100.000 (unlocking `t1`) before the flash window
+opened, a "newest unlock wins" rule would leave `t1` checked even after the
+window opens and `hcmc-flash` starts qualifying too — the wrong outcome,
+since `hcmc-flash` is worth more. "Largest amount wins" gets it right
+regardless of which one became qualifying last, which is exactly why the
+rule is stated as an amount comparison rather than as unlock order.
+
 ## The flash-deal sheet
 
 A bottom sheet over the home feed, matching the owner's reference anatomy
@@ -352,23 +392,66 @@ exactly:
   level ("$$"), cuisine, ETA range, and the delivery fee as a deal price
   beside the struck-through original ("Free ~~₫15.000~~", "₫5.000
   ~~₫15.000~~") — this fee is per-restaurant and independent of the
-  citywide `hcmc-delivery-entry` voucher; a visitor can have both a
-  restaurant-specific flash delivery discount and, separately, the standing
-  delivery voucher available at checkout, though only one delivery-fee
-  reduction actually applies once an order is placed (whichever the
-  restaurant's own listing already reflects at open-cart time — the
-  flash-window fee, since it's already the lower of the two by design).
+  citywide `hcmc-delivery-entry`/`sf-delivery-entry` voucher, but only one
+  delivery-fee reduction is ever charged. **The effective delivery fee, in
+  order:**
+  1. **Free**, if the `delivery`-group voucher is applied at checkout — it
+     waives the fee outright, and free cannot be undercut by a smaller,
+     nonzero flash price.
+  2. Otherwise, the restaurant's flash-window fee, while that restaurant's
+     flash window is live (the struck-through price shown here and on its
+     home-feed card).
+  3. Otherwise, the restaurant's normal fee.
 
-**When it appears:** on landing at the home feed, only while a flash-deal
-window is currently live (the sheet is never shown with a dead countdown).
+  **"You saved" counts case 1** as whatever fee would otherwise apply under
+  rule 2 or 3 at that moment — the flash fee if the window is live for that
+  restaurant, the normal fee otherwise — never a flat full-fee figure that
+  would overstate what a visitor actually avoided paying. Case 2 alone
+  (flash live, no `delivery` voucher applied) isn't a "You saved" line at
+  all: the reduced fee shows structurally, as the struck-through price on
+  the fee row itself, the same way #80's existing `PriceBreakdown` already
+  shows a reduced-but-nonzero price. Neither worked example above involves
+  a flash-window restaurant, so their ₫15.000/$2.99 delivery "You saved"
+  figures are rule-3 cases and unaffected by this.
 
-**How often:** not every load. A 24-hour cooldown, enforced by one
-`localStorage` key, `flashSheetLastShown`, holding a single ISO-8601
-timestamp — no restaurant ids, no voucher ids, no personal data, matching
-`order-store.ts`'s existing pattern of storing only what a pure function
-needs to recompute state. The sheet opens when a flash window is live and
-either no timestamp is stored or the stored one is more than 24 hours old;
-opening it (not merely closing it) writes the current timestamp.
+**The flash window schedule (deterministic, client-computable):** one window
+per calendar day, **12:00:00–12:15:00 in each city's own local time** —
+`Asia/Ho_Chi_Minh` for HCMC, `America/Los_Angeles` for SF, read via
+`Intl.DateTimeFormat`'s `timeZone` option against the visitor's device
+clock. This needs no server clock and no geolocation: it's the same
+per-city split #80 already uses for currency and the restaurant catalogue,
+applied to a clock instead of a price list. The window is 15 minutes long,
+matching the owner's reference countdown ("about 15:00"); the countdown
+always counts down to that day's 12:15:00 end. A visitor arriving outside
+12:00–12:15 local time sees the ordinary home feed: no sheet, and (below)
+no flash voucher in Offers at all — both exist only while the window is
+live.
+
+**When it appears:** on landing at the home feed, only while the day's
+window is currently live by that clock (the sheet is never shown with a
+dead countdown, and never shown outside the daily 15-minute slot).
+
+**How often:** not every load, even within a live window. A 24-hour
+cooldown, enforced by one `localStorage` key, `flashSheetLastShown`, holding
+a single ISO-8601 timestamp — no restaurant ids, no voucher ids, no
+personal data, matching `order-store.ts`'s existing pattern of storing only
+what a pure function needs to recompute state. The sheet opens when a flash
+window is live and either no timestamp is stored or the stored one is more
+than 24 hours old; opening it (not merely closing it) writes the current
+timestamp.
+
+**How the cooldown interacts with the schedule:** the cooldown gates only
+the sheet's own pop-up, never the flash voucher's presence in Offers. A
+visitor who dismisses (or lets time out) today's sheet still sees
+`hcmc-flash`/`sf-flash` in the Offers list for the rest of that same window,
+qualifying or greyed exactly like any other voucher — they just don't get
+the bottom-sheet nudge again until the cooldown clears. Because there's one
+window a day at a fixed clock time, a sheet shown at or after 12:00 today
+clears its 24-hour cooldown before 12:00 tomorrow, so the common case is
+exactly once per day; a visitor who happens to open the sheet very early
+inside one window and returns right at the next window's own start may
+occasionally have it suppressed one extra day, which is accepted here as a
+demo-scale approximation, not an exactly-once-per-window guarantee.
 
 **Dismissal:** dragging the handle down past a threshold, tapping the scrim
 behind the sheet, a small "×" at the sheet's top-right, or tapping any
