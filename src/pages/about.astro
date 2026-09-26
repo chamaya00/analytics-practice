@@ -5,8 +5,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="What we log, and why — Dontdropthatpromo">
   <h1>What we log, and why</h1>
   <p>
-    This site is a parody, but the analytics are real — we log what you do here so we (and,
-    eventually, anyone learning from this project) can see real usage. Specifically:
+    Every screen in this app fires a real event at a hosted database, so there's an actual
+    aggregate to look at, not a simulated one. Here's exactly what that means, event family by
+    event family:
   </p>
   <ul>
     <li>
@@ -16,20 +17,43 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       visitors," nothing more.
     </li>
     <li>
-      <strong>Which screens you visit and when</strong> — landing, restaurants, a restaurant's menu,
-      your cart, checkout, and the tracker (including every time you come back to check on your
-      order).
+      <strong>Which city you're browsing, and when you switch</strong> — <code>location_selected</code>,
+      fired only the first time you pick a city or when you pick a different one than the city
+      already remembered for this browser, never on every visit.
     </li>
     <li>
-      <strong>The choices you make at checkout</strong> — your joke drop-off spot, your handling
-      instructions (mostly about the promo), whether you want utensils, your tip percentage, and
-      the promo code you pick. There is no name, address, phone number, email, or payment field
-      anywhere in this app for us to log, because we never ask for one.
+      <strong>Which screens you visit and when</strong> — the home feed (<code>home_viewed</code>),
+      a restaurant's menu (<code>restaurant_opened</code>), your cart (<code>cart_viewed</code>),
+      checkout (<code>checkout_viewed</code>), and the tracker, including every time you come back
+      to check on an order (<code>tracker_viewed</code>).
+    </li>
+    <li>
+      <strong>The flash-deal sheet that sometimes opens on the home feed</strong> —
+      <code>flash_sheet_shown</code> (which two restaurants and what discount were randomly drawn
+      for you this browsing session) and <code>flash_sheet_closed</code> (whether you tapped one of
+      the two restaurants, dismissed the sheet, or let its countdown run out). That draw is random,
+      done in this browser, and tied to this one session — it isn't a promise the same deal is
+      available to anyone else, or to you again later.
+    </li>
+    <li>
+      <strong>The choices you make at checkout</strong> — your drop-off preset (Home, Office, or
+      Front desk), your delivery instructions, whether you want utensils, and which real voucher or
+      vouchers, if any, you applied (<code>order_placed</code>). There is no name, address, phone
+      number, email, or payment field anywhere in this app for us to log, because we never ask for
+      one, and no free-text field anywhere in this app, ever.
+    </li>
+    <li>
+      <strong>Whether your order actually arrives, and how you rated it</strong> —
+      <code>order_delivered</code>, the first time the tracker computes your order as delivered, and
+      <code>rating_submitted</code>, the star count and any preset tags (never free text) you choose
+      when you submit a rating.
     </li>
   </ul>
   <p>
     <strong>What we don't log:</strong> anything that identifies you as a real person. No account,
-    no card, no email, no address, no cross-site tracking cookie.
+    no card, no email, no address, no cross-site tracking cookie, and no free-text field anywhere in
+    this app for any of the above, ever — because the choices above are the only ones this app
+    actually asks you to make.
   </p>
   <p>
     <strong>One more thing, in the interest of actually being honest about it:</strong> to stop spam
