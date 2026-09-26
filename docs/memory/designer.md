@@ -18,3 +18,16 @@ Delete any lesson that has graduated into a test, a lint rule, or a type.
   one viewport (e.g. several named states stacked for comparison) needs its
   most important state placed first, or tightened spacing, rather than
   assuming everything the file contains will show up in the render.
+- A mock reusing this site's fixed bottom tab bar (`Header.astro`'s phone
+  nav) has to include the tab bar itself, not just its bottom padding — a
+  first pass that left it out judged "does the CTA clear the fold" against a
+  page shorter than the real one, and passed for the wrong reason.
+- In a self-contained mock with two `@media` blocks touching the same
+  selector (one hiding a phone-only element above a breakpoint, one styling
+  it unconditionally elsewhere in the file), CSS source order decides the
+  tie at equal specificity — the override has to come *after* the rule it
+  overrides, or the later unconditional rule silently wins at every width.
+- Unicode icon glyphs (e.g. `ⓘ`) aren't guaranteed to render in
+  `design-render`'s headless-Chromium font set — one rendered as an empty
+  box. Use a small inline SVG for any icon a mock depends on, not a
+  character and a hope.
