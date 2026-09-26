@@ -775,6 +775,28 @@ first two guesses in that process were wrong in specific, checkable ways.
   visitor narrows the feed without typing, and removing it would leave
   search as the only filter — a real regression against "in the register of
   Grab," which has both.
+- **Round 4 (this revision): the rename in `5913087` had never actually been
+  re-rendered before its run hit the turn cap — opening the picture found
+  two real bugs the text alone didn't show.** First, `.wordmark`'s
+  weight-split markup (`dont` + `<wbr>` + `drop` + `<wbr>` + `that` + `<wbr>`
+  + `prom` + `o`) sat inside a `display: flex` rule, and flex's `gap`
+  applies between every flex item — including the anonymous ones Flexbox
+  creates for bare text runs and for each `<wbr>` element — so the render
+  showed "dont dropthatprom o," as four visibly separated chunks instead of
+  one word. Fixed by dropping `display: flex` from `.wordmark`, which needed
+  no flex behavior of its own (`.brand-group`, its parent, already supplies
+  the flex row that lines it up with the location pill). Second, fixing that
+  exposed a real capacity problem the short "swoop" wordmark had been
+  silently absorbing by auto-shrinking: at desktop width, "dontdropthatpromo"
+  plus the location pill plus the three nav links no longer fit on one row
+  within `main`'s unchanged 26rem cap, and without a working shrink the nav
+  links overlapped the location pill instead. Fixed with `flex: none` on
+  `.wordmark` (so it keeps its natural width rather than being silently
+  squeezed into a four-line wrap again) and `flex-wrap: wrap` on
+  `header.site-header` (so the nav drops to its own line under the brand row
+  when the two don't fit side by side, rather than overlapping it) — checked
+  in the re-render on both cities, both widths, that the wordmark reads as
+  one word and nothing overlaps.
 
 ## The owner's question — answered
 

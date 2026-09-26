@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Swoop — checkout mock, San Francisco (USD), promo applied</title>
+<title>Dontdropthatpromo — checkout mock, San Francisco (USD), offer applied</title>
 <style>
   :root {
     --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
@@ -25,6 +25,7 @@
     --color-border: #E3D6FA;
     --color-accent: #6C3CE0;
     --color-accent-secondary: #FF7A45;
+    --color-tab-active-bg: #EDE1FF;
   }
   * , *::before, *::after { box-sizing: border-box; }
   body {
@@ -39,12 +40,11 @@
 
   .wordmark {
     margin: 0 0 var(--space-sm);
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
     font-size: var(--font-size-nav-title);
-    font-weight: 800;
+    font-weight: 500;
+    line-height: 1.2;
   }
+  .wordmark .word-strong { font-weight: 800; }
   .wordmark .tail { position: relative; }
   .wordmark .tail::after {
     content: '';
@@ -58,18 +58,14 @@
     border-radius: 0 0 6px 0;
   }
   h1 {
-    font-size: var(--font-size-h1);
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    font-size: var(--font-size-h2);
+    font-weight: 700;
     margin: 0 0 var(--space-md);
   }
 
   h2.section-title {
     font-size: var(--font-size-muted);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
     color: var(--color-text-muted);
     margin: var(--space-sm) 0 var(--space-xs);
   }
@@ -100,7 +96,7 @@
     justify-content: space-between;
     gap: var(--space-sm);
   }
-  .inline-row .label { font-size: var(--font-size-muted); font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .inline-row .label { font-size: var(--font-size-muted); font-weight: 700; color: var(--color-text-muted); }
   .toggle { display: flex; gap: var(--space-xs); }
   .toggle .chip { min-height: 32px; padding: 0 var(--space-sm); }
 
@@ -154,8 +150,6 @@
     color: #fff;
     font-weight: 800;
     font-size: var(--font-size-body);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
   .reference-only {
@@ -177,22 +171,23 @@
     flex: 1;
     min-height: 56px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     font-size: var(--font-size-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     color: var(--color-text-muted);
     text-decoration: none;
   }
+  .tab-bar a svg { width: 20px; height: 20px; }
   .tab-bar a.current { color: var(--color-text); font-weight: 700; }
-  .tab-bar a.current span { background: #EDE1FF; padding: var(--space-xs) var(--space-md); border-radius: 999px; }
+  .tab-bar a.current .tab-label { background: var(--color-tab-active-bg); padding: 1px var(--space-md); border-radius: 999px; }
   @media (min-width: 481px) { .tab-bar { display: none; } }
 </style>
 </head>
 <body>
 <main>
-  <p class="wordmark"><span class="tail">swoop</span></p>
+  <p class="wordmark"><span class="word-strong">dont</span><wbr>drop<wbr>that<wbr>prom<span class="tail">o</span></p>
   <h1>Checkout</h1>
 
   <h2 class="section-title">Drop-off</h2>
@@ -215,19 +210,19 @@
     <span class="toggle"><span class="chip selected">Yes</span><span class="chip">No</span></span>
   </div>
 
-  <h2 class="section-title">Promo</h2>
+  <h2 class="section-title">Offers</h2>
   <div class="chip-group">
-    <span class="chip promo-chip eligible best selected"><span>SWOOP20 — 20% off</span><span class="save">Best deal</span></span>
-    <span class="chip promo-chip eligible"><span>FREESHIP — Free delivery</span><span class="save">Save $2.99</span></span>
-    <span class="chip promo-chip disabled">FIRST5 — $5 off</span>
-    <span class="promo-reason">FIRST5 needs a $15 subtotal on a first order — not eligible on this cart.</span>
+    <span class="chip promo-chip eligible best selected"><span>20% off</span><span class="save">Best deal</span></span>
+    <span class="chip promo-chip eligible"><span>Free delivery</span><span class="save">Save $2.99</span></span>
+    <span class="chip promo-chip disabled">$5 off</span>
+    <span class="promo-reason">Needs a $15 first order to unlock — not eligible on this cart.</span>
   </div>
 
   <div class="breakdown">
     <div class="breakdown-row"><span class="muted">Subtotal</span><span>$21.50</span></div>
     <div class="breakdown-row"><span class="muted">Delivery fee</span><span>$2.99</span></div>
     <div class="breakdown-row"><span class="muted">Service fee</span><span>$1.50</span></div>
-    <div class="breakdown-row discount"><span><svg class="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>Discount (SWOOP20)</span><span>−$4.30</span></div>
+    <div class="breakdown-row discount"><span><svg class="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>Discount</span><span>−$4.30</span></div>
     <div class="saved-line">You saved $4.30</div>
     <div class="breakdown-row total"><span>Total</span><span>$21.69</span></div>
   </div>
@@ -242,9 +237,9 @@
   <p class="reference-only">Reference only, not part of the shipped page — this line and the dashed rule above it exist so a reader of the render can tell the mock's own scaffolding from the page it depicts.</p>
 </main>
 <nav class="tab-bar">
-  <a href="#">Home</a>
-  <a href="#" class="current"><span>Cart</span></a>
-  <a href="#">Tracker</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">Home</span></a>
+  <a href="#" class="current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><span class="tab-label">Cart</span></a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg><span class="tab-label">Tracker</span></a>
 </nav>
 </body>
 </html>

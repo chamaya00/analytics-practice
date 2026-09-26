@@ -31,3 +31,9 @@ Delete any lesson that has graduated into a test, a lint rule, or a type.
   `design-render`'s headless-Chromium font set — one rendered as an empty
   box. Use a small inline SVG for any icon a mock depends on, not a
   character and a hope.
+- `display: flex`'s `gap` applies to Flexbox's own anonymous items too,
+  including the ones it wraps around a bare text run and each `<wbr>` — a
+  weight-split wordmark (`text` + `<wbr>` + `text`) given `display: flex`
+  for no reason of its own rendered as visibly separated fragments, not one
+  word, and shipped that way because nothing re-rendered it after the edit.
+  Give such text plain inline flow instead.
