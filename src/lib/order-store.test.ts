@@ -86,24 +86,30 @@ describe('cart (AC1, AC9)', () => {
   });
 });
 
-describe('computeCheckoutBreakdown (AC1)', () => {
-  it('an SF cart of $21.50 with a $2.99 delivery fee and a $1.50 service fee totals $25.99', () => {
+describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
+  it('an SF cart of $21.50 with a $2.99 delivery fee and a $1.50 service fee totals $25.99, no Discount/"You saved" line', () => {
     const lines = [{ ...LINE, amountMinor: 2150, quantity: 1 }];
     expect(computeCheckoutBreakdown(lines, 299)).toEqual({
       subtotalMinor: 2150,
       deliveryFeeMinor: 299,
+      deliveryFeeOriginalMinor: null,
       serviceFeeMinor: 150,
+      discountAmountMinor: 0,
+      savedAmountMinor: 0,
       totalMinor: 2599,
       currency: 'USD',
     });
   });
 
-  it('an HCMC cart of ₫250.000 with ₫15.000 and ₫20.000 fees totals ₫285.000', () => {
+  it('an HCMC cart of ₫250.000 with ₫15.000 and ₫20.000 fees totals ₫285.000, no Discount/"You saved" line', () => {
     const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: 250000, quantity: 1 }];
     expect(computeCheckoutBreakdown(lines, 15000)).toEqual({
       subtotalMinor: 250000,
       deliveryFeeMinor: 15000,
+      deliveryFeeOriginalMinor: null,
       serviceFeeMinor: 20000,
+      discountAmountMinor: 0,
+      savedAmountMinor: 0,
       totalMinor: 285000,
       currency: 'VND',
     });
@@ -111,6 +117,58 @@ describe('computeCheckoutBreakdown (AC1)', () => {
 
   it('returns null for an empty cart rather than a $0 breakdown', () => {
     expect(computeCheckoutBreakdown([], 0)).toBeNull();
+  });
+});
+
+describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers applied (AC3)', () => {
+  it('HCMC ₫250.000 with t2 (₫25.000) and the delivery voucher (waiving the ₫15.000 fee): Free delivery, Discount −₫25.000, You saved ₫40.000, Total ₫245.000', () => {
+    const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: 250000, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 15000, {
+      deliveryVoucherApplied: true,
+      discountAmountMinor: 25000,
+      flashDeliveryFeeMinor: null,
+    });
+    expect(breakdown).toEqual({
+      subtotalMinor: 250000,
+      deliveryFeeMinor: 0,
+      deliveryFeeOriginalMinor: 15000,
+      serviceFeeMinor: 20000,
+      discountAmountMinor: 25000,
+      savedAmountMinor: 40000,
+      totalMinor: 245000,
+      currency: 'VND',
+    });
+  });
+
+  it('SF $21.50 with the tier-1 discount ($2.00) and the delivery voucher (waiving the $2.99 fee): Free delivery, Discount −$2.00, You saved $4.99, Total $21.00', () => {
+    const lines = [{ ...LINE, amountMinor: 2150, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 299, {
+      deliveryVoucherApplied: true,
+      discountAmountMinor: 200,
+      flashDeliveryFeeMinor: null,
+    });
+    expect(breakdown).toEqual({
+      subtotalMinor: 2150,
+      deliveryFeeMinor: 0,
+      deliveryFeeOriginalMinor: 299,
+      serviceFeeMinor: 150,
+      discountAmountMinor: 200,
+      savedAmountMinor: 499,
+      totalMinor: 2100,
+      currency: 'USD',
+    });
+  });
+
+  it('a live flash fee reduction with no delivery voucher applied shows the struck-through original but no "You saved" contribution from it (#87: case 2 alone isn\'t a "You saved" line)', () => {
+    const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: 250000, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 15000, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 0,
+      flashDeliveryFeeMinor: 5000,
+    });
+    expect(breakdown!.deliveryFeeMinor).toBe(5000);
+    expect(breakdown!.deliveryFeeOriginalMinor).toBe(15000);
+    expect(breakdown!.savedAmountMinor).toBe(0);
   });
 });
 

@@ -8,14 +8,17 @@
 // than forwarding it — a defensive mirror, not a replacement for the
 // server-side check.
 //
-// `location_selected`, `home_viewed`, `restaurant_opened` (#82) and now
-// `cart_viewed`, `checkout_viewed`, `order_placed` (#94) below are on the
-// merged §7 contract. `tracker_viewed` and `order_abandoned` are left in
-// their pre-#81 shape for #83 to bring forward (#83 also owns retiring
-// `order_abandoned` outright) — a call using the old shape is simply dropped
-// by `isValidEventProps` below rather than reaching the sender.
+// `location_selected`, `home_viewed`, `restaurant_opened` (#82),
+// `cart_viewed`, `checkout_viewed`, `order_placed` (#94), and now
+// `flash_sheet_shown`/`flash_sheet_closed` and `order_placed`'s real voucher
+// fields (#89) are on the merged §7 contract. `tracker_viewed` and
+// `order_abandoned` are left in their pre-#81 shape for #83 to bring forward
+// (#83 also owns retiring `order_abandoned` outright) — a call using the old
+// shape is simply dropped by `isValidEventProps` below rather than reaching
+// the sender.
 
 import { CITIES } from './money';
+import { VOUCHER_IDS as CATALOGUE_VOUCHER_IDS } from './vouchers';
 
 export type EventName =
   | 'location_selected'
@@ -23,6 +26,8 @@ export type EventName =
   | 'restaurant_opened'
   | 'cart_viewed'
   | 'checkout_viewed'
+  | 'flash_sheet_shown'
+  | 'flash_sheet_closed'
   | 'order_placed'
   | 'tracker_viewed'
   | 'order_abandoned';
@@ -37,24 +42,10 @@ export type DropOffPreset = (typeof DROP_OFF_PRESETS)[number];
 export const DELIVERY_INSTRUCTIONS = ['leave_at_door', 'hand_to_me', 'meet_downstairs', 'call_on_arrival'] as const;
 export type DeliveryInstructions = (typeof DELIVERY_INSTRUCTIONS)[number];
 
-/**
- * The ten fixed catalogue voucher ids §7's `order_placed` row names —
- * #87/#89's to define and apply; this child only ever sends `[]`, but the
- * shape mirror validates the full set so a non-empty array #89 sends later
- * doesn't need this file touched again.
- */
-export const VOUCHER_IDS = [
-  'hcmc-delivery-entry',
-  'hcmc-discount-t1',
-  'hcmc-discount-t2',
-  'hcmc-discount-t3',
-  'hcmc-flash',
-  'sf-delivery-entry',
-  'sf-discount-t1',
-  'sf-discount-t2',
-  'sf-discount-t3',
-  'sf-flash',
-] as const;
+/** The ten fixed catalogue voucher ids §7's `order_placed` row names, and `flash_sheet_shown`/`flash_sheet_closed`'s own `restaurant_slugs` draw from — vouchers.ts (#87's catalogue) is the single source, re-exported here so this shape mirror doesn't drift from it. */
+export const VOUCHER_IDS = CATALOGUE_VOUCHER_IDS;
+
+const FLASH_OUTCOMES = ['restaurant_tapped', 'dismissed', 'expired'] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -91,6 +82,22 @@ function isValidVoucherIds(value: unknown): value is string[] {
   if (!Array.isArray(value) || value.length > 2) return false;
   if (!value.every((id) => isOneOf(id, VOUCHER_IDS))) return false;
   return new Set(value).size === value.length;
+}
+
+/** `restaurant_slugs`: exactly 2 valid slugs (contract §7, `flash_sheet_shown`). */
+function isValidRestaurantSlugs(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every((slug) => typeof slug === 'string' && slug.length >= 1 && slug.length <= 60 && SLUG_RE.test(slug))
+  );
+}
+
+/** `flash_sheet_shown.amount_minor`: bounded to the city's own drawn range (contract §7), not the general per-currency bound. */
+function isFlashAmountInRange(value: unknown, currency: unknown): boolean {
+  if (currency === 'USD') return isIntInRange(value, 200, 600);
+  if (currency === 'VND') return isIntInRange(value, 10000, 30000);
+  return false;
 }
 
 /**
@@ -132,6 +139,28 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
         isOneOf(props.currency, ['USD', 'VND']) &&
         isIntInRange(props.item_count, 1, 999) &&
         isAmountMinorInBounds(props.amount_minor, props.currency, false)
+      );
+    case 'flash_sheet_shown':
+      return (
+        hasOnly(['city', 'amount_minor', 'currency', 'restaurant_slugs']) &&
+        isOneOf(props.city, CITIES) &&
+        isOneOf(props.currency, ['USD', 'VND']) &&
+        isFlashAmountInRange(props.amount_minor, props.currency) &&
+        isValidRestaurantSlugs(props.restaurant_slugs)
+      );
+    case 'flash_sheet_closed':
+      return (
+        hasOnly(['city', 'outcome', 'seconds_remaining', 'restaurant_slug']) &&
+        isOneOf(props.city, CITIES) &&
+        isOneOf(props.outcome, FLASH_OUTCOMES) &&
+        isIntInRange(props.seconds_remaining, 0, 900) &&
+        typeof props.restaurant_slug === 'string' &&
+        (props.outcome === 'restaurant_tapped'
+          ? props.restaurant_slug !== 'none' &&
+            SLUG_RE.test(props.restaurant_slug) &&
+            props.restaurant_slug.length >= 1 &&
+            props.restaurant_slug.length <= 60
+          : props.restaurant_slug === 'none')
       );
     case 'order_placed':
       return (

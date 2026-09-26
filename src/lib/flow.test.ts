@@ -13,6 +13,7 @@ import { initHomePage } from './home-dom';
 import { initMenuPage } from './menu-dom';
 import { initCartPage } from './cart-dom';
 import { initCheckoutPage } from './checkout-dom';
+import { initOffersPage } from './offers-dom';
 import { initOrderPlacedPage } from './order-placed-dom';
 import { initTrackerPage } from './tracker-dom';
 import { restaurantsForCity } from './restaurants';
@@ -20,6 +21,7 @@ import { resetTrack, setTrack } from './tracking';
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -133,5 +135,39 @@ describe('home → restaurant → items → cart → checkout → order-placed �
     expect(secondCheckoutRoot.querySelector('[data-testid="checkout-empty"]')).not.toBeNull();
     expect(secondCheckoutRoot.querySelector('[data-testid="place-order"]')).toBeNull();
     expect(events.filter(([name]) => name === 'order_placed')).toHaveLength(1);
+  });
+});
+
+describe('the promo mechanic completes with no error when Supabase is not configured (AC6)', () => {
+  it('walks home → offers → checkout → place order with track left at its no-op default — the same state initTracking() leaves it in when PUBLIC_SUPABASE_URL/PUBLIC_SUPABASE_PUBLISHABLE_KEY are unset', () => {
+    // Deliberately no setTrack() call anywhere in this test: `track` stays
+    // the no-op tracking.ts ships by default, mirroring initTracking()'s own
+    // early return when the env vars are absent (tracking-transport.ts).
+    resetTrack();
+    expect(() => {
+      const homeRoot = root();
+      initHomePage(homeRoot, window.localStorage, window.sessionStorage);
+      homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
+      // The flash sheet opens on this first load; dismiss it via the scrim so the feed underneath is reachable.
+      homeRoot.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click();
+
+      const restaurant = restaurantsForCity('hcmc')[0];
+      const item = restaurant.menu[0].items[0];
+      const menuRoot = root();
+      initMenuPage(menuRoot, restaurant, window.localStorage);
+      menuRoot.querySelector<HTMLButtonElement>(`[data-testid="add-${item.id}"]`)?.click();
+
+      const offersRoot = root();
+      initOffersPage(offersRoot, window.localStorage, window.sessionStorage, vi.fn());
+      offersRoot.querySelector<HTMLInputElement>('input[type="checkbox"]:not([disabled])')?.click();
+
+      const checkoutRoot = root();
+      initCheckoutPage(checkoutRoot, window.localStorage, vi.fn(), window.sessionStorage);
+      checkoutRoot.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    }).not.toThrow();
+
+    // No error surfaces to the visitor: the order still completes and the cart still clears.
+    expect(window.localStorage.getItem('parody.order')).not.toBeNull();
+    expect(JSON.parse(window.localStorage.getItem('parody.cart') ?? '[]')).toEqual([]);
   });
 });

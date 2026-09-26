@@ -57,14 +57,24 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     expect(stub).toHaveBeenCalledWith('checkout_viewed', { item_count: 1, amount_minor: 2150, currency: 'USD' });
   });
 
-  it('renders the subtotal, delivery fee, service fee and total as separate lines summing correctly (AC1)', () => {
+  it('renders the subtotal and service fee as separate lines, and the delivery/discount/total figures from #87\'s worked example (AC1, AC3 — this cart auto-qualifies for sf-discount-t1 and the delivery voucher)', () => {
     const el = root();
     initCheckoutPage(el, window.localStorage, vi.fn());
 
     expect(el.querySelector('[data-testid="breakdown-subtotal"]')?.textContent).toContain('$21.50');
     expect(el.querySelector('[data-testid="breakdown-delivery-fee"]')?.textContent).toContain('$2.99');
+    expect(el.querySelector('[data-testid="breakdown-delivery-fee"]')?.textContent).toContain('Free');
     expect(el.querySelector('[data-testid="breakdown-service-fee"]')?.textContent).toContain('$1.50');
-    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$25.99');
+    expect(el.querySelector('[data-testid="breakdown-discount"]')?.textContent).toContain('$2.00');
+    expect(el.querySelector('[data-testid="breakdown-saved"]')?.textContent).toContain('$4.99');
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
+  });
+
+  it('the Offers row names the applied count and "You saved" total', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+    expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('2 applied');
+    expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('$4.99');
   });
 
   it('renders the demo disclosure directly above "Place order" (AC1)', () => {
@@ -117,7 +127,7 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     );
   });
 
-  it('placing an order writes the stored order, clears the cart, and fires exactly one order_placed with exactly the no-voucher shape (AC3)', () => {
+  it('placing an order writes the stored order, clears the cart, and fires exactly one order_placed carrying this cart’s auto-applied vouchers (AC3, AC6)', () => {
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
@@ -137,8 +147,8 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
       drop_off_preset: 'home',
       delivery_instructions: 'leave_at_door',
       utensils: true,
-      applied_voucher_ids: [],
-      saved_amount_minor: 0,
+      applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
+      saved_amount_minor: 499,
     });
     expect(getCart(window.localStorage)).toEqual([]);
     expect(getOrder(window.localStorage)).not.toBeNull();
@@ -181,5 +191,24 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
 
     const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
     expect(props.drop_off_preset).toBe('office');
+  });
+});
+
+describe('initCheckoutPage — a cart too small to qualify for any voucher (AC1, AC3)', () => {
+  it('shows no Discount/"You saved" line, "Offers › Select an offer", and fires order_placed with the empty-voucher shape', () => {
+    addToCart(window.localStorage, { ...LINE, amountMinor: 500 }); // below every SF voucher's own minimum spend
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="breakdown-discount"]')).toBeNull();
+    expect(el.querySelector('[data-testid="breakdown-saved"]')).toBeNull();
+    expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('Select an offer');
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
+    expect(props.applied_voucher_ids).toEqual([]);
+    expect(props.saved_amount_minor).toBe(0);
   });
 });

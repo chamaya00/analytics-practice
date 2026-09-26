@@ -6,6 +6,7 @@ import { resetTrack, setTrack } from './tracking';
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -41,7 +42,10 @@ describe('initHomePage — no persisted city (AC1)', () => {
     el.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
 
     expect(getStoredCity(window.localStorage)).toBe('sf');
-    expect(events).toEqual([
+    // The first load also draws and shows this session's flash deal (#89) — its own event/props are covered
+    // in home-dom's flash-deal tests below; this test's own concern is the location/home_viewed sequence.
+    const nonFlashEvents = events.filter(([name]) => name !== 'flash_sheet_shown');
+    expect(nonFlashEvents).toEqual([
       ['location_selected', { city: 'sf', is_switch: false }],
       ['home_viewed', { city: 'sf' }],
     ]);
@@ -126,5 +130,59 @@ describe('home feed contents (AC2)', () => {
 
     expect(el.querySelector('[data-testid="home-empty"]')?.textContent).toContain('Ho Chi Minh City');
     expect(el.querySelector('[data-testid="restaurant-list"]')?.hasAttribute('hidden')).toBe(true);
+  });
+});
+
+describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
+  it('the first load this session draws, stores under flashDeal:<city>, and fires flash_sheet_shown once', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const stub = vi.fn();
+    setTrack(stub);
+
+    initHomePage(root(), window.localStorage, window.sessionStorage);
+
+    const shown = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown');
+    expect(shown).toHaveLength(1);
+    expect(shown[0][1].city).toBe('sf');
+    expect(window.sessionStorage.getItem('flashDeal:sf')).not.toBeNull();
+  });
+
+  it('the sheet is present in the DOM on first load', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, window.localStorage, window.sessionStorage);
+    expect(el.querySelector('[data-testid="flash-sheet"]')).not.toBeNull();
+  });
+
+  it('reloading the feed in the same session does not redraw or reopen the sheet', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const stub = vi.fn();
+    setTrack(stub);
+
+    initHomePage(root(), window.localStorage, window.sessionStorage);
+    const firstDraw = window.sessionStorage.getItem('flashDeal:sf');
+
+    const second = root();
+    initHomePage(second, window.localStorage, window.sessionStorage);
+
+    expect(window.sessionStorage.getItem('flashDeal:sf')).toBe(firstDraw);
+    expect(second.querySelector('[data-testid="flash-sheet"]')).toBeNull();
+    expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown')).toHaveLength(1);
+  });
+
+  it('the first visit to the other city this session makes its own independent draw and shows its own sheet', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+
+    initHomePage(el, window.localStorage, window.sessionStorage);
+    el.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
+    el.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
+
+    const shown = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown');
+    expect(shown).toHaveLength(2);
+    expect(shown[1][1].city).toBe('hcmc');
+    expect(window.sessionStorage.getItem('flashDeal:hcmc')).not.toBeNull();
   });
 });
