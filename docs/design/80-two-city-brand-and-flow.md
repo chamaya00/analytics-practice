@@ -786,7 +786,7 @@ first two guesses in that process were wrong in specific, checkable ways.
   one word. Fixed by dropping `display: flex` from `.wordmark`, which needed
   no flex behavior of its own (`.brand-group`, its parent, already supplies
   the flex row that lines it up with the location pill). Second, fixing that
-  exposed a real capacity problem the short "swoop" wordmark had been
+  exposed a real capacity problem the earlier, shorter wordmark had been
   silently absorbing by auto-shrinking: at desktop width, "dontdropthatpromo"
   plus the location pill plus the three nav links no longer fit on one row
   within `main`'s unchanged 26rem cap, and without a working shrink the nav
