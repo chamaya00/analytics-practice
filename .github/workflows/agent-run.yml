@@ -61,8 +61,11 @@ jobs:
     uses: chamaya00/agent-factory/.github/workflows/agent-run.yml@v1.38.0
     with:
       issue-number: ${{ inputs.issue-number || '' }}
-      max-turns: 80
-      timeout-minutes: 30
+      # Raised from 80/30 on objective #79: design runs with rendered mocks
+      # took 139 turns (~19 min) to finish, and a revision round was cut off
+      # at 81. The timeout moves with the cap, or the cap is never reached.
+      max-turns: 160
+      timeout-minutes: 50
     secrets:
       claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       app-id: ${{ secrets.AGENT_APP_ID }}
