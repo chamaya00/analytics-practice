@@ -28,8 +28,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       to check on an order (<code>tracker_viewed</code>).
     </li>
     <li>
-      <strong>The flash-deal sheet that sometimes opens on the home feed</strong> —
-      <code>flash_sheet_shown</code> (which two restaurants and what discount were randomly drawn
+      <strong>The flash-deal sheet that sometimes opens on the home feed</strong> — <code>flash_sheet_shown</code>
+      (which two restaurants and what discount were randomly drawn
       for you this browsing session) and <code>flash_sheet_closed</code> (whether you tapped one of
       the two restaurants, dismissed the sheet, or let its countdown run out). That draw is random,
       done in this browser, and tied to this one session — it isn't a promise the same deal is
@@ -43,9 +43,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       one, and no free-text field anywhere in this app, ever.
     </li>
     <li>
-      <strong>Whether your order actually arrives, and how you rated it</strong> —
-      <code>order_delivered</code>, the first time the tracker computes your order as delivered, and
-      <code>rating_submitted</code>, the star count and any preset tags (never free text) you choose
+      <strong>Whether your order actually arrives, and how you rated it</strong> — <code>order_delivered</code>,
+      the first time the tracker computes your order as delivered, and <code>rating_submitted</code>,
+      the star count and any preset tags (never free text) you choose
       when you submit a rating.
     </li>
   </ul>
@@ -58,8 +58,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <p>
     <strong>One more thing, in the interest of actually being honest about it:</strong> to stop spam
     from overwhelming this free database, every write is checked against a short-term limit keyed to
-    a scrambled (one-way hashed) version of your IP address. That scrambled value is kept for
-    <strong>up to one hour</strong>, only to enforce that limit, and it never appears next to anything
+    a scrambled (one-way hashed) version of your IP address. That scrambled value is kept for <strong>up to one hour</strong>,
+    only to enforce that limit, and it never appears next to anything
     you did here — it isn't stored in the same place as the events above and can't be joined back to
     them. We're naming it here because it's still something your visit causes this site to process,
     even though it never becomes part of the dataset you can query.

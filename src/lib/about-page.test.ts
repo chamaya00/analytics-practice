@@ -109,4 +109,17 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
       );
     }
   });
+
+  // Astro's HTML compression drops the line break between a text node and an
+  // inline element starting the next source line in the .astro source, so a
+  // wrapped line reading "...and\n<code>rating_submitted</code>" rendered as
+  // the glued "...andrating_submitted" (review round 1). These assert on the
+  // built text, not the source, so a re-wrapped line can't glue words again.
+  it('keeps a space between prose and the inline elements that follow it', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain('the home feed — flash_sheet_shown');
+    expect(text).toContain('how you rated it — order_delivered');
+    expect(text).toContain('as delivered, and rating_submitted');
+    expect(text).toContain('is kept for up to one hour');
+  });
 });
