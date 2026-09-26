@@ -26,6 +26,12 @@ const { title } = Astro.props;
   </body>
 </html>
 
+<script>
+  import { initTracking } from '../lib/tracking-transport';
+
+  initTracking();
+</script>
+
 <style is:global>
   /* Sitewide per docs/design/65-parody-flow.md's "Privacy note" section —
      same link text and destination as the checkout page's contextual one,
