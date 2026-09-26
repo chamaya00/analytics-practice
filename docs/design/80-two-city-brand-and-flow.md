@@ -67,12 +67,10 @@ anywhere, ever — the existing hard boundary, unchanged.
 - The elapsed-time thresholds that drive the tracker's five stages (a
   plausible "a few minutes" shape, not a value anyone measured — same caveat
   65 attached to its own stalled-tracker thresholds).
-- The promo mechanic's specific shape (eligibility rules, which codes exist,
-  the celebration treatment) — the parent issue leaves this to the designer
-  by name ("How that works is the designer's to propose, and the owner
-  picks... no arms or exposure event ships"); this is that proposal, not a
-  question for the owner, because item 4 gives the *designer* the pen and
-  reserves only the *A/B test itself* for later.
+- The promo mechanic's specific shape no longer belongs to this document —
+  the owner has since defined its own model directly (an Offers list,
+  stacking, tiers, a voucher catalogue, a flash-deal sheet), and #80 has
+  been narrowed to exclude it. See #87.
 - Money's representation across two currencies is named here as a
   constraint the engineer must solve (see Money, below) but not solved here
   — this role has no write access to `src/lib`, and the parent issue's "For
@@ -142,10 +140,11 @@ being replaced.
   / dropped" drop glyph) — I'm taking the same underlying idea forward again
   rather than re-researching it: a small mark with life-cycle states tied to
   what's actually happening reads better on a tracker than one static glyph.
-  Below, Direction Swoop's mark plays this straight (a paper-plane glyph that
-  visibly launches on order-placed and lands on delivered) while Direction
-  Portside deliberately refuses it (a static pin, because a calm-concierge
-  voice shouldn't be asked to perform) — naming the refusal is the point,
+  Below, the chosen direction's tail glyph plays this straight (present at
+  the wordmark's size everywhere, and the mark that performs at
+  order-placed) while the rejected cobalt alternative deliberately refuses
+  it (a static pin, because a calm-concierge voice shouldn't be asked to
+  perform) — naming the refusal is the point,
   per design-craft: a reference only borrowed from produces pastiche, and a
   reference *available to and refused by* one direction and not the other is
   what actually makes the two directions differ structurally rather than by
@@ -155,14 +154,20 @@ being replaced.
 
 Both stay clear of Grab's name, wordmark, logo shape, and signature green
 (`#00B14F` and its near neighbors) as a primary color, and of every other
-real delivery brand's name/mark I checked color and name against while
+real delivery brand's name/mark checked color and name against while
 choosing these: DoorDash (`#FF3008` red), Deliveroo (`#00CCBC` teal), Swiggy
 (`#FC8019` orange), Zomato (`#E23744` red), foodpanda (`#D6006D` magenta),
 Uber (black/green). Neither direction's primary sits in any of those hues.
 Both catalogues below use invented, generic-sounding restaurant names —
 "believable" per the parent issue, never a real chain's name or mark.
 
-### Direction A: Swoop (recommended)
+**The owner chose Direction A's look for Dontdropthatpromo**
+([decision](https://github.com/chamaya00/analytics-practice/issues/80#issuecomment-5844646088)).
+Direction B stays in this document only as the rejected alternative, kept
+for the record without a name of its own — the name question was answered
+separately and doesn't apply to it.
+
+### Direction A: the chosen look
 
 **Voice:** energetic, deal-hunting, a little breathless about a good price —
 the register of a friend who just found out the thing you both wanted is on
@@ -174,61 +179,60 @@ of the brands checked above use, and one that reads as neither "corporate
 blue" nor "food-adjacent green/red/orange," which is deliberate: this isn't
 trying to look like a delivery app that already exists.
 
-**Wordmark treatment:** lowercase, in the existing `h1` treatment's weight
-(800) but *without* its uppercase transform — "swoop," set in sentence case,
-because the whole point of this direction is friendly urgency, and an
-all-caps wordmark reads as corporate the same way it read as deadpan for The
-Waitlist (65's rejected direction). The second "o" carries a small tail
-curling off its bottom-right, the one mark this direction adds, standing in
-for a logomark — it appears at the wordmark's size everywhere the wordmark
-appears (header, order-placed, tracker) and nowhere smaller, so it's never
-asked to read as an icon at a size it can't survive.
+**Wordmark treatment:** lowercase, weight-split — "dont" set at the existing
+`h1` treatment's weight (800), "dropthatpromo" continuing at a lighter
+weight (500), all one word, no uppercase transform — built and rendered in
+the two home mocks (`80-home-sf.html`, `80-home-hcmc.html`). An all-caps
+wordmark reads as corporate the same way it read as deadpan for The Waitlist
+(65's rejected direction), which is exactly what this direction's energetic
+voice argues against. The final "o" carries a small tail curling off its
+bottom-right, the one mark this direction adds, standing in for a logomark —
+it appears at the wordmark's size everywhere the wordmark appears (header,
+order-placed, tracker) and nowhere smaller, so it's never asked to read as an
+icon at a size it can't survive.
 
-**Structural idea (not just a palette):** the promo mechanic is a visible,
-comparable set of deal chips — the visitor can *see* more than one deal and
-watch the app pick the best one, which is the "gamified deal-hunting" feeling
-Direction A's voice is built around (see Promo mechanic, below).
+**The wordmark's 375px rule:** it breaks only at a word boundary — an
+`<wbr>` sits between "dont", "drop", "that", and "promo" in the markup — and
+never mid-word, which is exactly what the old "DONTDROPTHATP / ROMO" break
+(#77/#78) is not: that break happened because nothing told the browser where
+a break was acceptable. At the widths rendered here it doesn't need to break
+at all; the narrow renders show it complete on one line.
 
-### Direction B: Portside
+**Structural idea (not just a palette):** a visible, comparable-deals
+experience is the "gamified deal-hunting" feeling this voice is built
+around — its shape (the Offers screen, stacking, tiers, the flash-deal
+sheet) is #87's to design, not this document's; what this document fixes is
+the voice and the mark that performs alongside it.
+
+### Direction B: the rejected cobalt alternative (kept for the record)
 
 **Voice:** calm, competent, quietly confident — the register of a good
-concierge, not an excited friend. States the outcome plainly ("Free delivery
-applied") rather than celebrating it. Chosen name plays on both cities
-actually being port cities (San Francisco Bay, the Saigon River) without
-naming either.
+concierge, not an excited friend. States an outcome plainly ("Free delivery
+applied") rather than celebrating it.
 
 **Primary color:** cobalt blue, `#2451B8` (light) / `#7FA6F0` (dark) — again
 clear of every brand checked above (nearest real neighbor is a generic
 "fintech blue," not a delivery brand's).
 
 **Wordmark treatment:** uppercase, tracked (`0.03em`, matching the existing
-`h1` convention exactly, unlike Swoop's deliberate departure from it), no
-glyph tail — a small fixed pin-drop mark sits before it, static throughout
-the flow rather than animating, which is Portside's own deliberate refusal
-(see "Look outside this repository," above): a calm voice doesn't perform a
-mascot moment even at the one beat (order-placed) where Swoop's mark does.
+`h1` convention exactly, unlike the chosen direction's deliberate departure
+from it), no glyph tail — a small fixed pin-drop mark would sit before it,
+static throughout the flow rather than animating, which is this direction's
+own deliberate refusal (see "Look outside this repository," above): a calm
+voice doesn't perform a mascot moment even at the one beat (order-placed)
+where the chosen direction's tail glyph does.
 
-**Structural idea:** the promo mechanic auto-applies the best deal silently
-and states the outcome once, plainly, in the order summary — no chip
-comparison, no "look how many deals you get to pick from." Savings are
-real and stated; the *experience* of claiming them is deliberately
-low-key rather than gamified.
+**Structural idea:** a low-key voice states an outcome once, plainly, in the
+order summary, rather than performing it — the same restraint that keeps
+its mark static.
 
-**Trade-off between them:** Swoop asks more of the visitor's attention (a
-chip group to read, a mark that performs) in exchange for the stronger
-"emotional centrepiece" moment the parent issue's item 4 asks for by name;
-Portside is the safer, calmer product and risks the promo landing as one
-line among several rather than a moment. **Recommending Swoop** for exactly
-that reason — item 4 is the one requirement in this issue that names a
-feeling ("the small hit of excitement... getting a surprisingly good deal"),
-and Swoop's structure is built to produce that feeling on purpose rather than
-hoping a discount line does it unaided. Portside renders on the identical
-flow, fields, and components with its own tokens, mark, and copy swapped in
-if the owner prefers it — nothing about layout or component structure differs
-between them. The mock below builds Swoop.
-
-**The owner's question** is asked as its own issue comment (see the end of
-this document), not decided here.
+**Why the violet direction won:** the parent issue's item 4 names a feeling
+("the small hit of excitement... getting a surprisingly good deal"); the
+chosen direction's structure — a mark that performs, an energetic voice — is
+built to produce that feeling on purpose, where the cobalt alternative's
+calmer register risked the promo landing as one line among several rather
+than a moment. The cobalt tokens and contrast ratios below stay in this
+document as history; nothing here builds them.
 
 ## Neutral tokens (shared shape, direction supplies the hex)
 
@@ -239,7 +243,7 @@ Both directions use the same *roles* — `--color-bg`, `--color-surface`,
 background — see Contrast, below, for why that restriction exists). Light
 and dark values for each direction:
 
-| Token | Swoop light | Swoop dark | Portside light | Portside dark |
+| Token | Chosen light | Chosen dark | Cobalt (rejected) light | Cobalt (rejected) dark |
 |---|---|---|---|---|
 | `--color-bg` | `#FBF7FF` | `#16101F` | `#F5F8FC` | `#0D1420` |
 | `--color-surface` | `#F7F1FF` | `#1E1730` | `#EFF4FA` | `#131C2C` |
@@ -262,45 +266,46 @@ Run with `./scripts/contrast <fg> <bg> 4.5`, both directions, both themes:
 
 | Pair | Ratio | Passes 4.5:1? |
 |---|---|---|
-| Swoop `--color-text` on `--color-bg` | 15.51 | yes |
-| Swoop `--color-text` on `--color-surface` | 14.83 | yes |
-| Swoop `--color-text-muted` on `--color-bg` | 5.62 | yes |
-| Swoop `--color-text-muted` on `--color-surface` | 5.38 | yes |
-| Swoop `--color-accent` (discount color) on `--color-bg` | 5.91 | yes |
-| Swoop `--color-accent` on `--color-surface` | 5.65 | yes |
-| Swoop dark `--color-text` on `--color-bg` | 15.82 | yes |
-| Swoop dark `--color-text` on `--color-surface` | 14.62 | yes |
-| Swoop dark `--color-text-muted` on `--color-bg` | 8.40 | yes |
-| Swoop dark `--color-text-muted` on `--color-surface` | 7.76 | yes |
-| Swoop dark `--color-accent` on `--color-bg` | 8.17 | yes |
-| Swoop dark `--color-accent` on `--color-surface` | 7.55 | yes |
-| Portside `--color-text` on `--color-bg` | 14.69 | yes |
-| Portside `--color-text` on `--color-surface` | 14.15 | yes |
-| Portside `--color-text-muted` on `--color-bg` | 4.77 | yes |
-| Portside `--color-text-muted` on `--color-surface` | 4.59 | yes |
-| Portside `--color-accent` (discount color) on `--color-bg` | 6.70 | yes |
-| Portside `--color-accent` on `--color-surface` | 6.45 | yes |
-| Portside dark `--color-text` on `--color-bg` | 16.26 | yes |
-| Portside dark `--color-text` on `--color-surface` | 15.04 | yes |
-| Portside dark `--color-text-muted` on `--color-bg` | 8.33 | yes |
-| Portside dark `--color-text-muted` on `--color-surface` | 7.71 | yes |
-| Portside dark `--color-accent` on `--color-bg` | 7.57 | yes |
-| Portside dark `--color-accent` on `--color-surface` | 7.00 | yes |
+| Chosen `--color-text` on `--color-bg` | 15.51 | yes |
+| Chosen `--color-text` on `--color-surface` | 14.83 | yes |
+| Chosen `--color-text-muted` on `--color-bg` | 5.62 | yes |
+| Chosen `--color-text-muted` on `--color-surface` | 5.38 | yes |
+| Chosen `--color-accent` (discount color) on `--color-bg` | 5.91 | yes |
+| Chosen `--color-accent` on `--color-surface` | 5.65 | yes |
+| Chosen dark `--color-text` on `--color-bg` | 15.82 | yes |
+| Chosen dark `--color-text` on `--color-surface` | 14.62 | yes |
+| Chosen dark `--color-text-muted` on `--color-bg` | 8.40 | yes |
+| Chosen dark `--color-text-muted` on `--color-surface` | 7.76 | yes |
+| Chosen dark `--color-accent` on `--color-bg` | 8.17 | yes |
+| Chosen dark `--color-accent` on `--color-surface` | 7.55 | yes |
+| Cobalt (rejected) `--color-text` on `--color-bg` | 14.69 | yes |
+| Cobalt (rejected) `--color-text` on `--color-surface` | 14.15 | yes |
+| Cobalt (rejected) `--color-text-muted` on `--color-bg` | 4.77 | yes |
+| Cobalt (rejected) `--color-text-muted` on `--color-surface` | 4.59 | yes |
+| Cobalt (rejected) `--color-accent` (discount color) on `--color-bg` | 6.70 | yes |
+| Cobalt (rejected) `--color-accent` on `--color-surface` | 6.45 | yes |
+| Cobalt (rejected) dark `--color-text` on `--color-bg` | 16.26 | yes |
+| Cobalt (rejected) dark `--color-text` on `--color-surface` | 15.04 | yes |
+| Cobalt (rejected) dark `--color-text-muted` on `--color-bg` | 8.33 | yes |
+| Cobalt (rejected) dark `--color-text-muted` on `--color-surface` | 7.71 | yes |
+| Cobalt (rejected) dark `--color-accent` on `--color-bg` | 7.57 | yes |
+| Cobalt (rejected) dark `--color-accent` on `--color-surface` | 7.00 | yes |
 
 `--color-accent-secondary` is never placed as text or an icon stroke directly
-on `--color-bg`/`--color-surface` — checked and rejected first: Swoop light
-`#FF7A45` on `#FBF7FF` is **2.44**, Portside light `#C08A2E` on `#F5F8FC` is
-**2.85**, both fail outright. It's used exactly one way instead — as a filled
-badge background with dark ink text on top, in both themes:
+on `--color-bg`/`--color-surface` — checked and rejected first: the chosen
+direction's light `#FF7A45` on `#FBF7FF` is **2.44**, the cobalt
+alternative's light `#C08A2E` on `#F5F8FC` is **2.85**, both fail outright.
+It's used exactly one way instead — as a filled badge background with dark
+ink text on top, in both themes:
 
 | Pair (badge fill + text) | Ratio | Passes 4.5:1? |
 |---|---|---|
-| Swoop light: `--color-text` (`#241B33`) on badge fill (`#FF7A45`) | 6.35 | yes |
-| Swoop dark: `--color-bg` (`#16101F`) on badge fill (`#FFA36B`) | 9.49 | yes |
-| Portside light: `--color-text` (`#16233D`) on badge fill (`#C08A2E`) | 5.15 | yes |
-| Portside dark: `--color-bg` (`#0D1420`) on badge fill (`#E0B15C`) | 9.33 | yes |
-| (checked and rejected) white text on Swoop light badge fill | 2.59 | no |
-| (checked and rejected) white text on Portside light badge fill | 3.04 | no |
+| Chosen light: `--color-text` (`#241B33`) on badge fill (`#FF7A45`) | 6.35 | yes |
+| Chosen dark: `--color-bg` (`#16101F`) on badge fill (`#FFA36B`) | 9.49 | yes |
+| Cobalt (rejected) light: `--color-text` (`#16233D`) on badge fill (`#C08A2E`) | 5.15 | yes |
+| Cobalt (rejected) dark: `--color-bg` (`#0D1420`) on badge fill (`#E0B15C`) | 9.33 | yes |
+| (checked and rejected) white text on chosen-direction light badge fill | 2.59 | no |
+| (checked and rejected) white text on cobalt-alternative light badge fill | 3.04 | no |
 
 That last pair is why "dark ink on the fill, never white" is written into the
 component spec below as a rule, not a suggestion: white was the first thing
@@ -356,10 +361,9 @@ outside this repository," above), a row of cuisine shortcut chips specific to
 the current city's catalogue (e.g. SF: "Tacos," "Pizza," "Dim sum," "Bowls";
 HCMC: "Phở," "Bánh mì," "Cơm," "Bún"), then a vertical list of restaurant
 cards: photo, name, star rating, ETA range ("25–35 min"), delivery fee
-("$1.99" / "Free" if a citywide promo currently zeroes it, see Promo
-mechanic), and a deal badge (the `--color-accent-secondary` filled pill,
-e.g. "20% OFF") on any restaurant currently carrying a promo. Tapping a card
-opens its menu (screen 3).
+("$1.99" / "Free" if a citywide deal currently zeroes it — see #87), and a
+deal badge (the `--color-accent-secondary` filled pill, e.g. "Deal") on any
+restaurant currently carrying one. Tapping a card opens its menu (screen 3).
 
 **Empty (search or cuisine filter matches nothing):** the list is replaced
 by one block: "No restaurants match “ramen” in Ho Chi Minh City yet." plus a
@@ -425,14 +429,16 @@ the one every acceptance criterion in this issue asks about most directly.
    arrival").
 2. **Utensils & napkins** — unchanged yes/no toggle, kept for the same
    reason 72 kept it (harmless, ordinary, no identity risk).
-3. **Promo** — see Promo mechanic, below. Not a "code" field any more; a
-   comparison of the deals currently available, one pre-selected.
+3. **Offers** — see #87, below, which owns the Offers screen, vouchers,
+   stacking, tiers, the voucher catalogue, and the flash-deal sheet; no
+   typed code field, whatever #87 specifies as the entry point here.
 4. **Price breakdown**, in order: Subtotal, Delivery fee (struck through and
-   replaced with "Free" if the selected promo zeroes it), Service fee, then
-   — only when a promo is selected — a **Discount** line in
+   replaced with "Free" if an applied offer zeroes it), Service fee, then
+   — only when an offer is applied — one or more **Discount** lines in
    `--color-accent`, bold weight, with a small tag icon (never color alone,
-   per the contrast section's own rule), reading "Discount (SWOOP10) −$4.30"
-   followed immediately by its own bold sub-line "You saved $4.30" (the
+   per the contrast section's own rule), e.g. "Discount −$4.30" (no code
+   name in the line — #87 decides how a voucher's identity, if any, shows
+   here) followed immediately by its own bold sub-line "You saved $4.30" (the
    Voucherify pattern above: state the number, don't make the visitor do the
    subtraction), then **Total**, at the largest weight on the screen next to
    the wordmark.
@@ -446,28 +452,24 @@ breakdown and fields are replaced with one line, "Your cart is empty," and a
 CTA back to the home feed, rather than rendering a $0.00 breakdown that looks
 like a bug.
 
-**Error (a selected promo stops being eligible):** each promo carries a
-plain-language eligibility rule (a minimum subtotal, or "one use per visitor"
-tracked the same way `order-store.ts` already tracks a `visitorId` — no new
-personal data, just a boolean flag next to the existing id). If the visitor
-removes cart items and the selected promo's minimum is no longer met, or the
-promo was already claimed earlier in this browser (checked against the
-existing local storage, no network round-trip), its chip shows a disabled
-visual treatment with one inline reason ("Needs a $15 subtotal — add $3.20
-more" / "Already used on this device"), and selection silently falls back to
-the next-best *eligible* promo, or to no promo if none qualify — checkout
-never becomes unsubmittable because of a promo, which keeps the "reachable in
-one tap" guarantee true even in this state.
+**Error (an applied offer stops being eligible):** #87 owns the Offers
+screen's eligibility rules, its greyed-out/ineligible treatment, and what a
+stacked pair does when one partner drops out — this document only fixes the
+guarantee that has to survive whatever #87 specifies: checkout never becomes
+unsubmittable because an offer stopped qualifying. If the cart changes under
+an applied offer, checkout falls back to no discount, or to whatever
+still-eligible offer #87's rules select, rather than blocking the "Place
+order" CTA.
 
 ### 6. Order placed (`/order-placed`, brief)
 
 Unchanged in shape from 65/72 (a confirmation screen, not a toast, using the
 existing 320ms ease-out-expo entrance, removed under reduced motion) — what
-changes is the mark: Swoop's paper-plane glyph animates from a slightly
-lower/tilted position into level flight (its "launch" state, the direct
-descendant of 72's "caught" beat); Portside's pin mark does not animate here
-at all, per its own deliberate refusal, above. One line summarizing the order
-and a "Track your order" CTA, both unchanged in role from 65.
+changes is the mark: the chosen direction's tail glyph animates a small
+launch beat here (the direct descendant of 72's "caught" beat); the rejected
+cobalt alternative's pin mark would not animate here at all, per its own
+deliberate refusal, above. One line summarizing the order and a "Track your
+order" CTA, both unchanged in role from 65.
 
 ### 7. Tracker (`/tracker`) — now five stages, ending in Delivered
 
@@ -507,46 +509,25 @@ is already handled by `getOrder`'s existing try/catch returning `null`,
 which this document reuses rather than adding a second error path for the
 same failure.
 
-## Promo mechanic (Swoop; Portside's structural difference is named above)
+## Promos: owned by #87
 
-The parent issue's item 4 in one sentence: applying a promo has to *feel*
-better than a plain discount line, without asking for anything real (no
-payment details, no personal data) and without shipping any A/B exposure
-event.
+This document specified a promo mechanic in an earlier revision (a
+pre-applied best-deal chip row). The owner has since defined a different
+model — vouchers picked from an Offers list rather than typed or
+auto-applied, stacking, progressive tiers, a voucher catalogue, and a
+flash-deal bottom sheet on the home feed — and #80 has been narrowed to
+exclude it. **#87 owns the Offers screen, vouchers, stacking, tiers, the
+voucher catalogue, and the flash-deal sheet**, including their happy, empty,
+and error states, and the concrete per-city amounts. Nothing in this
+document should be read as specifying any of that; where the flow above
+touches an offer (checkout's Offers row and price-breakdown discount lines,
+the home feed's deal badge and delivery-fee override), it says only that the
+value comes from #87, not what the value is or how it's chosen.
 
-- Three to four live promos exist per city at a time (content, not code —
-  the analyst/engineer decide the exact enum, same handoff 72 used for its
-  own promo codes). Each has a plain-language label, a value ("20% off,"
-  "$5 off," "Free delivery"), and an eligibility rule (a minimum subtotal,
-  or first-order-only tracked against the existing `visitorId`).
-- On the home feed, any restaurant a live promo applies to carries the deal
-  badge named in screen 2 — a visitor sees the deal before they've decided
-  what to order, which is the "regularly lands better-than-expected deals"
-  feeling item 4 asks for, rather than a promo that only appears once you've
-  already committed to checkout.
-- At checkout, the **best eligible promo for the current cart is
-  pre-selected automatically** — zero required taps to get the discount, the
-  same "reachable in one tap" guarantee every other field on this screen
-  already keeps. A `PresetChoiceGroup` (existing component, reused) beneath
-  it lists every *other* eligible promo so a visitor can compare and switch,
-  each chip showing its own savings figure computed against the current
-  cart rather than a flat label, so "20% off" and "$5 off" are directly
-  comparable in the same currency.
-- **The celebration moment:** the instant a promo is applied — pre-selected
-  on load, or switched by hand — the discount line and the new total animate
-  in using the existing 320ms ease-out-expo entrance (no new motion system),
-  and the "You saved $X" sub-line briefly increases weight/size for one beat
-  before settling (a named, subtle emphasis — not a confetti burst, which
-  would be a new visual language this site doesn't otherwise have). Removed
-  entirely under `prefers-reduced-motion: reduce`: the discounted total and
-  savings line simply appear in their final state, matching this site's
-  existing reduced-motion rule everywhere else.
-- Nothing here is an experiment: one deterministic "best eligible promo"
-  computation, no assignment to an arm, no exposure event — built so a real
-  A/B test could later replace "the best one" with "the assigned one"
-  without changing any of the surrounding UI, which is the parent issue's
-  explicit ask ("design so one could be added later, but ship no arms or
-  exposure event").
+What stays fixed regardless of #87's design, because the parent issue and
+this issue's own scope fix it: no payment details, no personal data, no A/B
+arm, no exposure event — an offer is content a visitor picks or is offered,
+never something typed as a code.
 
 ## Demo disclosure
 
@@ -652,13 +633,12 @@ location picker (screen 1). Cart badge is unchanged.
   quantity stepper / disabled "Sold out" label. States: available,
   added (stepper), sold-out.
 - **PriceBreakdown** — subtotal, delivery fee (struck through + "Free" when
-  zeroed), service fee, discount line (conditional), total. Used on cart
-  (preview) and checkout (full). Must never show a discount line with no
-  selected promo — that state doesn't exist in this flow.
-- **PromoChipGroup** — built on the existing `PresetChoiceGroup`, one chip
-  per eligible promo plus disabled chips for ineligible ones (with their
-  reason inline, per Checkout's error state), always exactly one selectable
-  chip active or none if no promo qualifies.
+  zeroed), service fee, one or more discount lines (conditional), total.
+  Used on cart (preview) and checkout (full). Must never show a discount
+  line with no applied offer — that state doesn't exist in this flow.
+- **Offers entry point** — checkout's row into the Offers screen; #87
+  specifies the row itself, the screen it opens, and every state either can
+  be in. Not designed here.
 - **DemoDisclosure** — the bordered callout from its own section above.
   Fixed copy, two fixed placements (checkout, tracker-delivered). Never a
   bare link standing in for it.
@@ -672,9 +652,10 @@ location picker (screen 1). Cart badge is unchanged.
 
 ## The mock
 
-Four self-contained files, each hardcoding Direction Swoop's tokens (light
-theme only — dark is a straight token swap, the same convention 65/72 both
-used, not re-proven here) and one city's currency, so the two required
+Four self-contained files, each hardcoding the chosen direction's tokens
+(light theme only — dark is a straight token swap, the same convention
+65/72 both used, not re-proven here) and one city's currency, so the two
+required
 comparisons (SF vs. HCMC, at a screen level) are four separate files rather
 than one file switching state, per this repository's own `docs/memory/
 designer.md` lesson: a rendered screenshot is viewport-sized, not full-page,
@@ -707,10 +688,10 @@ first two guesses in that process were wrong in specific, checkable ways.
   re-render on both cities.
 - **Round 1 finding: the promo comparison chips were unreadable.** The spec
   calls for each chip to show its label and its savings figure; the first
-  render put both in one flex row with no line break, so "SWOOP20 — 20%
-  offBest deal" ran together as one string. Fixed by making each promo chip
-  its own flex column (label line, then a bold sub-line) — confirmed
-  legible at both widths in the re-render, both cities.
+  render put both in one flex row with no line break, so the code name and
+  "20% off Best deal" ran together as one string. Fixed by making each
+  promo chip its own flex column (label line, then a bold sub-line) —
+  confirmed legible at both widths in the re-render, both cities.
 - **Round 1 finding: the demo-disclosure icon rendered as an empty glyph box**
   in the headless render (`ⓘ`, U+24D8, isn't covered by the environment's
   default font) — a real finding a text-only read of the markup would never
@@ -752,18 +733,19 @@ first two guesses in that process were wrong in specific, checkable ways.
   fixed by moving the hide rule after the base rule it overrides, and
   confirmed in the re-render that wide shows the top nav only and narrow
   shows the tab bar only, on both home feed files.
-- **Round 3, the corrected reading — checkout, wide, both cities:** the eye
-  lands on "CHECKOUT" first (the largest, boldest thing on the page, as it
-  should), then on the filled violet "SWOOP20 — Best deal" chip as the first
-  solid block of color the eye crosses scanning down, then on the bold
-  violet discount/total figures at the bottom. This is a *correction* to an
-  earlier draft of this section, which claimed the promo group was
-  "structurally the second thing seen" — it isn't; three preset-choice
-  sections (drop-off, instructions, utensils) sit above it. What survives
-  the correction is the actual point: the promo is still the first and only
-  *colored* thing the eye crosses before the total, which is what Direction
-  Swoop's "structural idea" argued for, and that part held up under
-  re-reading the picture rather than the earlier assumption.
+- **Round 3, the corrected reading — checkout, wide, both cities (as it stood
+  before this revision's rename and restyle):** the eye landed on the page
+  title first (the largest, boldest thing on the page, as it should), then
+  on the filled violet best-deal chip as the first solid block of color the
+  eye crossed scanning down, then on the bold violet discount/total figures
+  at the bottom. This is a *correction* to an earlier draft of this section,
+  which claimed the promo group was "structurally the second thing seen" —
+  it isn't; three preset-choice sections (drop-off, instructions, utensils)
+  sit above it. What survives the correction is the actual point: the promo
+  is still the first and only *colored* thing the eye crosses before the
+  total, which is what the chosen direction's "structural idea" argued for,
+  and that part held up under re-reading the picture rather than the earlier
+  assumption.
 - **Checkout, narrow, both cities (final):** drop-off, delivery instructions,
   utensils, all three promo chips with the ineligible one's reason text,
   the full price breakdown including "You saved $X.XX" / "Bạn đã tiết kiệm
@@ -794,14 +776,18 @@ first two guesses in that process were wrong in specific, checkable ways.
   search as the only filter — a real regression against "in the register of
   Grab," which has both.
 
-## The owner's question
+## The owner's question — answered
 
-Posted as its own issue comment (not decided in this document): which brand
-direction — Swoop or Portside — the site takes. Recommendation: Swoop, for
-the reason given above (item 4's "emotional centrepiece" is a feeling, and
-Swoop's structure is built to produce it rather than hope a discount line
-does). Proceeding under Swoop for the mock and for every following child
-issue unless the owner answers otherwise.
+Posted as its own issue comment, this document asked which brand direction
+the site takes, recommending the direction that shipped as Dontdropthatpromo
+today. **The owner answered**: Direction A's look for Dontdropthatpromo —
+violet, the lowercase weight-split wordmark, the energetic voice
+([decision](https://github.com/chamaya00/analytics-practice/issues/80#issuecomment-5844646088)).
+The name itself was never actually open — it was decided separately and
+earlier
+([decision](https://github.com/chamaya00/analytics-practice/issues/80#issuecomment-5844583780))
+— so what this question actually resolved was the *look* alone. The cobalt
+alternative above is kept only as the rejected direction, for the record.
 
 ## No ADR
 
