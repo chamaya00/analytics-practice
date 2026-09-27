@@ -22,9 +22,17 @@
 //     photographer profile and photo page links, and the licence, which is
 //     what docs/design/80-photo-credits.md is written from
 //
-// Only two hosts are ever contacted: unsplash.com (search and photo lookup)
-// and images.unsplash.com (the file). The site itself never hotlinks either;
-// what ships is the committed file.
+// Only two hosts are ever contacted: api.unsplash.com (search, photo lookup
+// and the download ping Unsplash's API terms require) and images.unsplash.com
+// (the file). The site itself never hotlinks either; what ships is the
+// committed file.
+//
+// It needs UNSPLASH_ACCESS_KEY, an Unsplash developer app's access key, held
+// as a repository secret. The keyless unsplash.com/napi endpoint this first
+// used answers 401 to GitHub's runners (#106's first run). A new app is in
+// "demo" mode, capped at 50 requests an hour, so a large manifest lands over
+// several runs: the script stops cleanly when the hour's budget is spent,
+// commits what it got, and the next run picks up only the missing slots.
 
 /* global process, console, fetch, Buffer, URL -- a Node script; the repo's lint config declares no Node globals. */
 
@@ -34,7 +42,7 @@ import { dirname } from 'node:path';
 export const MANIFEST = 'docs/design/photos.json';
 export const LOCK = 'docs/design/photos.lock.json';
 export const MAX_BYTES = 180_000;
-const API = 'https://unsplash.com/napi';
+const API = 'https://api.unsplash.com';
 const LICENCE = 'Unsplash License (https://unsplash.com/license)';
 
 /** Returns a list of problems with one manifest entry; empty means usable. */
@@ -85,24 +93,48 @@ export function entriesToFetch(entries, lock, fileExists) {
   });
 }
 
+/** Thrown when the hour's request budget is spent, so the run stops rather than failing every slot left. */
+export class RateLimited extends Error {}
+
+/** True when a response's rate-limit header says no requests are left this hour. */
+export function budgetSpent(headers) {
+  const remaining = headers.get('x-ratelimit-remaining');
+  return remaining !== null && Number(remaining) <= 0;
+}
+
+let accessKey = '';
+
 async function getJson(url) {
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json', 'Accept-Version': 'v1', Authorization: `Client-ID ${accessKey}` },
+  });
+  if (response.status === 403 && budgetSpent(response.headers)) throw new RateLimited('hourly request budget spent');
   if (!response.ok) throw new Error(`${url} answered ${response.status}`);
-  return response.json();
+  const body = await response.json();
+  return { body, spent: budgetSpent(response.headers) };
 }
 
 async function resolvePhoto(entry, usedIds) {
   if (entry.photo) return getJson(`${API}/photos/${entry.photo}`);
   const orientation = entry.width >= entry.height * 1.2 ? 'landscape' : 'squarish';
-  const search = await getJson(
+  const { body, spent } = await getJson(
     `${API}/search/photos?query=${encodeURIComponent(entry.query)}&per_page=20&orientation=${orientation}`,
   );
-  const picked = pickResult(search.results ?? [], usedIds);
+  const picked = pickResult(body.results ?? [], usedIds);
   if (!picked) throw new Error(`no unused result for "${entry.query}"`);
-  return picked;
+  return { body: picked, spent };
+}
+
+/** Unsplash's API terms ask for a ping to the photo's download_location on every download. */
+async function pingDownload(photo) {
+  const location = photo.links?.download_location;
+  if (!location || new URL(location).hostname !== 'api.unsplash.com') return false;
+  const { spent } = await getJson(location);
+  return spent;
 }
 
 async function main() {
+  accessKey = process.env.UNSPLASH_ACCESS_KEY ?? '';
   const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
   const entries = manifest.photos ?? [];
   const lock = existsSync(LOCK) ? JSON.parse(readFileSync(LOCK, 'utf8')) : {};
@@ -119,12 +151,18 @@ async function main() {
   const usedIds = new Set(Object.values(lock).map((record) => record.id));
   const todo = entriesToFetch(entries, lock, existsSync);
   console.log(`fetch-photos: ${todo.length} of ${entries.length} slot(s) to fetch`);
+  if (todo.length && !accessKey) {
+    console.error('fetch-photos: UNSPLASH_ACCESS_KEY is not set - add it as a repository secret (see the header of this file).');
+    process.exit(1);
+  }
 
   const failures = [];
-  for (const entry of todo) {
+  let deferred = 0;
+  for (const [i, entry] of todo.entries()) {
+    let fetched = false;
     try {
       if (lock[entry.path]) usedIds.delete(lock[entry.path].id);
-      const photo = await resolvePhoto(entry, usedIds);
+      const { body: photo, spent: searchSpent } = await resolvePhoto(entry, usedIds);
       const response = await fetch(downloadUrl(photo.urls.raw, entry.width, entry.height));
       if (!response.ok) throw new Error(`image download answered ${response.status}`);
       const bytes = Buffer.from(await response.arrayBuffer());
@@ -132,6 +170,7 @@ async function main() {
       mkdirSync(dirname(entry.path), { recursive: true });
       writeFileSync(entry.path, bytes);
       usedIds.add(photo.id);
+      fetched = true;
       lock[entry.path] = {
         id: photo.id,
         query: entry.query,
@@ -142,7 +181,18 @@ async function main() {
         bytes: bytes.length,
       };
       console.log(`  ${entry.path} <- ${photo.id} by ${lock[entry.path].photographer} (${bytes.length} bytes)`);
+      const pingSpent = await pingDownload(photo).catch((error) => {
+        if (error instanceof RateLimited) return true;
+        console.warn(`  (download ping for ${photo.id} failed: ${error.message})`);
+        return false;
+      });
+      if (searchSpent || pingSpent) throw new RateLimited('hourly request budget spent');
     } catch (error) {
+      if (error instanceof RateLimited) {
+        deferred = todo.length - i - (fetched ? 1 : 0);
+        console.warn(`fetch-photos: ${error.message}; ${deferred} slot(s) left for the next run.`);
+        break;
+      }
       failures.push(`${entry.path}: ${error.message}`);
     }
   }
@@ -151,8 +201,11 @@ async function main() {
   writeFileSync(LOCK, `${JSON.stringify(sorted, null, 2)}\n`);
   if (failures.length) {
     console.error(`fetch-photos: ${failures.length} slot(s) failed:\n  ${failures.join('\n  ')}`);
-    process.exit(1);
   }
+  if (deferred) {
+    console.error(`fetch-photos: ${deferred} slot(s) not fetched yet - re-run this job after the hour resets.`);
+  }
+  if (failures.length || deferred) process.exit(1);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
