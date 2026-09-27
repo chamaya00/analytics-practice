@@ -1,0 +1,195 @@
+<!doctype html>
+<!--
+  Checkout, state 'returned from sign-in (signed in, total recomputed)' — Ho Chi Minh City, dark theme.
+  Mock for docs/design/143-wallet.md. Self-contained, no build step, nothing
+  imports it; a drawing made of markup, never shipped. Theme is hard-coded
+  (dark) rather than read from prefers-color-scheme, because design-render
+  does not emulate it (this repository's convention since #46).
+  The Google "G" and the Apple logo below are drawn approximations for the
+  picture only - the build uses each provider's own downloaded artwork.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Checkout — returned from sign-in (signed in, total recomputed) — Ho Chi Minh City, dark</title>
+<style>
+  :root {
+    --c-bg: #16101f;
+    --c-surface: #1e1730;
+    --c-text: #f1e9ff;
+    --c-muted: #b7a6d9;
+    --c-border: #3a2e52;
+    --c-accent: #b79cff;
+    --c-on-accent: #16101f;
+    --c-scrim: rgba(0, 0, 0, 0.6);
+    --c-shadow: rgba(0, 0, 0, 0.5);
+    --c-g-fill: #131314;
+    --c-g-stroke: #8e918f;
+    --c-g-text: #e3e3e3;
+    --c-a-fill: #ffffff;
+    --c-a-text: #000000;
+    --c-a-stroke: #ffffff;
+  }
+
+  * , *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+         font-size: 0.9375rem; line-height: 1.4; color: var(--c-text); background: var(--c-bg); }
+  main { max-width: 26rem; margin: 0 auto; padding: 0.5rem 1.25rem 6rem; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---- #137's header row, unchanged; only .balance-slot's contents are this issue's ---- */
+  .site-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.25rem;
+                 padding-bottom: 0.5rem; border-bottom: 1px solid var(--c-border); min-height: 48px; }
+  .wordmark { justify-self: start; margin: 0; font-size: 0.9375rem; font-weight: 500; }
+  .wordmark b { font-weight: 800; }
+  .wordmark .tail { position: relative; }
+  .wordmark .tail::after { content: ''; position: absolute; right: -3px; bottom: -2px; width: 6px; height: 6px;
+     border-bottom: 2px solid var(--c-accent); border-right: 2px solid var(--c-accent); border-radius: 0 0 6px 0; }
+  .location-bar { display: inline-flex; align-items: center; justify-self: center; white-space: nowrap;
+     font-size: 0.75rem; font-weight: 700; color: var(--c-text); background: var(--c-surface);
+     border: 1px solid var(--c-border); border-radius: 999px; padding: 0.25rem 0.875rem; min-height: 32px; }
+  .balance-slot { justify-self: end; min-height: 32px; min-width: 1px; display: inline-flex; align-items: center; }
+
+  /* ---- the wallet chip: this issue ---- */
+  .wallet-chip { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap;
+     font: inherit; font-size: 0.75rem; font-weight: 700; color: var(--c-text); background: var(--c-surface);
+     border: 1px solid var(--c-border); border-radius: 999px; padding: 0.25rem 0.75rem; min-height: 32px;
+     font-variant-numeric: tabular-nums; position: relative; }
+  .wallet-chip::after { content: ''; position: absolute; inset: -6px -2px; } /* 44px hit area */
+  .wallet-chip.drip { border-color: var(--c-accent); }
+  /* Out of flow on purpose: an inline glyph widened the chip past the ~96px the
+     HCMC row leaves it and collided with the pill (first render). As a corner
+     badge it costs no width, and it sits on the row's outer edge, away from the pill. */
+  .wallet-chip .drip-glyph { position: absolute; top: -5px; right: -3px; width: 14px; height: 14px;
+     border-radius: 999px; box-shadow: 0 0 0 2px var(--c-bg); }
+
+  .home-search { min-height: 44px; margin-top: 0.875rem; padding: 0 0.875rem; display: flex; align-items: center;
+     color: var(--c-muted); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; }
+
+  .spec-label { margin: 1.75rem 0 0.25rem; font-size: 0.625rem; font-weight: 800; letter-spacing: 0.08em;
+     text-transform: uppercase; color: var(--c-muted); }
+  .spec-row { margin-top: 0.875rem; }
+  .spec-row .caption { font-size: 0.75rem; color: var(--c-muted); margin: 0 0 0.25rem; }
+  .spec-row .caption code { font-family: inherit; font-weight: 800; color: var(--c-text); }
+  .spec-row .site-header { border-bottom-style: dashed; }
+
+  /* ---- skeleton feed behind a sheet ---- */
+  .ghost { height: 14px; border-radius: 10px; background: var(--c-surface); border: 1px solid var(--c-border); margin-top: 0.875rem; }
+  .ghost.tall { height: 200px; border-radius: 12px; }
+  .ghost.half { width: 60%; }
+
+  /* ---- sheets (#119's language: handle, 12px top corners, scrim) ---- */
+  .scrim { position: fixed; inset: 0; background: var(--c-scrim); }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-width: 26rem; margin: 0 auto;
+     background: var(--c-bg); border-radius: 12px 12px 0 0; box-shadow: 0 -8px 24px var(--c-shadow);
+     padding: 0 1.25rem 1.25rem; }
+  .handle-strip { position: relative; padding: 0.5rem 0 0.25rem; }
+  .drag-handle { width: 40px; height: 4px; border-radius: 999px; background: var(--c-border); margin: 0 auto; }
+  .sheet-close { position: absolute; top: 0; right: -0.625rem; width: 44px; height: 44px; display: flex;
+     align-items: center; justify-content: center; color: var(--c-muted); background: none; border: 0; }
+  .sheet-close svg { width: 20px; height: 20px; }
+  .sheet h2 { margin: 0.25rem 0 0; font-size: 1rem; font-weight: 800; }
+  .sheet .kicker { margin: 0; font-size: 0.75rem; color: var(--c-muted); }
+
+  .bal-city { margin: 1.25rem 0 0; font-size: 0.75rem; font-weight: 700; color: var(--c-muted); }
+  .bal-big { margin: 0; font-size: 2.5rem; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em;
+     font-variant-numeric: tabular-nums; }
+  .delta { font-size: 0.9375rem; font-weight: 800; letter-spacing: 0; color: var(--c-accent); margin-left: 0.5rem;
+     vertical-align: middle; }
+  .bal-other { display: flex; justify-content: space-between; margin: 0.5rem 0 0; padding-top: 0.5rem;
+     border-top: 1px solid var(--c-border); color: var(--c-muted); }
+  .bal-other b { color: var(--c-text); font-variant-numeric: tabular-nums; }
+  .bal-other .delta { font-size: 0.75rem; }
+
+  .drip-card { margin-top: 1.25rem; padding: 0.875rem; background: var(--c-surface); border: 1px solid var(--c-border);
+     border-radius: 12px; }
+  .eyebrow { margin: 0; font-size: 0.625rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+     color: var(--c-muted); display: flex; align-items: center; gap: 0.25rem; }
+  .eyebrow.live { color: var(--c-accent); }
+  .drip-card .lead { margin: 0.25rem 0 0; font-weight: 700; }
+  .drip-card .next { margin: 0.25rem 0 0; font-size: 1.375rem; font-weight: 800; letter-spacing: -0.01em; }
+  .drip-card .fine { margin: 0.5rem 0 0; font-size: 0.75rem; color: var(--c-muted); }
+  .inline-icon { width: 14px; height: 14px; flex: none; }
+  .btn-primary { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: center;
+     margin-top: 0.875rem; font: inherit; font-weight: 800; color: var(--c-on-accent); background: var(--c-accent);
+     border: 0; border-radius: 12px; }
+  .btn-primary.disabled { color: var(--c-muted); background: var(--c-surface); border: 1px solid var(--c-border); }
+  .account { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1rem;
+     font-size: 0.75rem; color: var(--c-muted); }
+  .text-btn { font: inherit; font-size: 0.875rem; font-weight: 700; color: var(--c-text); background: none; border: 0;
+     text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 0.25rem; white-space: nowrap; }
+
+  /* ---- provider buttons ---- */
+  .provider { display: flex; align-items: center; justify-content: center; width: 100%; height: 40px; margin-top: 0.75rem;
+     border-radius: 999px; font-family: inherit; position: relative; }
+  .provider::after { content: ''; position: absolute; inset: -3px 0; } /* 46px hit area, 40px drawn */
+  .provider.google { background: var(--c-g-fill); color: var(--c-g-text); border: 1px solid var(--c-g-stroke);
+     font-size: 14px; line-height: 20px; font-weight: 500; padding: 0 12px; gap: 10px; }
+  .provider.apple { background: var(--c-a-fill); color: var(--c-a-text); border: 1px solid var(--c-a-stroke);
+     font-size: 17px; font-weight: 500; letter-spacing: -0.01em; gap: 6px; }
+  .g-logo { width: 18px; height: 18px; }
+  .a-logo { width: 15px; height: 18px; margin-top: -3px; }
+
+  /* ---- checkout ---- */
+  .page-title { margin: 1.25rem 0 0.25rem; font-size: 1.375rem; font-weight: 800; }
+  .sub { margin: 0; color: var(--c-muted); }
+  .omitted { margin: 0.875rem 0; padding: 0.5rem 0.875rem; font-size: 0.75rem; color: var(--c-muted);
+     border: 1px dashed var(--c-border); border-radius: 10px; }
+  .rows { border-top: 1px solid var(--c-border); padding-top: 0.5rem; }
+  .row { display: flex; justify-content: space-between; margin: 0.375rem 0; color: var(--c-muted); }
+  .row span:last-child { color: var(--c-text); font-variant-numeric: tabular-nums; }
+  .row s { color: var(--c-muted); margin-right: 0.25rem; }
+  .row.total { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--c-border); color: var(--c-text);
+     font-weight: 800; font-size: 1.0625rem; }
+  .wallet-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.5rem;
+     padding: 0.5rem 0.875rem; font-size: 0.875rem; background: var(--c-surface); border: 1px solid var(--c-border);
+     border-radius: 10px; color: var(--c-muted); }
+  .wallet-row b { color: var(--c-text); font-variant-numeric: tabular-nums; }
+  .notice { display: flex; gap: 0.5rem; margin-top: 0.875rem; padding: 0.625rem 0.875rem; font-size: 0.875rem;
+     border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-surface); }
+  .notice .inline-icon { margin-top: 2px; color: var(--c-muted); }
+  .disclosure { margin-top: 0.875rem; padding: 0.5rem 0.875rem; font-size: 0.8125rem; border: 1px solid var(--c-border);
+     border-radius: 10px; background: var(--c-surface); }
+  .short { margin-top: 0.875rem; padding: 0.875rem; border: 1px solid var(--c-text); border-radius: 12px; }
+  .short .amount { margin: 0; font-size: 1.75rem; line-height: 1.1; font-weight: 800; letter-spacing: -0.02em;
+     font-variant-numeric: tabular-nums; }
+  .short p { margin: 0.25rem 0 0; }
+  .short .muted { color: var(--c-muted); font-size: 0.875rem; }
+  .short .btn-primary { margin-top: 0.625rem; }
+
+  .tabbar { display: none; }
+  @media (max-width: 480px) {
+    .tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-around;
+       padding: 0.375rem 0 0.75rem; background: var(--c-bg); border-top: 1px solid var(--c-border); }
+    .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.75rem; color: var(--c-muted);
+       min-width: 64px; }
+    .tab svg { width: 22px; height: 22px; }
+    .tab.on { color: var(--c-text); font-weight: 800; }
+  }
+
+</style>
+</head>
+<body>
+<main>
+  <h1 class="page-title">Checkout</h1><p class="sub">Your order from Sài Gòn Phở Quán</p>
+  <p class="omitted">Arrival time, drop-off, instructions, utensils and the Offers row: unchanged from today, left out so the part this issue changes fits one phone screen.</p>
+  <div class="rows">
+    <p class="row"><span>Subtotal</span><span>250.000 ₫</span></p>
+    <p class="row"><span>Delivery fee</span><span>15.000 ₫</span></p>
+    <p class="row"><span>Service fee</span><span>20.000 ₫</span></p>
+    <p class="row total"><span>Total</span><span>285.000 ₫</span></p>
+  </div>
+  <div class="notice" role="status"><svg class="inline-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Signed in. Your cart and offers are as you left them.</span></div>
+  <p class="wallet-row"><span>Pays from wallet</span><b>600.000 ₫ → 315.000 ₫</b></p>
+  <p class="disclosure">This is a demo. No payment is taken and no food is sent. <u>What we log, and why →</u></p>
+  <button type="button" class="btn-primary">Place order</button>
+</main>
+<nav class="tabbar" aria-label="Primary">
+  <span class="tab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Home</span>
+  <span class="tab on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7zM9 8V6a3 3 0 016 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Cart</span>
+  <span class="tab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-6.2-6-11a6 6 0 0112 0c0 4.8-6 11-6 11z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Tracker</span>
+</nav>
+
+</body>
+</html>
