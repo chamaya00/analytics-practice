@@ -1,15 +1,20 @@
-// AC3: every image budget and provenance rule, checked against the
-// committed files and the built site directly — not eyeballed.
+// AC3 (#82) / AC4 (#106): every image budget and provenance rule, checked
+// against the committed files and the built site directly — not eyeballed.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { restaurantsForCity } from './restaurants';
+import { MAX_BYTES as FETCH_MAX_BYTES } from '../../scripts/fetch-photos.mjs';
 
 const ROOT = process.cwd();
 const IMAGES_DIR = path.join(ROOT, 'public', 'images');
 const CREDITS_FILE = path.join(ROOT, 'docs', 'design', '80-photo-credits.md');
-const RESTAURANT_THUMBNAIL_MAX_BYTES = 40 * 1024;
+// #82's design budget (40KB) fit a placeholder SVG with room to spare. A
+// real downloaded JPEG only has to clear scripts/fetch-photos.mjs's own
+// per-file refusal — importing that constant keeps the two from drifting
+// apart the way a second hand-typed number would.
+const RESTAURANT_THUMBNAIL_MAX_BYTES = FETCH_MAX_BYTES;
 const HOME_FEED_FIRST_PAINT_MAX_BYTES = 900 * 1024;
 
 function listImageFiles(dir: string): string[] {
@@ -26,7 +31,7 @@ function listImageFiles(dir: string): string[] {
 }
 
 describe('committed placeholder images — weight budget (AC3)', () => {
-  it('every restaurant hero thumbnail is at most 40KB', () => {
+  it('every restaurant hero thumbnail is at most 180KB (fetch-photos.mjs MAX_BYTES)', () => {
     for (const city of ['sf', 'hcmc'] as const) {
       for (const restaurant of restaurantsForCity(city)) {
         const filePath = path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''));
@@ -48,7 +53,7 @@ describe('committed placeholder images — weight budget (AC3)', () => {
   });
 });
 
-describe('photo credits file (AC3)', () => {
+describe('photo credits file (AC3, #82; rewritten from the lock file by #106)', () => {
   it('every committed image under public/images has an entry in the credits file', () => {
     const credits = readFileSync(CREDITS_FILE, 'utf-8');
     const files = listImageFiles(IMAGES_DIR);
@@ -59,10 +64,15 @@ describe('photo credits file (AC3)', () => {
     }
   });
 
-  it('marks every entry as a not-yet-downloaded placeholder (network was refused this run)', () => {
+  it('names a real photographer and licence for every entry — no placeholder left (#106)', () => {
     const credits = readFileSync(CREDITS_FILE, 'utf-8');
-    expect(credits).toContain('Placeholder');
-    expect(credits).not.toMatch(/\| Downloaded \|/);
+    expect(credits).not.toContain('Placeholder — not yet downloaded');
+    expect(credits).not.toContain('.svg');
+    const rows = credits.split('\n').filter((line) => /^\|\s*`public\/images\//.test(line));
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row, row).toContain('Unsplash License');
+    }
   });
 });
 
