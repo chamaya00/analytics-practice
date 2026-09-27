@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
-import { addToCart, getLatestOrder, ORDER_KEY, placeOrder } from './order-store';
+import { addToCart, findOrder, getLatestOrder, ORDER_KEY, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
+import { defaultOpenOrderId } from './tracker-state';
 import { resetTrack, setTrack } from './tracking';
 import { setStoredCity } from './location';
+import { formatReviewCount } from './reviews';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -10,6 +12,27 @@ const LINE = {
   restaurantName: 'One Job Pizza',
   name: 'Margherita, carried flat',
   amountMinor: 1400,
+  currency: 'USD' as const,
+};
+
+// Two more fictional single-item restaurants (same pattern as `LINE` above,
+// deliberately not in restaurants.ts — the tracker degrades to a placeholder
+// thumb either way) so a multi-order test can tell orders apart by name.
+const LINE_B = {
+  itemId: 'second-kitchen-bowl',
+  restaurantSlug: 'second-kitchen',
+  restaurantName: 'Second Kitchen',
+  name: 'Rice bowl',
+  amountMinor: 1600,
+  currency: 'USD' as const,
+};
+
+const LINE_C = {
+  itemId: 'third-table-noodles',
+  restaurantSlug: 'third-table',
+  restaurantName: 'Third Table',
+  name: 'Noodles',
+  amountMinor: 1200,
   currency: 'USD' as const,
 };
 
@@ -27,6 +50,30 @@ function root(): HTMLElement {
   const el = document.createElement('div');
   document.body.appendChild(el);
   return el;
+}
+
+/** Orders its own restaurant's cart (rather than the whole cart, as
+ * `placeAnOrder` above does), so several orders can be placed side by side
+ * without one's `placeOrder` clearing another's still-unordered lines. Same
+ * fixed random source, for the same reason. */
+function placeOrderFor(line: typeof LINE) {
+  addToCart(window.localStorage, line);
+  return placeOrder(
+    window.localStorage,
+    { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+    line.restaurantSlug,
+    () => 0.5,
+  );
+}
+
+/** Overwrites one stored order's fields directly, the same way
+ * `storeLegacyOrder` below seeds a raw shape — used to pin `etaMinutes`/
+ * `deliveryMs` to values a test controls exactly, rather than the range
+ * `estimateEtaMinutes` draws from a visitor/restaurant hash. */
+function patchOrder(orderId: string, patch: Partial<PlacedOrder>): void {
+  const raw = JSON.parse(window.localStorage.getItem(ORDERS_KEY) ?? '[]') as PlacedOrder[];
+  const next = raw.map((order) => (order.orderId === orderId ? { ...order, ...patch } : order));
+  window.localStorage.setItem(ORDERS_KEY, JSON.stringify(next));
 }
 
 /** A fixed random source (`0.5`) makes `deliveryMs` an exact, computable
@@ -358,5 +405,236 @@ describe('initTrackerPage — vehicle icon on the countdown (#130 AC4, AC5)', ()
 
     const icon = el.querySelector('[data-testid="tracker-countdown"] .vehicle-icon');
     expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
+  });
+});
+
+describe('initTrackerPage — several live orders (#148 AC1, AC5)', () => {
+  it('shows both live orders (an open card plus a switcher row), switches which is open on tap, and keeps a delivered order in history', () => {
+    const delivered = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + delivered.deliveryMs + 1000);
+    const orderA = placeOrderFor(LINE_B);
+    const orderB = placeOrderFor(LINE_C);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const openId = defaultOpenOrderId([orderA, orderB], Date.now());
+    const [openLine, rowLine] = openId === orderA.orderId ? [LINE_B, LINE_C] : [LINE_C, LINE_B];
+
+    expect(el.querySelector('[data-testid="tracker-open-card"] .tracker-card-name')?.textContent).toBe(
+      openLine.restaurantName,
+    );
+    const row = el.querySelector('[data-testid="tracker-order-row"]');
+    expect(row?.textContent).toContain(rowLine.restaurantName);
+    expect(el.querySelector('[data-testid="tracker-history"]')?.textContent).toContain(LINE.restaurantName);
+
+    row?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(el.querySelector('[data-testid="tracker-open-card"] .tracker-card-name')?.textContent).toBe(
+      rowLine.restaurantName,
+    );
+    expect(el.querySelector('[data-testid="tracker-order-row"]')?.textContent).toContain(openLine.restaurantName);
+  });
+
+  it('fires tracker_viewed once per load, for the default-open order only — not for the other live order, and not again when a row is switched', () => {
+    const orderA = placeOrderFor(LINE_B);
+    const orderB = placeOrderFor(LINE_C);
+    const stub = vi.fn();
+    setTrack(stub);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const viewedCalls = stub.mock.calls.filter(([name]) => name === 'tracker_viewed');
+    expect(viewedCalls).toHaveLength(1);
+    const expectedOpenId = defaultOpenOrderId([orderA, orderB], Date.now());
+    expect(viewedCalls[0][1]).toMatchObject({ order_id: expectedOpenId });
+
+    el.querySelector<HTMLButtonElement>('[data-testid="tracker-order-row"]')?.click();
+    expect(stub.mock.calls.filter(([name]) => name === 'tracker_viewed')).toHaveLength(1);
+  });
+});
+
+describe('initTrackerPage — driver card (#148 AC2)', () => {
+  it('shows no driver before Picked up, then the stored avatar, name, rating and count from Picked up onward — the same driver on a later reload', () => {
+    const order = placeAnOrder();
+    const before = root();
+    initTrackerPage(before, window.localStorage);
+    expect(before.querySelector('[data-testid="tracker-driver-card"]')).toBeNull();
+    expect(before.textContent).toContain('Finding your driver');
+
+    vi.setSystemTime(Date.now() + Math.ceil(order.deliveryMs * (2 / 7)) + 1000);
+    const after = root();
+    initTrackerPage(after, window.localStorage);
+
+    const card = after.querySelector('[data-testid="tracker-driver-card"]');
+    expect(card?.getAttribute('data-driver-id')).toBe(order.driver.id);
+    expect(after.querySelector('.tracker-driver-name')?.textContent).toBe(order.driver.name);
+    const rating = after.querySelector('[data-testid="tracker-driver-rating"]')?.textContent;
+    expect(rating).toContain(order.driver.rating.toFixed(1));
+    expect(rating).toContain(`(${formatReviewCount(order.driver.ratingCount)})`);
+    const avatar = after.querySelector<HTMLImageElement>('.tracker-driver-avatar');
+    expect(avatar?.getAttribute('src')).toBe(`/avatars/drivers/${order.driver.id}.svg`);
+
+    // Reloading (a fresh mount at the same moment) reads the same stored driver.
+    const reload = root();
+    initTrackerPage(reload, window.localStorage);
+    expect(reload.querySelector('[data-testid="tracker-driver-card"]')?.getAttribute('data-driver-id')).toBe(
+      order.driver.id,
+    );
+  });
+
+  it('an HCMC order viewed with the city picker on SF still shows its own HCMC driver and a motorbike', () => {
+    const HCMC_LINE = {
+      itemId: 'ben-thanh-banh-mi-thit-nuong',
+      restaurantSlug: 'ben-thanh-banh-mi',
+      restaurantName: 'Bến Thành Bánh Mì',
+      name: 'Bánh mì thịt nướng',
+      amountMinor: 35000,
+      currency: 'VND' as const,
+    };
+    setStoredCity(window.localStorage, 'hcmc');
+    addToCart(window.localStorage, HCMC_LINE);
+    const order = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      undefined,
+      () => 0.5,
+    );
+    setStoredCity(window.localStorage, 'sf');
+
+    vi.setSystemTime(Date.now() + Math.ceil(order.deliveryMs * (2 / 7)) + 1000);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    expect(order.driver.id.startsWith('hcmc-driver-')).toBe(true);
+    const card = el.querySelector('[data-testid="tracker-driver-card"]');
+    expect(card?.getAttribute('data-driver-id')).toBe(order.driver.id);
+    expect(el.querySelector('.tracker-driver-name')?.textContent).toBe(order.driver.name);
+    const vehicle = card?.querySelector('.vehicle-icon');
+    expect(vehicle?.getAttribute('data-vehicle')).toBe('motorbike');
+  });
+});
+
+describe('initTrackerPage — history (#148 AC3)', () => {
+  it('lists past orders newest first, each with restaurant, date, item count, stored total, status and driver, and no rating/tip/reorder controls', () => {
+    const older = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + older.deliveryMs + 1000);
+    const newer = placeOrderFor(LINE_B);
+    vi.setSystemTime(Date.now() + newer.deliveryMs + 1000);
+    // A third, still-active order so `older`/`newer` are both in Past orders
+    // rather than one of them being kept as the live fallback.
+    placeOrderFor(LINE_C);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const rows = el.querySelectorAll('[data-testid="tracker-history-row"]');
+    expect(rows).toHaveLength(2);
+
+    const [newerRow, olderRow] = Array.from(rows);
+    expect(newerRow.querySelector('.tracker-history-name')?.textContent).toBe(LINE_B.restaurantName);
+    expect(olderRow.querySelector('.tracker-history-name')?.textContent).toBe(LINE.restaurantName);
+
+    expect(newerRow.querySelector('.tracker-history-meta')?.textContent).toContain('1 item');
+    expect(newerRow.querySelector('[data-testid="tracker-history-total"]')?.textContent).toBe('$16.00');
+    expect(newerRow.textContent).toContain('Delivered');
+    expect(newerRow.querySelector('.tracker-history-by')?.textContent).toContain(newer.driver.name);
+
+    for (const row of [newerRow, olderRow]) {
+      expect(row.querySelector('[data-testid="rating-prompt"]')).toBeNull();
+      expect(row.querySelector('[data-testid="rating-submit"]')).toBeNull();
+      expect(row.querySelector('.star')).toBeNull();
+    }
+  });
+
+  it('a legacy order with no stored total shows its subtotal, labelled "subtotal"', () => {
+    const legacy: PlacedOrder = {
+      orderId: 'legacy-1',
+      placedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      etaMinutes: 20,
+      deliveryMs: 5000,
+      items: [{ ...LINE, quantity: 1 }],
+      itemCount: 1,
+      amountMinor: 1400,
+      totalMinor: null,
+      currency: 'USD',
+      driver: { id: 'sf-driver-01', name: 'Sarah K.', rating: 4.9, ratingCount: 2143 },
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 0,
+      deliveredEventFired: true,
+      rating: null,
+    };
+    window.localStorage.setItem(ORDERS_KEY, JSON.stringify([legacy]));
+    placeAnOrder(); // a live order, so `legacy` lands in Past orders rather than as the live fallback.
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    expect(row?.querySelector('[data-testid="tracker-history-total"]')?.textContent).toContain('$14.00');
+    expect(row?.querySelector('[data-testid="tracker-history-subtotal-label"]')?.textContent).toBe('subtotal');
+  });
+});
+
+describe('initTrackerPage — events with several live orders (#148 AC5)', () => {
+  it('rates the order on screen by its own id, even when a more recently placed order is not the one open', () => {
+    const orderA = placeOrderFor(LINE_B);
+    const orderB = placeOrderFor(LINE_C);
+    // orderA arrives soonest (so it opens by default); orderB, placed after
+    // it, arrives much later — the divergence the driver notes call out
+    // between "the open order" and `getLatestOrder()`.
+    patchOrder(orderA.orderId, { etaMinutes: 10, deliveryMs: 5 * 60_000 });
+    patchOrder(orderB.orderId, { etaMinutes: 60, deliveryMs: 100_000_000 });
+    expect(getLatestOrder(window.localStorage)?.orderId).toBe(orderB.orderId);
+
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    expect(el.querySelector('[data-testid="tracker-open-card"] .tracker-card-name')?.textContent).toBe(
+      LINE_B.restaurantName,
+    );
+
+    // Advance past orderA's own deliveryMs while it's the order being
+    // watched — it stays open, rating prompt included ("Order stack rules").
+    vi.advanceTimersByTime(5 * 60_000 + 2000);
+    expect(el.querySelector('[data-testid="rating-prompt"]')).not.toBeNull();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="star-5"]')?.click();
+    el.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]')?.click();
+
+    expect(stub).toHaveBeenCalledWith('rating_submitted', { order_id: orderA.orderId, stars: 5, tags: [] });
+    expect(findOrder(window.localStorage, orderB.orderId)?.rating).toBeNull();
+  });
+
+  it('fires order_delivered for a live order that is not the one being viewed', () => {
+    const orderA = placeOrderFor(LINE_B);
+    const orderB = placeOrderFor(LINE_C);
+    patchOrder(orderA.orderId, { etaMinutes: 5, deliveryMs: 100_000_000 });
+    patchOrder(orderB.orderId, { etaMinutes: 8, deliveryMs: 5 * 60_000 });
+
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    expect(el.querySelector('[data-testid="tracker-open-card"] .tracker-card-name')?.textContent).toBe(
+      LINE_B.restaurantName,
+    );
+
+    vi.advanceTimersByTime(5 * 60_000 + 2000);
+
+    const delivered = stub.mock.calls.filter(([name]) => name === 'order_delivered');
+    expect(delivered).toHaveLength(1);
+    expect(delivered[0][1]).toMatchObject({ order_id: orderB.orderId });
+    // The open order (orderA) is unaffected; orderB moves to history.
+    expect(el.querySelector('[data-testid="tracker-open-card"] .tracker-card-name')?.textContent).toBe(
+      LINE_B.restaurantName,
+    );
+    expect(el.querySelector('[data-testid="tracker-history"]')?.textContent).toContain(LINE_C.restaurantName);
   });
 });
