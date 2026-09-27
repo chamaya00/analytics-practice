@@ -159,6 +159,21 @@ describe('promo carousel fits at 375px (#137)', () => {
     const pauseRule = css.match(/\.carousel-pause\{[^}]*\}/)?.[0] ?? '';
     expect(pauseRule).toContain('-webkit-tap-highlight-color:transparent');
   });
+
+  // #151: the first-order slide (home-dom.ts) has no caption text, so it
+  // hides .carousel-caption instead of leaving it empty, and grows its
+  // media box by that strip's own 56px so the total slide height (media
+  // plus caption) still matches every other slide's 256px.
+  it('the first-order slide grows its media box by exactly the caption strip\'s own height, so its total height matches every other slide', () => {
+    const rule = css.match(/\.carousel-slide-media--first-order\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('height:256px');
+  });
+
+  it('the caption strip is actually hidden, not just emptied — [hidden] overrides the strip\'s own flex display rule', () => {
+    const rules = css.match(/\.carousel-caption(?:\[[^\]]*\])*\{[^}]*\}/g) ?? [];
+    const hiddenRule = rules.find((rule) => rule.includes('[hidden]') && rule.includes('display:none'));
+    expect(hiddenRule, `expected a .carousel-caption[hidden] rule with display:none among: ${rules.join(' / ')}`).toBeTruthy();
+  });
 });
 
 describe('"Near you" 2-column tile grid fits at 375px (#137)', () => {
@@ -179,6 +194,15 @@ describe('"Near you" 2-column tile grid fits at 375px (#137)', () => {
     expect(rule).not.toContain('-webkit-line-clamp');
     expect(rule).not.toContain('text-overflow');
     expect(rule).not.toContain('white-space:nowrap');
+  });
+
+  // #151: the tile grid's columns are narrower than the full-width rows
+  // #130 fixed this wrap on, so the fee amount and the word "delivery" are
+  // their own non-wrapping unit (home-dom.ts's .tile-card-fee span) rather
+  // than relying on room elsewhere in the line.
+  it('the fee label is a single non-wrapping unit, so "delivery" never wraps onto its own line', () => {
+    const rule = css.match(/\.tile-card-fee\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('white-space:nowrap');
   });
 });
 
