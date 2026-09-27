@@ -185,23 +185,78 @@ unchanged: `PROMO_BANNER_CLAIM` in `home-dom.ts` (`$2 off your first order` /
 
 ## Composition
 
-**Header row.** Wordmark and city pill share one row. `Header.astro` is
-static and site-wide; the pill is client-rendered, home-only. The row
-reserves a fixed-size slot (min-height 32px, matching the pill's own
-`min-height`, width auto) next to the wordmark **only on the home route**;
-`home-dom.ts` fills it once the stored city is known. Every other route's
-header renders with no slot at all — not a collapsed one, an absent one — so
-nothing on `/cart`, `/tracker`, `/about`, or a restaurant page gains empty
-space it didn't have. The reserved slot is what stops the pill "flashing in
-late and shifting the layout" (#133's own trap): the space is already there
-before the client script runs, so filling it is a paint, not a reflow.
+**Header row.** *(Revised 2026-09-27 per the driver's review on #139 — the
+pill's position moved from "next to the wordmark" to centred in the row's
+top middle, and a placeholder for #136's wallet balance now reserves the top
+right. Everything below describes the current, revised composition.)*
+
+Wordmark, city pill, and a wallet-balance placeholder share one row, laid
+out as a three-column grid — `grid-template-columns: 1fr auto 1fr` — rather
+than a two-item flex row: wordmark in the first column (left-aligned, its
+own natural width), the city pill in the middle (`auto`-sized, but
+*centred on the full row*, not merely centred in the space left over after
+the wordmark, which is what the grid's two equal `1fr` side columns buy —
+the middle column stays on the row's true centre line regardless of how the
+wordmark's or the balance placeholder's own widths compare), and the
+balance placeholder in the third column (right-aligned). `Header.astro` is
+static and site-wide; the pill and the placeholder are both client-rendered,
+home-only — the row reserves both slots (min-height 32px, matching each
+element's own `min-height`) **only on the home route**; `home-dom.ts` fills
+the pill once the stored city is known. Every other route's header renders
+with neither slot — not collapsed, absent — so nothing on `/cart`,
+`/tracker`, `/about`, or a restaurant page gains empty space it didn't have.
+The reserved slots are what stop the pill "flashing in late and shifting the
+layout" (#133's own trap): the space is already there before the client
+script runs, so filling it is a paint, not a reflow.
+
+The balance placeholder (`.balance-slot` in the mock) is drawn with a dashed
+border rather than the pill's solid one — this repository's own convention
+for "reference only, not this issue's to build" (the same dashed treatment
+`.slide-ref-card` already uses below) — and its content (`$20.00` /
+`200.000 ₫`, in each city's own currency) is a placeholder value, not real
+wallet data; #136 owns what actually renders there.
+
+**Whether all three fit legibly at 375px:** checked by rendering, not
+assumed. Ho Chi Minh City is this catalogue's longest city name
+(`Ho Chi Minh City ▾`, 19 characters including the caret) and the tightest
+case. At 375px the wordmark's own column has less room than it had when it
+was the row's only other element, and it wraps — "dont" / "drop" / "that" /
+"promo" break across two lines at one of the `<wbr>` word boundaries
+`docs/design/80-two-city-brand-and-flow.md`'s "wordmark's 375px rule"
+already names as the only place it may break (~line 194 of that document:
+"it breaks only at a word boundary"). That rule was written when the
+wordmark had the row to itself and never needed to invoke it; this is the
+first composition that does, and it resolves inside the rule rather than
+outside it — no text shrinks below the existing type scale, and no new
+break point is introduced. Confirmed in all four rendered mocks: the pill
+sits centred on the row in every one, the balance placeholder's right edge
+never touches the pill, and nothing clips or overlaps at 375px. Rendered,
+not estimated — `docs/design/137-home-feed-hcmc-light-narrow.png` is the
+tightest case and the one to check first.
 
 **Promo carousel**, replacing the single `.promo-banner` slot, same position
 in the flow (between search and the cuisine chips):
-- A photo-led slide, full-bleed width, roughly the height of two of today's
-  restaurant rows (~168px — two rows at ~72px photo height plus the gap
-  between them, `--space-md`, 14px, gives 72+14+72=158px; rounded up for the
-  claim strip below it).
+- A photo-led slide, full-bleed width. *(Corrected 2026-09-27 per the
+  driver's review on #139 — the arithmetic below replaces this document's
+  original "two rows at ~72px" derivation, which under-measured.)* The
+  original arithmetic used `.restaurant-card-photo`'s raw 72px height alone
+  as a stand-in for "one row," multiplied by two — but a row's own rendered
+  height also carries `.restaurant-card`'s padding (`--space-sm`, 8px, top
+  and bottom) and its 1px border on both edges, which the first draft
+  dropped: a real row is 72 + 8 + 8 + 1 + 1 = 90px, not 72px, so "two rows"
+  was never going to land near what the driver measured against the
+  rendered app (`BaseLayout.astro` ~261-293). Rather than keep stretching a
+  "sized like two list rows" analogy that doesn't actually reach the target
+  once it's computed correctly, the slide is now sized on its own terms, as
+  a hero image: **200px** of photo, tall enough to read as the lead visual
+  the "photo-led" direction calls for, plus the caption strip's own measured
+  height beneath it — `--space-sm` padding top and bottom (8+8=16px), the
+  claim line (`--font-size-body`, 0.9375rem/15px at 1.4 line-height ≈ 21px),
+  a 2px margin, and the subline (`--font-size-muted`, 0.75rem/12px at 1.4
+  line-height ≈ 17px) — 16+21+2+17 = 56px. **200 + 56 = 256px** total (image
+  plus caption strip, excluding the dot row below it), inside the driver's
+  requested 250-260px band. Confirmed against the rendered mocks, not just
+  the arithmetic.
 - The claim sits **under** the image, not on top of it, in a caption strip
   using the page's own surface/text colors and its own type scale (`
   --font-size-body` for the claim, `--font-size-muted` for the restaurant
@@ -230,19 +285,32 @@ in the flow (between search and the cuisine chips):
   a slide is a click/tap on its dot, not scroll-only.
 - Tapping a restaurant slide (ad or promo) opens that restaurant's menu.
   Tapping the first-order slide goes nowhere (unchanged from today).
-- **Motion, named:** advances every 5 seconds, single slide, no easing
-  beyond a plain 250ms crossfade or slide translate (either is fine;
-  whichever the engineer's existing transition patterns favor — nothing else
-  in this codebase names one, so this isn't a decision worth blocking on).
-  Stops permanently on any interaction with the carousel (tap, swipe, dot,
-  pause button) — not "pauses and resumes," per the accessibility reference
-  above recommending a carousel not fight a visitor who has already engaged
-  with it. Never auto-advances when `prefers-reduced-motion: reduce` is set;
-  the position dots and swipe still work. The interval is created once per
-  mount and explicitly cleared before the next one — `renderFeed()` re-runs
-  on every city switch (`home-dom.ts` ~209-215), and a carousel that starts a
-  new `setInterval` on every re-render without clearing the last one is
-  exactly the leak #133's own "traps" section names.
+- **Motion, named.** *(Corrected 2026-09-27 per the driver's review on
+  #139 — auto-advance resumes after an interaction; only the pause button
+  stops it for good. This replaces the "stops permanently on any
+  interaction" wording below, which read #133's "stops... while being
+  touched or interacted with" as if "while" meant "forever," and the owner
+  wants a carousel that keeps moving.)* Advances every 5 seconds, single
+  slide, no easing beyond a plain 250ms crossfade or slide translate (either
+  is fine; whichever the engineer's existing transition patterns favor —
+  nothing else in this codebase names one, so this isn't a decision worth
+  blocking on). A swipe, a dot tap, or any touch/pointer interaction with the
+  carousel pauses auto-advance; it resumes about 5s after the interaction
+  ends, matching the WAI accessible-carousel reference above, which pauses
+  rotation while focus or a pointer is on the carousel rather than stopping
+  it outright. Only the pause button stops it for good, until the visitor
+  presses play again — that is the one control whose whole job is "stop and
+  stay stopped," per WCAG 2.2.2, and it is the only interaction that should
+  read that way; every other interaction is a visitor briefly looking at
+  something, not a request to end the rotation. Never auto-advances when
+  `prefers-reduced-motion: reduce` is set; the position dots and swipe still
+  work. The interval is created once per mount and explicitly cleared before
+  the next one — `renderFeed()` re-runs on every city switch (`home-dom.ts`
+  ~209-215), and a carousel that starts a new `setInterval` on every
+  re-render without clearing the last one is exactly the leak #133's own
+  "traps" section names. The engineer's tests follow this wording: pausing
+  on interaction and resuming ~5s after it ends are both behaviors to cover,
+  not just "stops and never restarts."
 
 **Two-column tile grid**, replacing `.restaurant-list`'s vertical stack,
 same position (under the "Near you" heading):
@@ -340,10 +408,12 @@ Ad-label/pause-icon scrim.
 
 ## Motion, tap targets, and the accessibility floor
 
-- Auto-advance: 5s, stops permanently on interaction, off entirely under
-  `prefers-reduced-motion: reduce` (see "Composition" above).
-- Pause control: WCAG 2.2.2, visible at all times (not revealed on hover —
-  this is a touch-first phone screen), state-dependent accessible name.
+- Auto-advance: 5s, pauses on interaction and resumes ~5s after it ends, off
+  entirely under `prefers-reduced-motion: reduce` (see "Composition" above).
+- Pause control: the one interaction that stops rotation for good rather
+  than pausing it — WCAG 2.2.2, visible at all times (not revealed on
+  hover — this is a touch-first phone screen), state-dependent accessible
+  name.
 - Every dot and the pause button meet the 44px touch-target floor
   (`docs/design/46-phone-native.md`'s existing rule) even though they're
   visually smaller — padding, not just paint, gets them there.
@@ -373,6 +443,19 @@ palette (this repository's own convention — see `46-phone-native-dark.html`
 — `design-render` doesn't emulate `prefers-color-scheme`, so a dark render
 has to carry its own values rather than rely on the browser's OS setting).
 
+**Real photos, not gradient placeholders.** *(Added 2026-09-27 per the
+driver's review on #139.)* Every carousel slide, tile, and slide-anatomy
+reference image is an `<img>` pointing at that restaurant's own existing
+hero photo under `public/images/restaurants/`, referenced by relative path
+from `docs/design/` (`../../public/images/restaurants/<file>.jpg` —
+`design-render` opens each mock as a `file://` URL, so a relative `src`
+resolves against the mock's own location on disk, same as any other local
+asset). No new photo, nothing added to `photos.json` — see "Image budget,"
+below. This is what actually lets AC2's "legible over any photo" claim be
+checked: the "Ad" label and the pause control sit over the real Mission
+Taqueria and Bến Thành Bánh Mì photos in the rendered PNGs, not over a
+gradient no visitor will ever see.
+
 ## Critique (after rendering — see pull request for the pictures)
 
 Written after opening all eight PNGs, not before:
@@ -397,6 +480,25 @@ Written after opening all eight PNGs, not before:
   retheme" is an acceptable answer for chrome sitting over unpredictable
   content rather than over the page's own background.
 
+**Revision round (2026-09-27), after re-rendering all eight PNGs against the
+driver's review on #139:**
+
+- **Header, the case that mattered:** re-rendered `137-home-feed-hcmc-light`
+  and `-dark` first, since Ho Chi Minh City is the longest city name and the
+  tightest fit for a three-way row. The pill sits centred on the row in
+  both, the balance placeholder's dashed pill clears it with visible margin
+  on both sides, and nothing overlaps or clips at 375px. The wordmark wraps
+  to two lines (see "Composition → Header row" for why that's the rule
+  working, not a bug) — legible at its existing size in both themes.
+- **Ad label over a real photo:** confirmed the actual risk AC2 names —
+  white text on the fixed scrim reads clearly over both Mission Taqueria's
+  and Bến Thành Bánh Mì's hero photos, busy and food-colored as real photos
+  are, in both themes. A gradient could never have shown this; that's the
+  reason this round exists.
+- **Carousel height:** the rendered slide (200px photo + caption strip) now
+  reads as a real hero image rather than a slightly-tall list row — a
+  proportion check the arithmetic alone can't make, only the picture can.
+
 ## For the engineer
 
 - `.tile-card` is a new class; `.restaurant-card` is untouched by this
@@ -404,6 +506,14 @@ Written after opening all eight PNGs, not before:
 - The carousel's `setInterval` must be created once per `renderFeed()` call
   and cleared on the next call (city switch) and on unmount — test it with
   fake timers, per the parent issue's "traps" section.
+- Auto-advance pauses on interaction and resumes ~5s after the interaction
+  ends; only the pause button stops it until the visitor presses play again
+  — two different timers (or one timer whose deadline is pushed out on
+  interaction) rather than one boolean, and both need the same
+  create-once/clear-on-re-render discipline as the advance interval itself.
+- The header row is a three-column grid (`1fr auto 1fr`), not a flex row —
+  the pill's centring depends on the two side columns being equal, not on
+  the wordmark and the balance placeholder happening to match widths.
 - `theme.build.test.ts` (~143) and `home-dom.test.ts` currently assert the
   old single-banner and single-row shapes; update them deliberately to the
   new ones rather than deleting or loosening them (house-rules: tests before
