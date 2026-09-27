@@ -1,5 +1,6 @@
-localStorage.setItem('parody.city', 'hcmc');
-localStorage.setItem(
+/* global window -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
+window.localStorage.setItem('parody.city', 'hcmc');
+window.localStorage.setItem(
   'parody.order',
   JSON.stringify({
     orderId: 'render-order-1',

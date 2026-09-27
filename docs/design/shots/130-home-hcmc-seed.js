@@ -1,7 +1,8 @@
-localStorage.setItem('parody.city', 'hcmc');
+/* global window -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
+window.localStorage.setItem('parody.city', 'hcmc');
 // An already-expired flash draw so the home feed renders without the flash
 // sheet covering it (#130's renders are of the feed itself, not the sheet).
-sessionStorage.setItem(
+window.sessionStorage.setItem(
   'flashDeal:hcmc',
   JSON.stringify({
     drawnAt: Date.now() - 20 * 60 * 1000,
