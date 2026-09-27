@@ -1,11 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { claimDrip, getWallet } from './wallet-client';
+import { claimDrip, debitWallet, getWallet } from './wallet-client';
 
 const config = (fetchImpl: typeof fetch) => ({
   url: 'https://abcdefgh.supabase.co',
   publishableKey: 'sb_publishable_test_key',
   accessToken: 'session-access-token',
   fetchImpl,
+});
+
+const debitConfig = (fetchImpl: typeof fetch) => ({
+  ...config(fetchImpl),
+  orderId: 'order-1',
+  currency: 'USD' as const,
+  amountMinor: 2100,
 });
 
 afterEach(() => {
@@ -100,5 +107,67 @@ describe('claimDrip (AC3: one tap calls the claim function once)', () => {
       vndMinor: 700000,
       nextWindowStart: '2026-09-28T06:00:00.000Z',
     });
+  });
+});
+
+describe('debitWallet (ADR 0008 D8/"Source of truth")', () => {
+  it('POSTs order id, currency and amount, and maps a debited answer', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'debited', usd_minor: 900, vnd_minor: 750000, next_window_start: '2026-09-28T06:00:00.000Z' }),
+    });
+
+    const result = await debitWallet(debitConfig(fetchImpl));
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe('https://abcdefgh.supabase.co/rest/v1/rpc/wallet_debit');
+    expect(JSON.parse(init.body)).toEqual({ p_order_id: 'order-1', p_currency: 'USD', p_amount_minor: 2100 });
+    expect(result).toEqual({ kind: 'ok', status: 'debited', usdMinor: 900, vndMinor: 750000, nextWindowStart: '2026-09-28T06:00:00.000Z' });
+  });
+
+  it('maps an insufficient answer as a real, non-unreachable result', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'insufficient', usd_minor: 900, vnd_minor: 750000, next_window_start: '2026-09-28T06:00:00.000Z' }),
+    });
+    const result = await debitWallet(debitConfig(fetchImpl));
+    expect(result).toEqual({ kind: 'ok', status: 'insufficient', usdMinor: 900, vndMinor: 750000, nextWindowStart: '2026-09-28T06:00:00.000Z' });
+  });
+
+  it('reports a raised refusal (a 4xx, e.g. order_id_conflict) as blocked, not unreachable — one call only, no retry', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ message: 'order_id_conflict' }) });
+    const result = await debitWallet(debitConfig(fetchImpl));
+    expect(result).toEqual({ kind: 'blocked', message: 'order_id_conflict' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries once, with the same orderId, after a network error — and reports the retry\'s definitive answer', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'already_debited', usd_minor: 900, vnd_minor: 750000, next_window_start: '2026-09-28T06:00:00.000Z' }),
+      });
+
+    const result = await debitWallet(debitConfig(fetchImpl));
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const [firstUrl, firstInit] = fetchImpl.mock.calls[0];
+    const [secondUrl, secondInit] = fetchImpl.mock.calls[1];
+    expect(firstUrl).toBe(secondUrl);
+    expect(JSON.parse(firstInit.body)).toEqual(JSON.parse(secondInit.body));
+    expect(result).toEqual({ kind: 'ok', status: 'already_debited', usdMinor: 900, vndMinor: 750000, nextWindowStart: '2026-09-28T06:00:00.000Z' });
+  });
+
+  it('reports unreachable after the retry also fails, and a 5xx counts as unreachable', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
+    await expect(debitWallet(debitConfig(fetchImpl))).resolves.toEqual({ kind: 'unreachable' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    const fetchImpl5xx = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) });
+    await expect(debitWallet(debitConfig(fetchImpl5xx))).resolves.toEqual({ kind: 'unreachable' });
+    expect(fetchImpl5xx).toHaveBeenCalledTimes(2);
   });
 });

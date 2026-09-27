@@ -1,7 +1,5 @@
-// The auth half of #136's wallet (ADR 0008): session, the OAuth-redirect
-// return, and sign-out. This issue does not add a way to *start* sign-in
-// (#149's job, at Place order) — everything here only ever reacts to a
-// session that already exists or a redirect that has just come back.
+// The auth half of #136's wallet (ADR 0008): session, starting the
+// OAuth-redirect sign-in, the redirect's return, and sign-out.
 //
 // Wrapped behind our own small interface, `SupabaseAuthLike`, rather than
 // the real `@supabase/supabase-js` client throughout this module — the same
@@ -34,6 +32,9 @@ export interface WalletSession {
   email: string | null;
 }
 
+/** ADR 0008: "Providers: Google and Apple, through the OAuth redirect flow with PKCE." */
+export type OAuthProvider = 'google' | 'apple';
+
 /** The subset of `SupabaseClient['auth']` this module calls — see the file banner. */
 export interface SupabaseAuthLike {
   getSession(): Promise<{ data: { session: RawSession | null } }>;
@@ -41,6 +42,10 @@ export interface SupabaseAuthLike {
     code: string,
   ): Promise<{ data: { session: RawSession | null }; error: { message: string } | null }>;
   signOut(options?: { scope?: 'local' | 'global' }): Promise<{ error: { message: string } | null }>;
+  signInWithOAuth(options: {
+    provider: OAuthProvider;
+    options?: { redirectTo?: string; skipBrowserRedirect?: boolean };
+  }): Promise<{ data: { url: string | null }; error: { message: string } | null }>;
 }
 
 function toWalletSession(raw: RawSession): WalletSession {
@@ -101,6 +106,37 @@ export async function getCurrentSession(auth: SupabaseAuthLike): Promise<WalletS
     return data.session ? toWalletSession(data.session) : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Starts the OAuth redirect (ADR 0008, "The round trip"). Builds the
+ * provider's authorize URL through `signInWithOAuth` with
+ * `skipBrowserRedirect: true` (so this module controls the navigation itself
+ * rather than the library doing it as a side effect, which a test could
+ * never observe), then navigates there. Returns `false`, without navigating,
+ * on any error or a missing url — never throws — so the caller can leave
+ * checkout exactly as it was rather than sending the visitor to a broken
+ * link (the same "unreachable behaves like off" posture D1 takes elsewhere).
+ */
+export async function beginSignIn(
+  auth: SupabaseAuthLike,
+  provider: OAuthProvider,
+  redirectTo: string,
+  navigate: (url: string) => void = (url) => {
+    window.location.href = url;
+  },
+): Promise<boolean> {
+  try {
+    const { data, error } = await auth.signInWithOAuth({
+      provider,
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error || !data.url) return false;
+    navigate(data.url);
+    return true;
+  } catch {
+    return false;
   }
 }
 

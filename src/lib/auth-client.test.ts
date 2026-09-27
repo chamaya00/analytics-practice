@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  beginSignIn,
   completeOAuthReturn,
   getCurrentSession,
   isOAuthReturn,
@@ -18,6 +19,7 @@ function fakeAuth(overrides: Partial<SupabaseAuthLike> = {}): SupabaseAuthLike {
     getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
+    signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: 'https://abcdefgh.supabase.co/auth/v1/authorize?provider=google' }, error: null }),
     ...overrides,
   };
 }
@@ -91,6 +93,43 @@ describe('completeOAuthReturn (AC4: the session is established from the redirect
       session: null,
       failed: true,
     });
+  });
+});
+
+describe('beginSignIn (ADR 0008: starts the OAuth redirect)', () => {
+  it('requests the url with skipBrowserRedirect and navigates there', async () => {
+    const auth = fakeAuth({
+      signInWithOAuth: vi
+        .fn()
+        .mockResolvedValue({ data: { url: 'https://abcdefgh.supabase.co/auth/v1/authorize?provider=google' }, error: null }),
+    });
+    const navigate = vi.fn();
+
+    const result = await beginSignIn(auth, 'google', 'https://site.example/checkout/?restaurant=a', navigate);
+
+    expect(result).toBe(true);
+    expect(auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { redirectTo: 'https://site.example/checkout/?restaurant=a', skipBrowserRedirect: true },
+    });
+    expect(navigate).toHaveBeenCalledWith('https://abcdefgh.supabase.co/auth/v1/authorize?provider=google');
+  });
+
+  it('returns false and never navigates on an error', async () => {
+    const auth = fakeAuth({ signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: null }, error: { message: 'boom' } }) });
+    const navigate = vi.fn();
+
+    const result = await beginSignIn(auth, 'apple', 'https://site.example/checkout/', navigate);
+
+    expect(result).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('returns false rather than throwing when the call rejects', async () => {
+    const auth = fakeAuth({ signInWithOAuth: vi.fn().mockRejectedValue(new Error('network down')) });
+    const navigate = vi.fn();
+    await expect(beginSignIn(auth, 'google', 'https://site.example/checkout/', navigate)).resolves.toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
 
