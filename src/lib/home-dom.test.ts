@@ -213,6 +213,21 @@ describe('home feed contents (AC2)', () => {
     expect(plainCard?.querySelector('.deal-badge')).toBeNull();
   });
 
+  it('the fee and "delivery" render as a single element, never as one text node that could split them onto separate lines (#151)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, pillRoot(), window.localStorage);
+
+    const restaurant = restaurantsForCity('sf').find((candidate) => !candidate.hasDeal)!;
+    const meta = el.querySelector(`[data-testid="restaurant-card-${restaurant.slug}"] .tile-card-meta`);
+    const feeUnit = meta?.querySelector('.tile-card-fee');
+    expect(feeUnit).not.toBeNull();
+    expect(feeUnit?.textContent).toMatch(/delivery$/);
+    // The vehicle icon and "N min · " precede the fee unit, outside it —
+    // only the fee amount and "delivery" itself are the non-wrapping unit.
+    expect(feeUnit?.textContent).not.toMatch(/min/);
+  });
+
   it('an HCMC restaurant tile shows a motorbike icon, not a car (#130 AC4)', () => {
     window.localStorage.setItem('parody.city', 'hcmc');
     const el = root();
@@ -311,14 +326,24 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
       const { claim, sub } = currentSlideText(el);
       expect(claim, `slide ${index}`).toBe(slide.claim);
       expect(sub, `slide ${index}`).toBe(slide.sub);
+      const caption = el.querySelector('.carousel-caption');
+      const media = el.querySelector('.carousel-slide-media');
       if (index === 0) {
         // First-order slide: claim/sub render in the panel; the caption
-        // strip stays empty rather than repeating the same text.
+        // strip stays empty rather than repeating the same text. #151: the
+        // strip is hidden outright (not just emptied — a 56px blank band
+        // otherwise sits between the panel and the dots), and the media box
+        // grows by that same 56px so the slide's total height matches
+        // every other slide's.
         expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent, `slide ${index} caption`).toBe('');
         expect(el.querySelector('[data-testid="carousel-sub"]')?.textContent, `slide ${index} caption`).toBe('');
         expect(el.querySelector('[data-testid="carousel-panel"]'), `slide ${index} panel`).not.toBeNull();
+        expect(caption?.hasAttribute('hidden'), `slide ${index} caption hidden`).toBe(true);
+        expect(media?.classList.contains('carousel-slide-media--first-order'), `slide ${index} media grown`).toBe(true);
       } else {
         expect(el.querySelector('[data-testid="carousel-panel"]'), `slide ${index} panel`).toBeNull();
+        expect(caption?.hasAttribute('hidden'), `slide ${index} caption hidden`).toBe(false);
+        expect(media?.classList.contains('carousel-slide-media--first-order'), `slide ${index} media grown`).toBe(false);
       }
       const link = el.querySelector('[data-testid="carousel-slide-link"]');
       expect(link?.tagName, `slide ${index} tag`).toBe(slide.href ? 'A' : 'DIV');

@@ -140,6 +140,15 @@ const { title } = Astro.props;
     background: var(--color-surface);
   }
 
+  /* The first-order slide hides .carousel-caption (home-dom.ts) rather than
+     leaving it empty, so this grows by exactly that strip's own min-height
+     (200px + 56px) — the slide's total height (media plus caption) then
+     matches every other slide's, and .carousel-slide-panel's inset:0 fills
+     the grown box (#151, driver review on PR #150 round 1). */
+  .carousel-slide-media--first-order {
+    height: 256px;
+  }
+
   .carousel-slide-link {
     position: absolute;
     inset: 0;
@@ -252,6 +261,14 @@ const { title } = Astro.props;
        above and leave this strip's own text empty — doesn't shrink the
        slide shorter than every other slide. */
     min-height: 56px;
+  }
+
+  /* [hidden] is a browser default of display:none, but the flex rule above
+     has higher specificity and overrides it — same gotcha as .cart-badge[hidden]
+     in Header.astro. Without this, the first-order slide's hidden-but-flexed
+     caption still reserves an empty 56px band. */
+  .carousel-caption[hidden] {
+    display: none;
   }
 
   .carousel-claim {
@@ -505,6 +522,15 @@ const { title } = Astro.props;
   .tile-card-meta {
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
+  }
+
+  /* The fee and "delivery" as one non-wrapping unit — the tile grid's
+     columns are narrower than the full-width rows #130 fixed this on, so
+     that fix (moving content off the line) isn't enough room here; a plain
+     text node still breaks between "$1.99" and "delivery" and leaves
+     "delivery" alone on its own line (#151). */
+  .tile-card-fee {
+    white-space: nowrap;
   }
 
   /* The city vehicle icon beside every delivery estimate (#130) — sized in

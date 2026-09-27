@@ -237,6 +237,7 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
 
   function renderSlideContent(): void {
     const slide = slides[current];
+    const isFirstOrder = slide.type === 'first-order';
 
     const oldLink = media.querySelector('.carousel-slide-link');
     if (oldLink) oldLink.remove();
@@ -286,8 +287,16 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
 
     media.prepend(link);
 
-    claimEl.textContent = slide.type === 'first-order' ? '' : slide.claim;
-    subEl.textContent = slide.type === 'first-order' ? '' : slide.sub;
+    // The first-order slide's claim/sub live in .carousel-slide-panel above,
+    // not this strip, so the strip is hidden rather than left empty — an
+    // empty-but-present .carousel-caption left a ~56px blank band between
+    // the panel and the dots (driver review, PR #150 round 1; #151). The
+    // media box grows by that same 56px (.carousel-slide-media--first-order)
+    // so the slide's total height still matches every other slide.
+    media.classList.toggle('carousel-slide-media--first-order', isFirstOrder);
+    caption.hidden = isFirstOrder;
+    claimEl.textContent = isFirstOrder ? '' : slide.claim;
+    subEl.textContent = isFirstOrder ? '' : slide.sub;
 
     for (const [index, dot] of dots.entries()) {
       dot.classList.toggle('is-current', index === current);
@@ -478,7 +487,16 @@ function renderTileCard(restaurant: Restaurant, draw: FlashDraw | null, now: num
   meta.className = 'tile-card-meta';
   const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
   const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
-  meta.append(createVehicleIcon(restaurant.city), `${eta} · ${feeLabel} delivery`);
+  // The tile grid's columns are much narrower than the old full-width rows
+  // #130 fixed this on (2 per row at 375px, not 1) — moving the rating off
+  // this line (#130's fix) isn't enough room here, so the fee and "delivery"
+  // are their own non-wrapping unit instead: never split across two lines,
+  // whichever line breaks before it (#151).
+  const feeUnit = document.createElement('span');
+  feeUnit.className = 'tile-card-fee';
+  feeUnit.setAttribute('data-testid', 'tile-card-fee');
+  feeUnit.textContent = `${feeLabel} delivery`;
+  meta.append(createVehicleIcon(restaurant.city), `${eta} · `, feeUnit);
 
   body.append(name, rating, meta);
 
