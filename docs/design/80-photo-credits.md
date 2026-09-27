@@ -180,7 +180,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/hai-san-kenh-te-quan-7-tom-nuong-muoi-ot.svg` | "grilled prawns chili salt" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-muc-xao-sa-te.svg` | "stir fried squid chili" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.svg` | "steamed clams lemongrass bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "cooked sea snails plate" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "seafood coconut curry bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-com-chien-hai-san.svg` | "seafood fried rice" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-nuoc-dua-tuoi.svg` | "fresh coconut drink" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-tom-thit.svg` | "banh xeo pancake" | Placeholder — not yet downloaded |
