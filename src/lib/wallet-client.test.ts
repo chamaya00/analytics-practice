@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { claimDrip, debitWallet, getWallet } from './wallet-client';
+import { claimDrip, debitWallet, getWallet, tipWallet } from './wallet-client';
 
 const config = (fetchImpl: typeof fetch) => ({
   url: 'https://abcdefgh.supabase.co',
@@ -13,6 +13,12 @@ const debitConfig = (fetchImpl: typeof fetch) => ({
   orderId: 'order-1',
   currency: 'USD' as const,
   amountMinor: 2100,
+});
+
+const tipConfig = (fetchImpl: typeof fetch) => ({
+  ...config(fetchImpl),
+  orderId: 'order-1',
+  amountMinor: 200,
 });
 
 afterEach(() => {
@@ -168,6 +174,77 @@ describe('debitWallet (ADR 0008 D8/"Source of truth")', () => {
 
     const fetchImpl5xx = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) });
     await expect(debitWallet(debitConfig(fetchImpl5xx))).resolves.toEqual({ kind: 'unreachable' });
+    expect(fetchImpl5xx).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('tipWallet (#164)', () => {
+  it('POSTs order id and amount only (no currency — the server reads it from the order), and maps a tipped answer', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'tipped', amount_minor: 200, currency: 'USD', usd_minor: 2800, vnd_minor: 750000 }),
+    });
+
+    const result = await tipWallet(tipConfig(fetchImpl));
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe('https://abcdefgh.supabase.co/rest/v1/rpc/wallet_tip');
+    expect(JSON.parse(init.body)).toEqual({ p_order_id: 'order-1', p_amount_minor: 200 });
+    expect(result).toEqual({ kind: 'ok', status: 'tipped', amountMinor: 200, currency: 'USD', usdMinor: 2800, vndMinor: 750000 });
+  });
+
+  it('maps an already_tipped answer as a real, non-unreachable result', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'already_tipped', amount_minor: 200, currency: 'USD', usd_minor: 2800, vnd_minor: 750000 }),
+    });
+    const result = await tipWallet(tipConfig(fetchImpl));
+    expect(result).toEqual({ kind: 'ok', status: 'already_tipped', amountMinor: 200, currency: 'USD', usdMinor: 2800, vndMinor: 750000 });
+  });
+
+  it('maps an insufficient answer as a real, non-unreachable result', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'insufficient', amount_minor: 200, currency: 'USD', usd_minor: 50, vnd_minor: 750000 }),
+    });
+    const result = await tipWallet(tipConfig(fetchImpl));
+    expect(result).toEqual({ kind: 'ok', status: 'insufficient', amountMinor: 200, currency: 'USD', usdMinor: 50, vndMinor: 750000 });
+  });
+
+  it('reports a raised refusal (a 4xx, e.g. order_not_debited or invalid_tip_amount) as blocked, not unreachable — one call only, no retry', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ message: 'order_not_debited' }) });
+    const result = await tipWallet(tipConfig(fetchImpl));
+    expect(result).toEqual({ kind: 'blocked', message: 'order_not_debited' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries once, with the same orderId, after a network error — and reports the retry's definitive answer", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'already_tipped', amount_minor: 200, currency: 'USD', usd_minor: 2800, vnd_minor: 750000 }),
+      });
+
+    const result = await tipWallet(tipConfig(fetchImpl));
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const [firstUrl, firstInit] = fetchImpl.mock.calls[0];
+    const [secondUrl, secondInit] = fetchImpl.mock.calls[1];
+    expect(firstUrl).toBe(secondUrl);
+    expect(JSON.parse(firstInit.body)).toEqual(JSON.parse(secondInit.body));
+    expect(result).toEqual({ kind: 'ok', status: 'already_tipped', amountMinor: 200, currency: 'USD', usdMinor: 2800, vndMinor: 750000 });
+  });
+
+  it('reports unreachable after the retry also fails, and a 5xx counts as unreachable', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
+    await expect(tipWallet(tipConfig(fetchImpl))).resolves.toEqual({ kind: 'unreachable' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    const fetchImpl5xx = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) });
+    await expect(tipWallet(tipConfig(fetchImpl5xx))).resolves.toEqual({ kind: 'unreachable' });
     expect(fetchImpl5xx).toHaveBeenCalledTimes(2);
   });
 });
