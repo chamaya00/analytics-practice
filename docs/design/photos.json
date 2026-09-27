@@ -128,7 +128,7 @@
     },
     {
       "path": "public/images/restaurants/goi-cuon-co-hai-cho-cu-hero.jpg",
-      "query": "vietnamese rice paper spring rolls table",
+      "query": "vietnamese fresh spring rolls platter",
       "width": 343,
       "height": 180
     },
@@ -182,7 +182,7 @@
     },
     {
       "path": "public/images/dishes/mission-taqueria-al-pastor.jpg",
-      "query": "al pastor tacos with pineapple",
+      "query": "al pastor tacos pineapple onion",
       "width": 64,
       "height": 64
     },
@@ -200,7 +200,7 @@
     },
     {
       "path": "public/images/dishes/mission-taqueria-horchata.jpg",
-      "query": "horchata rice cinnamon drink glass",
+      "query": "cinnamon rice milk drink",
       "width": 64,
       "height": 64
     },
@@ -242,13 +242,13 @@
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-congee.jpg",
-      "query": "century egg congee bowl",
+      "query": "rice porridge congee bowl",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-noodles.jpg",
-      "query": "rice noodle rolls soy sauce",
+      "query": "chinese stir fried noodles plate",
       "width": 64,
       "height": 64
     },
@@ -308,7 +308,7 @@
     },
     {
       "path": "public/images/dishes/com-tam-quan-nha-bi-cha.jpg",
-      "query": "vietnamese shredded pork skin rice",
+      "query": "vietnamese broken rice pork plate",
       "width": 64,
       "height": 64
     },
@@ -320,7 +320,7 @@
     },
     {
       "path": "public/images/dishes/com-tam-quan-nha-sam-lanh.jpg",
-      "query": "vietnamese herbal iced tea",
+      "query": "herbal iced tea glass ice",
       "width": 64,
       "height": 64
     },
@@ -338,13 +338,13 @@
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-miso-soup.jpg",
-      "query": "miso soup bowl tofu",
+      "query": "japanese miso soup bowl tofu",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-iced-green-tea.jpg",
-      "query": "iced green tea glass",
+      "query": "iced matcha green tea glass",
       "width": 64,
       "height": 64
     },
@@ -422,7 +422,7 @@
     },
     {
       "path": "public/images/dishes/noriega-thai-kitchen-khao-soi.jpg",
-      "query": "khao soi noodle soup",
+      "query": "thai curry noodle soup crispy noodles",
       "width": 64,
       "height": 64
     },
@@ -464,7 +464,7 @@
     },
     {
       "path": "public/images/dishes/inner-richmond-sushi-bar-miso-soup.jpg",
-      "query": "miso soup bowl",
+      "query": "miso soup lacquer bowl",
       "width": 64,
       "height": 64
     },
@@ -494,13 +494,13 @@
     },
     {
       "path": "public/images/dishes/valencia-street-tandoor-garlic-naan.jpg",
-      "query": "garlic naan bread",
+      "query": "garlic naan bread basket",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/valencia-street-tandoor-mango-lassi.jpg",
-      "query": "mango lassi",
+      "query": "mango lassi glass yogurt drink",
       "width": 64,
       "height": 64
     },
@@ -554,7 +554,7 @@
     },
     {
       "path": "public/images/dishes/geary-boulevard-korean-kitchen-seafood-pancake.jpg",
-      "query": "korean seafood pancake",
+      "query": "savory scallion pancake plate",
       "width": 64,
       "height": 64
     },
@@ -584,7 +584,7 @@
     },
     {
       "path": "public/images/dishes/post-street-ramen-bar-pork-gyoza.jpg",
-      "query": "pan fried gyoza",
+      "query": "pan fried gyoza dumplings",
       "width": 64,
       "height": 64
     },
@@ -608,7 +608,7 @@
     },
     {
       "path": "public/images/dishes/noe-valley-morning-kitchen-breakfast-burrito.jpg",
-      "query": "breakfast burrito halved",
+      "query": "breakfast burrito cut in half",
       "width": 64,
       "height": 64
     },
@@ -668,7 +668,7 @@
     },
     {
       "path": "public/images/dishes/ocean-beach-fish-house-cioppino.jpg",
-      "query": "cioppino seafood stew",
+      "query": "tomato seafood stew bowl",
       "width": 64,
       "height": 64
     },
@@ -722,7 +722,7 @@
     },
     {
       "path": "public/images/dishes/goi-cuon-co-hai-cho-cu-goi-cuon-tom-thit.jpg",
-      "query": "shrimp pork spring rolls rice paper",
+      "query": "shrimp rice paper rolls",
       "width": 64,
       "height": 64
     },
@@ -734,7 +734,7 @@
     },
     {
       "path": "public/images/dishes/goi-cuon-co-hai-cho-cu-bi-cuon.jpg",
-      "query": "pork skin rice paper rolls",
+      "query": "rice paper rolls pork herbs",
       "width": 64,
       "height": 64
     },
@@ -758,7 +758,7 @@
     },
     {
       "path": "public/images/dishes/quan-lau-ut-hanh-lau-mam.jpg",
-      "query": "mekong fish hotpot",
+      "query": "vietnamese hot pot table",
       "width": 64,
       "height": 64
     },
@@ -770,7 +770,7 @@
     },
     {
       "path": "public/images/dishes/quan-lau-ut-hanh-nam-kim-cham-them.jpg",
-      "query": "enoki mushrooms",
+      "query": "enoki mushrooms bundle",
       "width": 64,
       "height": 64
     },
@@ -818,7 +818,7 @@
     },
     {
       "path": "public/images/dishes/quan-che-di-sau-che-ba-mau.jpg",
-      "query": "three color dessert",
+      "query": "layered bean dessert coconut milk glass",
       "width": 64,
       "height": 64
     },
@@ -830,19 +830,19 @@
     },
     {
       "path": "public/images/dishes/quan-che-di-sau-suong-sa-hat-luu.jpg",
-      "query": "water chestnut ruby dessert",
+      "query": "red ruby water chestnut dessert",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/quan-che-di-sau-sua-dau-nanh.jpg",
-      "query": "fresh soy milk",
+      "query": "soy milk glass soybeans",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/quan-che-di-sau-rau-ma-dau-xanh.jpg",
-      "query": "pennywort juice",
+      "query": "green pennywort juice glass",
       "width": 64,
       "height": 64
     },
@@ -854,7 +854,7 @@
     },
     {
       "path": "public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-hai-nam.jpg",
-      "query": "hainanese chicken rice",
+      "query": "chicken rice plate cucumber",
       "width": 64,
       "height": 64
     },
@@ -890,13 +890,13 @@
     },
     {
       "path": "public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.jpg",
-      "query": "steamed clams lemongrass",
+      "query": "steamed clams lemongrass bowl",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.jpg",
-      "query": "vietnamese snails coconut milk",
+      "query": "sea snails coconut sauce",
       "width": 64,
       "height": 64
     },
@@ -920,7 +920,7 @@
     },
     {
       "path": "public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.jpg",
-      "query": "mushroom crispy pancake",
+      "query": "crispy vietnamese pancake mushrooms",
       "width": 64,
       "height": 64
     },
@@ -938,19 +938,19 @@
     },
     {
       "path": "public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.jpg",
-      "query": "vietnamese kumquat iced tea glass",
+      "query": "iced kumquat lime tea glass",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/mi-quang-que-son-co-lien-mi-quang-tom-thit.jpg",
-      "query": "mi quang noodles shrimp",
+      "query": "turmeric noodles shrimp pork",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.jpg",
-      "query": "chicken turmeric noodles",
+      "query": "turmeric noodles chicken bowl",
       "width": 64,
       "height": 64
     },
@@ -962,7 +962,7 @@
     },
     {
       "path": "public/images/dishes/mi-quang-que-son-co-lien-banh-trang-me.jpg",
-      "query": "sesame rice cracker",
+      "query": "rice paper tamarind snack",
       "width": 64,
       "height": 64
     },
@@ -980,7 +980,7 @@
     },
     {
       "path": "public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-ne-thap-cam.jpg",
-      "query": "bo ne sizzling beef",
+      "query": "sizzling steak egg skillet",
       "width": 64,
       "height": 64
     },
@@ -998,7 +998,7 @@
     },
     {
       "path": "public/images/dishes/bo-bit-tet-chu-tam-go-vap-soda-chanh.jpg",
-      "query": "lime soda glass",
+      "query": "sparkling lime drink glass ice",
       "width": 64,
       "height": 64
     }
