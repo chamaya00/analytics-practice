@@ -896,7 +896,7 @@
     },
     {
       "path": "public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.jpg",
-      "query": "stir fried snails bowl",
+      "query": "cooked sea snails plate",
       "width": 64,
       "height": 64
     },
@@ -920,7 +920,7 @@
     },
     {
       "path": "public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.jpg",
-      "query": "yellow crepe bean sprouts",
+      "query": "savory folded crepe plate",
       "width": 64,
       "height": 64
     },
@@ -950,7 +950,7 @@
     },
     {
       "path": "public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.jpg",
-      "query": "turmeric noodles chicken bowl",
+      "query": "chicken noodle bowl herbs peanuts",
       "width": 64,
       "height": 64
     },

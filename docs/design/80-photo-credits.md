@@ -180,16 +180,16 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/hai-san-kenh-te-quan-7-tom-nuong-muoi-ot.svg` | "grilled prawns chili salt" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-muc-xao-sa-te.svg` | "stir fried squid chili" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.svg` | "steamed clams lemongrass bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "stir fried snails bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "cooked sea snails plate" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-com-chien-hai-san.svg` | "seafood fried rice" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-nuoc-dua-tuoi.svg` | "fresh coconut drink" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-tom-thit.svg` | "banh xeo pancake" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.svg` | "yellow crepe bean sprouts" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.svg` | "savory folded crepe plate" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-khot.svg` | "banh khot mini pancakes" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-nuoc-mia-tac.svg` | "sugarcane juice glass" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.svg` | "iced kumquat lime tea glass" | Placeholder — not yet downloaded |
 | `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-tom-thit.svg` | "turmeric noodles shrimp pork" | Placeholder — not yet downloaded |
-| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.svg` | "turmeric noodles chicken bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.svg` | "chicken noodle bowl herbs peanuts" | Placeholder — not yet downloaded |
 | `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ca-loc.svg` | "fish noodle bowl vietnamese" | Placeholder — not yet downloaded |
 | `public/images/dishes/mi-quang-que-son-co-lien-banh-trang-me.svg` | "rice paper tamarind snack" | Placeholder — not yet downloaded |
 | `public/images/dishes/mi-quang-que-son-co-lien-nuoc-sam.svg` | "vietnamese herbal drink" | Placeholder — not yet downloaded |
