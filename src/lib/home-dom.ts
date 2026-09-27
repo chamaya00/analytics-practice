@@ -54,7 +54,7 @@ function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (ci
     card.setAttribute('data-testid', `location-card-${city}`);
 
     const img = document.createElement('img');
-    img.src = `/images/cities/${city}.svg`;
+    img.src = `/images/cities/${city}.jpg`;
     img.alt = '';
     img.width = 96;
     img.height = 64;
