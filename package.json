@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/chamaya00/analytics-practice#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "astro": "^7.3.3"
   },
   "devDependencies": {
