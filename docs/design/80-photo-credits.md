@@ -21,12 +21,6 @@ nothing importing these paths needs to change.
 | `public/images/cities/sf.svg` | "san francisco street golden gate" | Placeholder — not yet downloaded |
 | `public/images/cities/hcmc.svg` | "ho chi minh city street motorbikes" | Placeholder — not yet downloaded |
 
-## Home feed
-
-| File | Intended source | Status |
-|---|---|---|
-| `public/images/promo-banner.svg` | Not a licensed photo — UI banner artwork (no Unsplash search named in #80 for this slot) | Placeholder |
-
 ## Restaurant hero images
 
 | File | Cuisine | Intended Unsplash search | Status |
@@ -37,6 +31,8 @@ nothing importing these paths needs to change.
 | `public/images/restaurants/ben-thanh-banh-mi-hero.svg` | HCMC, bánh mì | "banh mi shop vietnam" | Placeholder — not yet downloaded |
 | `public/images/restaurants/saigon-pho-quan-hero.svg` | HCMC, phở | "vietnamese street food stall" | Placeholder — not yet downloaded |
 | `public/images/restaurants/com-tam-quan-nha-hero.svg` | HCMC, cơm tấm | "com tam restaurant vietnam" | Placeholder — not yet downloaded |
+| `public/images/restaurants/bay-grain-bowls-hero.svg` | SF, grain bowls | "grain bowl restaurant" | Placeholder — not yet downloaded |
+| `public/images/restaurants/bun-cha-co-ba-hero.svg` | HCMC, bún | "bun cha vietnam restaurant" | Placeholder — not yet downloaded |
 
 ## Dish thumbnails
 
@@ -69,12 +65,21 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/com-tam-quan-nha-bi-cha.svg` | "vietnamese broken rice plate" | Placeholder — not yet downloaded |
 | `public/images/dishes/com-tam-quan-nha-nuoc-mia.svg` | "vietnamese broken rice plate" | Placeholder — not yet downloaded |
 | `public/images/dishes/com-tam-quan-nha-sam-lanh.svg` | "vietnamese broken rice plate" | Placeholder — not yet downloaded |
+| `public/images/dishes/bay-grain-bowls-teriyaki-chicken.svg` | "grain bowl close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bay-grain-bowls-tofu-poke.svg` | "grain bowl close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bay-grain-bowls-miso-soup.svg` | "grain bowl close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bay-grain-bowls-iced-green-tea.svg` | "grain bowl close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bun-cha-co-ba-bun-cha-ha-noi.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bun-cha-co-ba-bun-bo-hue.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bun-cha-co-ba-tra-chanh.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/bun-cha-co-ba-sinh-to-bo.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
 
 ## Weight budget (#80: home feed first paint ≤ 900KB total, each restaurant thumbnail ≤ 40KB)
 
 Every placeholder above is a small text-on-solid-color SVG, each under 1KB —
 `src/lib/image-budget.test.ts` asserts this against the committed files
-directly, both per-thumbnail and for the feed's first-paint set (one banner
-plus up to six restaurant hero thumbnails). Replacing a placeholder with a
-real compressed WebP/AVIF download will need re-checking against the same
-budget; the test is what re-proves it, not this table.
+directly, both per-thumbnail and for the feed's first-paint set (up to six
+restaurant hero thumbnails; the promo banner is text-only, #104 round 1, item
+1). Replacing a placeholder with a real compressed WebP/AVIF download will
+need re-checking against the same budget; the test is what re-proves it, not
+this table.

@@ -111,7 +111,9 @@ describe('home feed contents (AC2)', () => {
     expect(card?.textContent).toContain(dealRestaurant.rating.toFixed(1));
     // #82 review round 2, item 2: the fee reads "$1.99 delivery" / "15.000 ₫ delivery",
     // not the bare amount — the word was dropped when the card was laid out in round 1.
-    expect(card?.querySelector('.restaurant-card-meta')?.textContent).toMatch(/delivery$/);
+    // Allows an optional trailing "Flash" badge text (#104: appended inside this same
+    // element, beside the meta line, when this session's flash draw covers the card).
+    expect(card?.querySelector('.restaurant-card-meta')?.textContent).toMatch(/delivery(Flash)?$/);
     expect(card?.querySelector(`[data-testid="deal-badge-${dealRestaurant.slug}"]`)).not.toBeNull();
 
     const noDealRestaurant = restaurantsForCity('sf').find((restaurant) => !restaurant.hasDeal)!;
@@ -130,6 +132,41 @@ describe('home feed contents (AC2)', () => {
 
     expect(el.querySelector('[data-testid="home-empty"]')?.textContent).toContain('Ho Chi Minh City');
     expect(el.querySelector('[data-testid="restaurant-list"]')?.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('shows a "Near you" heading above the restaurant list, and 4 restaurants for each city (#104)', () => {
+    expect(restaurantsForCity('sf')).toHaveLength(4);
+    expect(restaurantsForCity('hcmc')).toHaveLength(4);
+
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, window.localStorage);
+
+    expect(el.querySelector('[data-testid="near-you-heading"]')?.textContent).toBe('Near you');
+    expect(el.querySelectorAll('[data-testid^="restaurant-card-"]')).toHaveLength(4);
+  });
+
+  it('the promo banner shows real discount copy per city, not the placeholder (#104)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const sf = root();
+    initHomePage(sf, window.localStorage);
+    expect(sf.querySelector('[data-testid="promo-banner-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(sf.querySelector('[data-testid="promo-banner-sub"]')?.textContent).toBe('Applied automatically at checkout');
+
+    window.localStorage.setItem('parody.city', 'hcmc');
+    const hcmc = root();
+    initHomePage(hcmc, window.localStorage);
+    expect(hcmc.querySelector('[data-testid="promo-banner-claim"]')?.textContent).toBe('10.000 ₫ off your first order');
+    expect(hcmc.querySelector('[data-testid="promo-banner-sub"]')?.textContent).toBe(
+      'Applied automatically at checkout',
+    );
+  });
+
+  it('the promo banner has no image (#104 round 1, item 1: no Unsplash search was ever named for this slot)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, window.localStorage);
+    expect(el.querySelector('[data-testid="promo-banner"] img')).toBeNull();
   });
 });
 
@@ -184,5 +221,21 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
     expect(shown).toHaveLength(2);
     expect(shown[1][1].city).toBe('hcmc');
     expect(window.sessionStorage.getItem('flashDeal:hcmc')).not.toBeNull();
+  });
+
+  it('a flash-active restaurant shows the Flash marker as a small badge beside the meta line, not a full-width bar underneath it (#104)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+
+    initHomePage(el, window.localStorage, window.sessionStorage);
+
+    const draw = JSON.parse(window.sessionStorage.getItem('flashDeal:sf')!) as { restaurants: [{ slug: string }, { slug: string }] };
+    const flashSlug = draw.restaurants[0].slug;
+    const badge = el.querySelector(`[data-testid="flash-badge-${flashSlug}"]`);
+
+    expect(badge).not.toBeNull();
+    // Beside the meta line: a child of .restaurant-card-meta, not a sibling
+    // block rendered on its own row underneath the card body.
+    expect(badge?.parentElement).toBe(el.querySelector(`[data-testid="restaurant-card-${flashSlug}"] .restaurant-card-meta`));
   });
 });

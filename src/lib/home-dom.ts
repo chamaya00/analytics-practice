@@ -13,6 +13,15 @@ import { renderFlashSheet } from './flash-sheet-dom';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
+/** The home feed's one promo banner slot (docs/design/80-two-city-brand-and-flow.md,
+ * "Look outside this repository": one legible claim, no carousel), localized per
+ * city's own currency — docs/design/80-home-sf.html / 80-home-hcmc.html's own
+ * banner copy, not a placeholder. */
+const PROMO_BANNER_CLAIM: Record<City, string> = {
+  sf: '$2 off your first order',
+  hcmc: '10.000 ₫ off your first order',
+};
+
 /** Storage-blocked (private browsing) is detected up front, not only after a failed write — #80's error state is a property of the sheet itself, shown before any tap rather than for the instant between a tap and the sheet dismissing. */
 function isStorageBlocked(storage: Storage): boolean {
   try {
@@ -129,7 +138,7 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   const meta = document.createElement('span');
   meta.className = 'restaurant-card-meta';
   const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
-  meta.textContent = `★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel} delivery`;
+  meta.append(`★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel} delivery`);
 
   body.append(name, tag, meta);
 
@@ -142,11 +151,14 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   }
 
   if (flashFeeMinor !== null) {
+    // A small badge beside the meta line, not a full-width bar underneath it
+    // (#104) — appended inside .restaurant-card-meta itself so it sits on
+    // the same line as the rating/ETA/fee text rather than as its own row.
     const flashBadge = document.createElement('span');
     flashBadge.className = 'flash-badge';
     flashBadge.setAttribute('data-testid', `flash-badge-${restaurant.slug}`);
     flashBadge.textContent = 'Flash';
-    body.append(flashBadge);
+    meta.append(flashBadge);
   }
 
   card.append(img, body);
@@ -183,18 +195,24 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
   const banner = document.createElement('div');
   banner.className = 'promo-banner';
   banner.setAttribute('data-testid', 'promo-banner');
-  const bannerImg = document.createElement('img');
-  bannerImg.src = '/images/promo-banner.svg';
-  bannerImg.alt = '';
-  bannerImg.width = 343;
-  bannerImg.height = 96;
-  const bannerText = document.createElement('span');
-  bannerText.textContent = 'Special offers, picked for you';
-  banner.append(bannerImg, bannerText);
+  const bannerClaim = document.createElement('span');
+  bannerClaim.className = 'promo-banner-claim';
+  bannerClaim.setAttribute('data-testid', 'promo-banner-claim');
+  bannerClaim.textContent = PROMO_BANNER_CLAIM[city];
+  const bannerSub = document.createElement('span');
+  bannerSub.className = 'promo-banner-sub';
+  bannerSub.setAttribute('data-testid', 'promo-banner-sub');
+  bannerSub.textContent = 'Applied automatically at checkout';
+  banner.append(bannerClaim, bannerSub);
 
   const chipRow = document.createElement('div');
   chipRow.className = 'cuisine-chips';
   chipRow.setAttribute('data-testid', 'cuisine-chips');
+
+  const nearYouHeading = document.createElement('h2');
+  nearYouHeading.className = 'home-section-title';
+  nearYouHeading.setAttribute('data-testid', 'near-you-heading');
+  nearYouHeading.textContent = 'Near you';
 
   const list = document.createElement('div');
   list.className = 'restaurant-list';
@@ -248,7 +266,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
 
   renderList();
 
-  feed.append(locationBar, search, banner, chipRow, list, empty);
+  feed.append(locationBar, search, banner, chipRow, nearYouHeading, list, empty);
   root.append(feed);
 
   if (isFlashLive(draw, Date.now())) {

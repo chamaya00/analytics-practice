@@ -29,6 +29,39 @@ describe('dark theme palette (#82 review round 1: #80\'s chosen violet direction
   });
 });
 
+describe('shared design system: pill/rounded corners replace the parody-era square ones, no letter-spacing on button text (#104)', () => {
+  it('the compact-choice chip (drop-off, delivery instructions, rating tags) is a rounded pill, not a square', () => {
+    const rule = css.match(/\.chip\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:999px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+
+  it('the menu/cart add and remove buttons are rounded, not square', () => {
+    const rule = css.match(/\.add-button,\.remove-button\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:10px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+
+  it('the primary CTA (place-order) is rounded and carries no letter-spacing on its label', () => {
+    const rule = css.match(/\.place-order\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:12px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+
+  it('the start-over button is rounded and carries no letter-spacing on its label', () => {
+    const rule = css.match(/\.reset-button\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:10px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+});
+
+describe('compact page-title scale replaces the oversized parody-era h1 (#104)', () => {
+  it('--font-size-h1 matches the mock\'s compact page-title scale (docs/design/80-checkout-sf.html\'s h1 uses --font-size-h2, 1rem) instead of the old 1.875rem', () => {
+    const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
+    expect(rootBlock).toContain('--font-size-h1:1rem');
+  });
+});
+
 describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
   const cases: Array<[string, RegExp]> = [
     ['the primary CTA (place-order)', /\.place-order\{[^}]*\}/],
@@ -98,21 +131,15 @@ describe('landing hero wordmark fits at 375px (driver review, #67)', () => {
 });
 
 describe('home feed promo banner fits at 375px (#82 review round 2, item 1)', () => {
-  // A row layout with the banner image's fixed 343px intrinsic width had no
-  // room left for the heading once the surrounding padding/border were
-  // subtracted at a 375px viewport — the image spilled past the box and the
-  // heading rendered beside it, off-screen, widening the whole page
-  // (measured scrollWidth 453 on 938d004). This fails against that commit
-  // and passes once the banner stacks and the image scales to its box.
-  it('the banner stacks the image above the heading rather than placing them side by side', () => {
+  // Originally a row layout whose fixed-width banner image spilled past the
+  // box and pushed the heading off-screen at 375px (measured scrollWidth 453
+  // on 938d004) — fixed by stacking. #104 round 1 removed the image outright
+  // (driver review, item 1: no Unsplash search was ever named for that slot,
+  // so it stayed a permanent "Placeholder"), leaving the banner's own claim
+  // and sub lines as the only thing this stack now protects.
+  it('the banner stacks its claim above its sub line rather than placing them side by side', () => {
     const rule = css.match(/\.promo-banner\{[^}]*\}/)?.[0] ?? '';
     expect(rule).toContain('flex-direction:column');
-  });
-
-  it("the banner image scales to the box's own width instead of its 343px intrinsic size", () => {
-    const rule = css.match(/\.promo-banner img\{[^}]*\}/)?.[0] ?? '';
-    expect(rule).toContain('width:100%');
-    expect(rule).not.toMatch(/(?<!max-)width:343px/);
   });
 });
 
