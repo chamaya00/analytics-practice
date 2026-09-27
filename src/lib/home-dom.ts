@@ -8,8 +8,15 @@ import { CITIES, CITY_CURRENCY, CITY_NAMES, formatMoneyForCity, type City } from
 import { getStoredCity, setStoredCity } from './location';
 import { CUISINE_SHORTCUTS, restaurantsForCity, etaRangeLabel, type Restaurant } from './restaurants';
 import { track } from './tracking';
-import { ensureFlashDraw, flashFeeForRestaurant, flashSecondsRemaining, isFlashLive, type FlashDraw } from './flash-deal';
-import { renderFlashSheet } from './flash-sheet-dom';
+import {
+  ensureFlashDraw,
+  flashFeeForRestaurant,
+  flashSecondsRemaining,
+  isFlashLive,
+  setFlashDrawState,
+  type FlashDraw,
+} from './flash-deal';
+import { renderFlashReopenBar, renderFlashSheet } from './flash-sheet-dom';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
@@ -167,7 +174,9 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
 
 function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): void {
   const now = Date.now();
-  const { draw, isNewDraw } = ensureFlashDraw(sessionStorage, city, now);
+  const initial = ensureFlashDraw(sessionStorage, city, now);
+  const { isNewDraw } = initial;
+  let draw = initial.draw;
 
   const feed = document.createElement('div');
   feed.className = 'home-feed';
@@ -274,16 +283,56 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
     setTimeout(renderList, remainingMs);
   }
 
+  let barHandle: { destroy(): void } | null = null;
+
+  function showBar(): void {
+    if (!isFlashLive(draw, Date.now())) return;
+    barHandle = renderFlashReopenBar(root, city, draw, () => {
+      draw = setFlashDrawState(sessionStorage, city, draw, { collapsed: false });
+      openSheet();
+    });
+  }
+
+  function openSheet(): void {
+    if (barHandle) {
+      barHandle.destroy();
+      barHandle = null;
+    }
+    renderFlashSheet(
+      root,
+      city,
+      draw,
+      (path) => {
+        window.location.href = path;
+      },
+      Date.now,
+      {
+        eventAlreadyFired: draw.closedEventFired === true,
+        onDismissed: () => {
+          draw = setFlashDrawState(sessionStorage, city, draw, { collapsed: true, closedEventFired: true });
+          showBar();
+        },
+      },
+    );
+  }
+
   if (isNewDraw) {
+    // A 5-6 restaurant draw's own restaurant_slugs no longer matches
+    // flash_sheet_shown's contract (exactly 2, tracking.ts's
+    // isValidRestaurantSlugs and the store's own check) - all of this
+    // draw's slugs are still passed through rather than truncated to 2, so
+    // the event is dropped by that validation and goes quiet rather than
+    // wrong (#120 AC6; docs/design/119-flash-sheet-tall-and-collapsed-
+    // bar.md and the parent objective's "event tracking comes last" rule).
     track('flash_sheet_shown', {
       city,
       amount_minor: draw.amountMinor,
       currency: CITY_CURRENCY[city],
-      restaurant_slugs: [draw.restaurants[0].slug, draw.restaurants[1].slug],
+      restaurant_slugs: draw.restaurants.map((restaurant) => restaurant.slug),
     });
-    renderFlashSheet(root, city, draw, (path) => {
-      window.location.href = path;
-    });
+    openSheet();
+  } else if (draw.collapsed) {
+    showBar();
   }
 }
 

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initCheckoutPage } from './checkout-dom';
+import { setFlashDraw } from './flash-deal';
 import { addToCart, getCart, getOrder } from './order-store';
 import { resetTrack, setTrack } from './tracking';
 
@@ -17,6 +18,7 @@ const LINE = {
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -326,5 +328,28 @@ describe('initCheckoutPage — one cart per restaurant', () => {
     expect(el.querySelector('[data-testid="place-order"]')).toBeNull();
     expect(el.querySelector('[data-testid="checkout-choose-cart"] a')?.getAttribute('href')).toBe('/cart/');
     expect(stub).not.toHaveBeenCalled();
+  });
+});
+
+describe('checkout — the flash fee reaches every drawn restaurant, not just the first two (#120 AC4)', () => {
+  it('a restaurant drawn last in a live 6-restaurant flash window still gets its free/reduced delivery fee', () => {
+    addToCart(window.localStorage, LINE); // north-beach-pizzeria, sf
+    setFlashDraw(window.sessionStorage, 'sf', {
+      drawnAt: Date.now(),
+      amountMinor: 500,
+      restaurants: [
+        { slug: 'mission-taqueria', feeMode: 'reduced' },
+        { slug: 'dogpatch-burger-works', feeMode: 'reduced' },
+        { slug: 'noriega-thai-kitchen', feeMode: 'reduced' },
+        { slug: 'inner-richmond-sushi-bar', feeMode: 'reduced' },
+        { slug: 'valencia-street-tandoor', feeMode: 'reduced' },
+        { slug: 'north-beach-pizzeria', feeMode: 'free' }, // sixth and last of the draw
+      ],
+    });
+
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage);
+
+    expect(el.querySelector('[data-testid="breakdown-delivery-fee"]')?.textContent).toContain('Free');
   });
 });
