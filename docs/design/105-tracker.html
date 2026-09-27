@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Dontdropthatpromo — tracker mock, Delivered state with rating prompt</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #FBF7FF;
+    --color-surface: #F7F1FF;
+    --color-text: #241B33;
+    --color-text-muted: #6B5D85;
+    --color-border: #E3D6FA;
+    --color-accent: #6C3CE0;
+    --color-accent-secondary: #FF7A45;
+    --color-tab-active-bg: #EDE1FF;
+    --color-danger: #C22C3C;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.4;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+  main { max-width: 26rem; margin: 0 auto; padding: var(--space-md) var(--space-lg) calc(64px + var(--space-lg)); }
+
+  .wordmark {
+    margin: 0 0 var(--space-md);
+    font-size: var(--font-size-nav-title);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .wordmark .word-strong { font-weight: 800; }
+  .wordmark .tail { position: relative; }
+  .wordmark .tail::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    bottom: -2px;
+    width: 6px;
+    height: 6px;
+    border-bottom: 2px solid var(--color-accent);
+    border-right: 2px solid var(--color-accent);
+    border-radius: 0 0 6px 0;
+  }
+  h1 { font-size: var(--font-size-h2); font-weight: 800; margin: 0 0 2px; }
+  .order-summary { font-size: var(--font-size-muted); color: var(--color-text-muted); margin: 0 0 var(--space-lg); }
+
+  .tracker-list { display: flex; flex-direction: column; }
+  .tracker-step { display: flex; gap: var(--space-md); }
+  .tracker-step .rail { display: flex; flex-direction: column; align-items: center; width: 20px; flex: none; }
+  .tracker-step .dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .tracker-step .dot svg { width: 12px; height: 12px; }
+  .tracker-step .line { flex: 1; width: 2px; background: var(--color-accent); min-height: 20px; }
+  .tracker-step:last-child .line { display: none; }
+  .tracker-step .label-wrap { padding-bottom: var(--space-lg); padding-top: 1px; }
+  .tracker-step .label { font-weight: 700; font-size: var(--font-size-body); }
+  .tracker-step.current .label { font-weight: 800; }
+
+  .disclosure {
+    margin: var(--space-sm) 0 var(--space-lg);
+    padding: var(--space-xs) var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: var(--font-size-muted);
+    display: flex;
+    gap: var(--space-xs);
+    align-items: flex-start;
+  }
+  .disclosure .icon { flex: none; }
+  .disclosure a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
+
+  .rating-prompt { }
+  h2.section-title { font-size: var(--font-size-h2); font-weight: 700; margin: 0 0 var(--space-sm); }
+  .stars { display: flex; gap: var(--space-xs); margin-bottom: var(--space-md); }
+  .stars svg { width: 32px; height: 32px; }
+  .stars svg.filled { color: var(--color-accent); fill: var(--color-accent); }
+  .stars svg.empty { color: var(--color-border); fill: none; }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-lg); }
+  .chip {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-sm);
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: var(--font-size-muted);
+    font-weight: 600;
+  }
+  .chip.selected { border-color: var(--color-accent); color: var(--color-accent); font-weight: 800; }
+
+  .place-order {
+    width: 100%;
+    min-height: 48px;
+    border: none;
+    border-radius: 12px;
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: 800;
+    font-size: var(--font-size-body);
+  }
+
+  .reference-only {
+    margin-top: var(--space-xxl);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+  }
+
+  .tab-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+  .tab-bar a {
+    flex: 1;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+  .tab-bar a svg { width: 20px; height: 20px; }
+  .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+  .tab-bar a.current .tab-label { background: var(--color-tab-active-bg); padding: 1px var(--space-md); border-radius: 999px; }
+  @media (min-width: 481px) { .tab-bar { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <p class="wordmark"><span class="word-strong">dont</span><wbr>drop<wbr>that<wbr>prom<span class="tail">o</span></p>
+  <h1>Tracker</h1>
+  <p class="order-summary">Bến Thành Bánh Mì · 2 items</p>
+
+  <div class="tracker-list">
+    <div class="tracker-step">
+      <div class="rail"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="line"></span></div>
+      <div class="label-wrap"><span class="label">Placed</span></div>
+    </div>
+    <div class="tracker-step">
+      <div class="rail"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="line"></span></div>
+      <div class="label-wrap"><span class="label">Preparing</span></div>
+    </div>
+    <div class="tracker-step">
+      <div class="rail"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="line"></span></div>
+      <div class="label-wrap"><span class="label">Picked up</span></div>
+    </div>
+    <div class="tracker-step">
+      <div class="rail"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="line"></span></div>
+      <div class="label-wrap"><span class="label">On the way</span></div>
+    </div>
+    <div class="tracker-step current" aria-current="step">
+      <div class="rail"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="label-wrap"><span class="label">Delivered</span></div>
+    </div>
+  </div>
+
+  <div class="disclosure">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+    <span>This is a demo. No payment is taken and no food is sent. <a href="#">What we log, and why →</a></span>
+  </div>
+
+  <div class="rating-prompt">
+    <h2 class="section-title">How was your order?</h2>
+    <div class="stars">
+      <svg class="filled" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 2 14.9 8.6 22 9.4 16.8 14.3 18.2 21.3 12 17.8 5.8 21.3 7.2 14.3 2 9.4 9.1 8.6 12 2Z" stroke-linejoin="round"/></svg>
+      <svg class="filled" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 2 14.9 8.6 22 9.4 16.8 14.3 18.2 21.3 12 17.8 5.8 21.3 7.2 14.3 2 9.4 9.1 8.6 12 2Z" stroke-linejoin="round"/></svg>
+      <svg class="filled" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 2 14.9 8.6 22 9.4 16.8 14.3 18.2 21.3 12 17.8 5.8 21.3 7.2 14.3 2 9.4 9.1 8.6 12 2Z" stroke-linejoin="round"/></svg>
+      <svg class="filled" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 2 14.9 8.6 22 9.4 16.8 14.3 18.2 21.3 12 17.8 5.8 21.3 7.2 14.3 2 9.4 9.1 8.6 12 2Z" stroke-linejoin="round"/></svg>
+      <svg class="empty" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 2 14.9 8.6 22 9.4 16.8 14.3 18.2 21.3 12 17.8 5.8 21.3 7.2 14.3 2 9.4 9.1 8.6 12 2Z" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="chip-group">
+      <span class="chip selected">Fast</span>
+      <span class="chip">Great packaging</span>
+      <span class="chip">Order was correct</span>
+    </div>
+    <button class="place-order">Submit</button>
+  </div>
+
+  <p class="reference-only">Reference only, not part of the shipped page — this line and the dashed rule above it exist so a reader of the render can tell the mock's own scaffolding from the page it depicts. Not duplicated per city — see the design doc's "Guesses" section.</p>
+</main>
+<nav class="tab-bar">
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">Home</span></a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><span class="tab-label">Cart</span></a>
+  <a href="#" class="current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg><span class="tab-label">Tracker</span></a>
+</nav>
+</body>
+</html>
