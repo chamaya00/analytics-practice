@@ -17,9 +17,9 @@ export const SESSION_ID_KEY = 'parody.sessionId';
 export const CART_KEY = 'parody.cart';
 /** Superseded by `ORDERS_KEY` (#144) — read once, on migration, then removed. Kept exported so a test can seed the pre-migration shape directly. */
 export const ORDER_KEY = 'parody.order';
-/** Every stored order (#144), oldest first. Replaces the single-order `ORDER_KEY` — see ADR 0008. */
+/** Every stored order (#144), oldest first. Replaces the single-order `ORDER_KEY` — see ADR 0009. */
 export const ORDERS_KEY = 'parody.orders';
-/** The most orders kept on one device — see ADR 0008 for why this number. An order still live, or delivered with `order_delivered` not yet fired, is never dropped even past this cap (§5). */
+/** The most orders kept on one device — see ADR 0009 for why this number. An order still live, or delivered with `order_delivered` not yet fired, is never dropped even past this cap (§5). */
 export const ORDER_HISTORY_CAP = 20;
 
 export interface CartLine {

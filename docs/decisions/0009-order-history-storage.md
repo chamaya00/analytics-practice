@@ -1,4 +1,4 @@
-# ADR 0008: Order history is a bounded, device-local list
+# ADR 0009: Order history is a bounded, device-local list
 
 Date: 2026-09-27
 Status: accepted
