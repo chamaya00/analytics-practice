@@ -75,7 +75,8 @@ describe('initCartPage (AC1, AC3)', () => {
     const el = root();
     initCartPage(el, window.localStorage, '');
 
-    el.querySelector<HTMLButtonElement>(`[data-testid="remove-${LINE.itemId}"]`)?.click();
+    el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${LINE.itemId}"]`)?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="confirm-confirm"]')?.click();
 
     expect(el.querySelector('[data-testid="cart-empty"]')).not.toBeNull();
   });
@@ -183,7 +184,7 @@ describe('initCartPage — one cart per restaurant', () => {
     const el = root();
     initCartPage(el, window.localStorage, '?restaurant=north-beach-pizzeria');
 
-    el.querySelector<HTMLButtonElement>(`[data-testid="remove-${LINE.itemId}"]`)?.click();
+    el.querySelector<HTMLButtonElement>(`[data-testid="swipe-remove-${LINE.itemId}"]`)?.click();
 
     expect(el.querySelector('[data-testid="cart-heading"]')?.textContent).toBe('Your carts');
     expect(el.querySelectorAll('[data-testid="cart-cards"] a')).toHaveLength(2);
@@ -191,5 +192,95 @@ describe('initCartPage — one cart per restaurant', () => {
       'mission-taqueria',
       'saigon-pho-quan',
     ]);
+  });
+});
+
+describe('removing a line: swipe-revealed Remove, or minus at quantity 1 with a confirm', () => {
+  beforeEach(() => {
+    addToCart(window.localStorage, LINE);
+    addToCart(window.localStorage, TACO);
+    addToCart(window.localStorage, TACO);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  function mount(): HTMLElement {
+    const el = root();
+    initCartPage(el, window.localStorage, '?restaurant=north-beach-pizzeria');
+    return el;
+  }
+
+  it('no cart row carries a standalone "Remove" button any more', () => {
+    const el = mount();
+    expect(el.querySelector('.remove-button')).toBeNull();
+    expect(el.querySelector(`[data-testid="remove-${LINE.itemId}"]`)).toBeNull();
+  });
+
+  it('each row’s swipe-revealed Remove sits behind the row, covered and out of the tab order until swiped', () => {
+    const el = mount();
+    const action = el.querySelector<HTMLButtonElement>(`[data-testid="swipe-remove-${LINE.itemId}"]`);
+    expect(action?.textContent).toBe('Remove');
+    expect(action?.tabIndex).toBe(-1);
+    expect(action?.getAttribute('aria-hidden')).toBe('true');
+    expect(el.querySelector(`[data-testid="cart-line-${LINE.itemId}"]`)?.classList.contains('cart-row')).toBe(true);
+  });
+
+  it('tapping the swipe-revealed Remove removes that line only', () => {
+    addToCart(window.localStorage, { ...LINE, itemId: 'north-beach-pizzeria-caesar', name: 'Caesar' });
+    const el = mount();
+    el.querySelector<HTMLButtonElement>(`[data-testid="swipe-remove-${LINE.itemId}"]`)?.click();
+    expect(el.querySelector(`[data-testid="cart-line-${LINE.itemId}"]`)).toBeNull();
+    expect(el.querySelector('[data-testid="cart-line-north-beach-pizzeria-caesar"]')).not.toBeNull();
+    expect(getCart(window.localStorage).some((line) => line.itemId === TACO.itemId)).toBe(true);
+  });
+
+  it('minus above quantity 1 just decrements, with no dialog', () => {
+    const el = root();
+    initCartPage(el, window.localStorage, '?restaurant=mission-taqueria');
+    el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${TACO.itemId}"]`)?.click();
+    expect(document.querySelector('[data-testid="confirm-dialog"]')).toBeNull();
+    expect(el.querySelector(`[data-testid="quantity-${TACO.itemId}"]`)?.textContent).toBe('1');
+  });
+
+  it('minus at quantity 1 asks first: "Remove {dish}?" / "It\'ll be taken out of your {restaurant} cart."', () => {
+    const el = mount();
+    el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${LINE.itemId}"]`)?.click();
+
+    const dialog = document.querySelector('[data-testid="confirm-dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.getAttribute('role')).toBe('dialog');
+    expect(dialog?.getAttribute('aria-modal')).toBe('true');
+    expect(dialog?.querySelector('h2')?.textContent).toBe('Remove Margherita?');
+    expect(dialog?.querySelector('p')?.textContent).toBe("It'll be taken out of your North Beach Pizzeria cart.");
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('confirm-cancel');
+    // Nothing removed yet.
+    expect(el.querySelector(`[data-testid="quantity-${LINE.itemId}"]`)?.textContent).toBe('1');
+  });
+
+  it('Cancel keeps the line at quantity 1 and returns focus to the minus button', () => {
+    const el = mount();
+    const minus = el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${LINE.itemId}"]`)!;
+    minus.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="confirm-cancel"]')?.click();
+
+    expect(document.querySelector('[data-testid="confirm-dialog"]')).toBeNull();
+    expect(el.querySelector(`[data-testid="quantity-${LINE.itemId}"]`)?.textContent).toBe('1');
+    expect(document.activeElement).toBe(minus);
+  });
+
+  it('Remove in the dialog removes the line; the cart_viewed already fired is not fired again', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    addToCart(window.localStorage, { ...LINE, itemId: 'north-beach-pizzeria-caesar', name: 'Caesar' });
+    const el = mount();
+    el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${LINE.itemId}"]`)?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="confirm-confirm"]')?.click();
+
+    expect(el.querySelector(`[data-testid="cart-line-${LINE.itemId}"]`)).toBeNull();
+    expect(el.querySelector('[data-testid="cart-subtotal"]')?.textContent).toBe('Subtotal: $14.00');
+    expect(document.activeElement?.getAttribute('data-testid')).toBe('cart-heading');
+    expect(stub).toHaveBeenCalledTimes(1);
   });
 });

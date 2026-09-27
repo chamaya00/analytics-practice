@@ -27,6 +27,8 @@ import { getStoredCity } from './location';
 import { initCartBadge } from './header-dom';
 import { track } from './tracking';
 import { ALL_CARTS_PATH, cartPath, checkoutPath, restaurantSlugFromSearch } from './cart-routes';
+import { attachSwipeRow } from './swipe-row';
+import { openConfirmDialog } from './confirm-dialog-dom';
 
 function heading(text: string): HTMLElement {
   const h1 = document.createElement('h1');
@@ -34,6 +36,11 @@ function heading(text: string): HTMLElement {
   h1.tabIndex = -1;
   h1.textContent = text;
   return h1;
+}
+
+/** After a line is removed its controls are gone, so focus lands on the page heading rather than falling back to <body>. */
+function focusHeading(root: HTMLElement): void {
+  root.querySelector<HTMLElement>('[data-testid="cart-heading"]')?.focus();
 }
 
 function itemCountLabel(count: number): string {
@@ -140,14 +147,31 @@ function renderRestaurantCart(
   list.setAttribute('data-testid', 'cart-list');
 
   for (const line of lines) {
+    // The row is two layers: the Remove action at the trailing edge, and
+    // the line's own content on top of it, which a left swipe slides aside
+    // (swipe-row.ts). The stepper's minus at quantity 1 is the other way to
+    // remove a line, and asks first.
     const row = document.createElement('li');
-    row.className = 'cart-line';
+    row.className = 'cart-row';
     row.setAttribute('data-testid', `cart-line-${line.itemId}`);
+
+    const content = document.createElement('div');
+    content.className = 'cart-line';
+    content.setAttribute('data-testid', `cart-line-content-${line.itemId}`);
+
+    const text = document.createElement('div');
+    text.className = 'cart-line-text';
 
     const name = document.createElement('span');
     name.className = 'cart-line-name';
     name.setAttribute('data-testid', `cart-line-name-${line.itemId}`);
     name.textContent = line.name;
+
+    const lineTotal = document.createElement('span');
+    lineTotal.className = 'cart-line-total';
+    lineTotal.textContent = formatMoney(line.amountMinor * line.quantity, line.currency);
+
+    text.append(name, lineTotal);
 
     const stepper = document.createElement('div');
     stepper.className = 'quantity-stepper';
@@ -155,11 +179,25 @@ function renderRestaurantCart(
     const minus = document.createElement('button');
     minus.type = 'button';
     minus.setAttribute('data-testid', `decrement-${line.itemId}`);
-    minus.setAttribute('aria-label', `Remove one ${line.name}`);
+    minus.setAttribute('aria-label', line.quantity === 1 ? `Remove ${line.name}` : `Remove one ${line.name}`);
     minus.textContent = '−';
     minus.addEventListener('click', () => {
-      setItemQuantity(storage, line.itemId, line.quantity - 1);
-      rerender();
+      if (line.quantity > 1) {
+        setItemQuantity(storage, line.itemId, line.quantity - 1);
+        rerender();
+        return;
+      }
+      openConfirmDialog({
+        title: `Remove ${line.name}?`,
+        body: `It'll be taken out of your ${cart.restaurantName} cart.`,
+        confirmLabel: 'Remove',
+        returnFocusTo: minus,
+        onConfirm: () => {
+          removeFromCart(storage, line.itemId);
+          rerender();
+          focusHeading(root);
+        },
+      });
     });
 
     const count = document.createElement('span');
@@ -178,22 +216,22 @@ function renderRestaurantCart(
     });
 
     stepper.append(minus, count, plus);
+    content.append(text, stepper);
 
     const remove = document.createElement('button');
     remove.type = 'button';
-    remove.className = 'remove-button';
-    remove.setAttribute('data-testid', `remove-${line.itemId}`);
+    remove.className = 'swipe-action';
+    remove.setAttribute('data-testid', `swipe-remove-${line.itemId}`);
+    remove.setAttribute('aria-label', `Remove ${line.name}`);
     remove.textContent = 'Remove';
     remove.addEventListener('click', () => {
       removeFromCart(storage, line.itemId);
       rerender();
+      focusHeading(root);
     });
 
-    const lineTotal = document.createElement('span');
-    lineTotal.className = 'cart-line-total';
-    lineTotal.textContent = formatMoney(line.amountMinor * line.quantity, line.currency);
-
-    row.append(name, stepper, remove, lineTotal);
+    row.append(remove, content);
+    attachSwipeRow(row, content, remove);
     list.append(row);
   }
 
