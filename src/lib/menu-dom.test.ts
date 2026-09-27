@@ -79,6 +79,27 @@ describe('initMenuPage (AC1, AC2, AC5)', () => {
   });
 });
 
+describe('the restaurant-meta line’s per-visitor ETA (AC1, AC2)', () => {
+  it('fills the restaurant-eta span with "N min", stable across repeated calls', () => {
+    const span = document.createElement('span');
+    span.setAttribute('data-testid', 'restaurant-eta');
+    document.body.appendChild(span);
+
+    initMenuPage(root(), restaurant, window.localStorage);
+    const first = span.textContent;
+    expect(first).toMatch(/^\d+ min$/);
+
+    initMenuPage(root(), restaurant, window.localStorage);
+    expect(span.textContent).toBe(first);
+
+    span.remove();
+  });
+
+  it('does nothing when the page has no restaurant-eta span (e.g. a bare test root)', () => {
+    expect(() => initMenuPage(root(), restaurant, window.localStorage)).not.toThrow();
+  });
+});
+
 describe('the menu’s cart summary counts only this restaurant’s cart', () => {
   it('ignores another restaurant’s lines and links to this restaurant’s own cart', () => {
     const other = restaurantsForCity('sf')[1];

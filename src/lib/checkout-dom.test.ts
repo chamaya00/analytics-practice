@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initCheckoutPage } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
-import { addToCart, getCart, getOrder } from './order-store';
+import { addToCart, getCart, getOrder, getVisitorId } from './order-store';
+import { estimateEtaMinutes } from './eta';
 import { resetTrack, setTrack } from './tracking';
 
 // North Beach Pizzeria's own deliveryFeeMinor (restaurants.ts) is 299 — the
@@ -70,6 +71,15 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     expect(el.querySelector('[data-testid="breakdown-discount"]')?.textContent).toContain('$2.00');
     expect(el.querySelector('[data-testid="breakdown-saved"]')?.textContent).toContain('$4.99');
     expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
+  });
+
+  it('shows "Arrives in about N min" using this visitor\'s own estimate for this restaurant (AC2)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const visitorId = getVisitorId(window.localStorage);
+    const expected = estimateEtaMinutes(visitorId, LINE.restaurantSlug);
+    expect(el.querySelector('[data-testid="checkout-eta"]')?.textContent).toBe(`Arrives in about ${expected} min`);
   });
 
   it('the Offers row names the applied count and "You saved" total, in the mock\'s violet label/summary/chevron shape (AC1)', () => {

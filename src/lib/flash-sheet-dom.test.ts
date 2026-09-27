@@ -39,7 +39,7 @@ function root(): HTMLElement {
 describe('renderFlashSheet — anatomy (AC4)', () => {
   it('shows the drawn amount, a 15:00 countdown, the min-spend line, and both drawn restaurants', () => {
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
 
     expect(el.querySelector('.sheet-header h1')?.textContent).toBe(`${formatMoneyForCity(15000, 'hcmc')} off flash deals`);
     expect(el.querySelector('[data-testid="flash-sheet-countdown"]')?.textContent).toBe('15:00');
@@ -50,7 +50,7 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
 
   it('a free-mode restaurant shows "Free" with the original fee struck through', () => {
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
     const fee = el.querySelector('[data-testid="flash-restaurant-ben-thanh-banh-mi"] .restaurant-fee');
     expect(fee?.textContent).toContain('Free');
     expect(fee?.textContent).toContain(formatMoneyForCity(10000, 'hcmc')); // ben-thanh-banh-mi's own normal fee
@@ -58,7 +58,7 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
 
   it('each drawn restaurant shows a thumbnail with a "Deal" sticker (AC4)', () => {
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
     const row = el.querySelector('[data-testid="flash-restaurant-ben-thanh-banh-mi"]');
     const photo = row?.querySelector('.restaurant-photo');
     expect(photo?.querySelector('img')?.getAttribute('src')).toBeTruthy();
@@ -67,7 +67,7 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
 
   it('the countdown is split into MM/SS tiles around a separator (AC4)', () => {
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
     const countdown = el.querySelector('[data-testid="flash-sheet-countdown"]');
     const tiles = countdown?.querySelectorAll('.tile');
     expect(Array.from(tiles ?? []).map((tile) => tile.textContent)).toEqual(['15', '00']);
@@ -76,14 +76,14 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
 
   it('the countdown ticks down as the fake clock advances', () => {
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
     vi.advanceTimersByTime(60_000);
     expect(el.querySelector('[data-testid="flash-sheet-countdown"]')?.textContent).toBe('14:00');
   });
 
   it('renders one row per drawn restaurant, 5–6 of them for a Grab-sized draw (AC1)', () => {
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
     const rows = el.querySelectorAll('.restaurant-row');
     expect(rows.length).toBe(DRAW.restaurants.length);
     expect(rows.length).toBeGreaterThanOrEqual(5);
@@ -96,7 +96,7 @@ describe('renderFlashSheet — dismissal and its event (AC4, AC6)', () => {
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
 
     vi.advanceTimersByTime(30_000); // 30s in
     el.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click();
@@ -115,7 +115,7 @@ describe('renderFlashSheet — dismissal and its event (AC4, AC6)', () => {
     setTrack(stub);
     const navigate = vi.fn();
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, navigate, () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', navigate, () => Date.now());
 
     el.querySelector<HTMLElement>('[data-testid="flash-restaurant-saigon-pho-quan"]')?.click();
 
@@ -132,7 +132,7 @@ describe('renderFlashSheet — dismissal and its event (AC4, AC6)', () => {
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
 
     vi.advanceTimersByTime(15 * 60 * 1000);
 
@@ -149,7 +149,7 @@ describe('renderFlashSheet — dismissal and its event (AC4, AC6)', () => {
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
-    const handle = renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    const handle = renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
 
     el.querySelector<HTMLElement>('[data-testid="flash-sheet-close"]')?.click();
     handle.expire();
@@ -163,7 +163,7 @@ describe('renderFlashSheet — onDismissed, the collapse trigger (AC2, AC3)', ()
     for (const testid of ['flash-sheet-scrim', 'flash-sheet-close', 'flash-sheet-drag-handle']) {
       const onDismissed = vi.fn();
       const el = root();
-      renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now(), { onDismissed });
+      renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now(), { onDismissed });
       el.querySelector<HTMLElement>(`[data-testid="${testid}"]`)?.click();
       expect(onDismissed).toHaveBeenCalledTimes(1);
     }
@@ -172,7 +172,7 @@ describe('renderFlashSheet — onDismissed, the collapse trigger (AC2, AC3)', ()
   it('an expired close never calls onDismissed — an open sheet does not collapse into a bar (AC3)', () => {
     const onDismissed = vi.fn();
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now(), { onDismissed });
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now(), { onDismissed });
 
     vi.advanceTimersByTime(15 * 60 * 1000);
 
@@ -182,7 +182,7 @@ describe('renderFlashSheet — onDismissed, the collapse trigger (AC2, AC3)', ()
   it('tapping a restaurant row never calls onDismissed', () => {
     const onDismissed = vi.fn();
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now(), { onDismissed });
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now(), { onDismissed });
 
     el.querySelector<HTMLElement>('[data-testid="flash-restaurant-ben-thanh-banh-mi"]')?.click();
 
@@ -193,7 +193,7 @@ describe('renderFlashSheet — onDismissed, the collapse trigger (AC2, AC3)', ()
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
-    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now(), { eventAlreadyFired: true });
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now(), { eventAlreadyFired: true });
 
     el.querySelector<HTMLElement>('[data-testid="flash-sheet-close"]')?.click();
 
@@ -249,7 +249,7 @@ describe('the dismiss → collapse → reopen → close-again flow fires the eve
     let eventAlreadyFired = false;
 
     function openSheet(): void {
-      renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now(), {
+      renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now(), {
         eventAlreadyFired,
         onDismissed: () => {
           eventAlreadyFired = true;

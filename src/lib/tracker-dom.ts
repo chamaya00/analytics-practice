@@ -7,16 +7,12 @@
 // rating_submitted once when "Submit" is tapped — matching
 // docs/measurement/81-two-city-event-contract.md §7 exactly.
 
-import {
-  getOrder,
-  markOrderDelivered,
-  minutesSinceOrder,
-  recordTrackerView,
-  submitRating,
-} from './order-store';
+import { getOrder, minutesSinceOrder, recordTrackerView, submitRating } from './order-store';
 import { computeTrackerView, STEPS, type TrackerView } from './tracker-state';
+import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
 import { renderDemoDisclosure } from './demo-disclosure';
+import { formatCountdown } from './vouchers';
 
 const STAR_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
@@ -208,6 +204,17 @@ export function renderTrackerView(
     root.append(summary);
   }
 
+  if (view.kind === 'active') {
+    // Counts down toward the *estimate* shown at checkout — reaching
+    // Delivered (below, at the order's own earlier deliveryMs) is what ends
+    // this, not the countdown itself running out (#121 AC4).
+    const countdown = document.createElement('p');
+    countdown.className = 'tracker-countdown';
+    countdown.setAttribute('data-testid', 'tracker-countdown');
+    countdown.textContent = `${formatCountdown(Math.ceil(view.remainingMs / 1000))} until estimated arrival`;
+    root.append(countdown);
+  }
+
   const currentIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
   root.append(renderStepper(currentIndex));
 
@@ -239,16 +246,9 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
   }
 
   function render(): void {
+    checkDelivery(storage);
     const latest = getOrder(storage);
     const view = computeTrackerView(latest);
-
-    if (latest && view.kind === 'delivered' && !latest.deliveredEventFired) {
-      markOrderDelivered(storage);
-      track('order_delivered', {
-        order_id: latest.orderId,
-        minutes_since_order: minutesSinceOrder(latest),
-      });
-    }
 
     const orderSummary = latest ? { restaurantName: latest.items[0]?.restaurantName ?? '', itemCount: latest.itemCount } : null;
     renderTrackerView(root, view, onSubmitRating, orderSummary);
@@ -256,6 +256,8 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
 
   render();
 
-  const intervalId = window.setInterval(render, 3000);
+  // Ticks every second (#121 AC4) — the live countdown depends on it, not
+  // just the stepper advancing.
+  const intervalId = window.setInterval(render, 1000);
   return () => window.clearInterval(intervalId);
 }

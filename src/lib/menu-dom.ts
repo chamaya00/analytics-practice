@@ -5,9 +5,18 @@
 
 import type { Restaurant } from './restaurants';
 import { currencyForRestaurant } from './restaurants';
-import { addToCart, cartItemCount, cartSubtotalMinor, getCart, linesForRestaurant, setItemQuantity } from './order-store';
+import {
+  addToCart,
+  cartItemCount,
+  cartSubtotalMinor,
+  getCart,
+  getVisitorId,
+  linesForRestaurant,
+  setItemQuantity,
+} from './order-store';
 import { cartPath } from './cart-routes';
 import { formatMoney } from './money';
+import { estimateEtaMinutes, etaLabel } from './eta';
 import { initCartBadge } from './header-dom';
 import { track } from './tracking';
 
@@ -157,7 +166,18 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
   }
 }
 
+/** Fills in the astro page's own `.restaurant-meta` line, rendered outside `#menu-root` and
+ * therefore outside `renderMenu`'s own DOM — the same "reach past this module's own root"
+ * pattern `initCartBadge` already uses for the header's cart count. Left blank if the page
+ * this runs against doesn't carry the span (e.g. a test root with no surrounding page). */
+function renderEta(restaurant: Restaurant, storage: Storage): void {
+  const etaEl = document.querySelector<HTMLElement>('[data-testid="restaurant-eta"]');
+  if (!etaEl) return;
+  etaEl.textContent = etaLabel(estimateEtaMinutes(getVisitorId(storage), restaurant.slug));
+}
+
 export function initMenuPage(root: HTMLElement, restaurant: Restaurant, storage: Storage = window.localStorage): void {
   renderMenu(root, storage, restaurant);
+  renderEta(restaurant, storage);
   track('restaurant_opened', { city: restaurant.city, restaurant_slug: restaurant.slug });
 }

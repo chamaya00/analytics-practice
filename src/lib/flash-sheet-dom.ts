@@ -14,7 +14,8 @@
 // collapsed state alongside the draw so it survives a reload.
 
 import { formatMoneyForCity, type City } from './money';
-import { getRestaurant, etaRangeLabel } from './restaurants';
+import { getRestaurant } from './restaurants';
+import { estimateEtaMinutes, etaLabel } from './eta';
 import { track } from './tracking';
 import { flashFeeForRestaurant, flashSecondsRemaining, type FlashDraw } from './flash-deal';
 import { FLASH_MINIMUM_SPEND_MINOR, formatCountdown } from './vouchers';
@@ -37,6 +38,7 @@ export function renderFlashSheet(
   root: HTMLElement,
   city: City,
   draw: FlashDraw,
+  visitorId: string,
   navigate: (path: string) => void = (path) => {
     window.location.href = path;
   },
@@ -142,7 +144,8 @@ export function renderFlashSheet(
 
     const meta = document.createElement('p');
     meta.className = 'restaurant-meta';
-    meta.textContent = `★${restaurant.rating.toFixed(1)} · ${restaurant.cuisineTag} · ${etaRangeLabel(restaurant)}`;
+    const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
+    meta.textContent = `★${restaurant.rating.toFixed(1)} · ${restaurant.cuisineTag} · ${eta}`;
 
     const fee = document.createElement('p');
     fee.className = 'restaurant-fee';
