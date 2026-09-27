@@ -40,3 +40,5 @@ Delete any lesson that has graduated into a test, a lint rule, or a type.
 - Several generated SVGs inlined in one mock (DiceBear avatars, #147) share
   internal mask ids, so only the first draws and the rest render as empty
   circles. Embed each as an `<img>` (a `data:` URI in a mock), never inline.
+- A mock with `overflow-x: hidden` (for decorative confetti) hides real overflow from the render;
+  measure `scrollWidth` with it removed before claiming "no overflow at 375" (#162 did).
