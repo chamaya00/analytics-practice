@@ -116,6 +116,16 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     expect(Array.from(pills ?? []).map((pill) => pill.textContent)).toEqual(['Yes', 'No']);
   });
 
+  it('Drop-off and Delivery instructions are muted section-title labels, not full-size headings (AC1)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const dropOffHeading = el.querySelector('[data-testid="field-drop-off"] h2');
+    const deliveryHeading = el.querySelector('[data-testid="field-delivery-instructions"] h2');
+    expect(dropOffHeading?.classList.contains('section-title')).toBe(true);
+    expect(deliveryHeading?.classList.contains('section-title')).toBe(true);
+  });
+
   it('renders exactly the three named preset fields and nothing typed anywhere (AC2)', () => {
     const el = root();
     initCheckoutPage(el, window.localStorage, vi.fn());

@@ -103,6 +103,7 @@ function choiceField<T extends string | number>(
   wrapper.setAttribute('data-testid', `field-${testIdPrefix}`);
 
   const heading = document.createElement('h2');
+  heading.className = 'section-title';
   heading.textContent = legend;
 
   const { element: group, getValue } = choiceButtons(legend, options, testIdPrefix, groupClass);

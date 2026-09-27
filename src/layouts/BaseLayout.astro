@@ -578,7 +578,7 @@ const { title } = Astro.props;
   }
 
   .checkout-restaurant {
-    margin: 0;
+    margin: 0 0 var(--space-sm);
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
   }
@@ -694,13 +694,22 @@ const { title } = Astro.props;
     border: 1px solid var(--color-danger);
   }
 
+  /* Checkout and Offers both put their own page title directly under the
+     wordmark, the same as the home feed above — their mocks (80-checkout-
+     hcmc.html, 87-offers-hcmc.html) give main a --space-md top padding,
+     against this site's default --space-xl, so the gap above "Checkout" /
+     "Offers" at phone width reads about twice the mock's own (driver review,
+     #107 round 1, item 2). */
+  @media (max-width: 480px) {
+    main:has(#checkout-root),
+    main:has(#offers-root) {
+      padding-top: var(--space-md);
+    }
+  }
+
   /* ---- checkout fields: preset choices only, nothing typed ---- */
 
   .checkout-field {
-    margin-bottom: var(--space-sm);
-  }
-
-  .checkout-field h2 {
     margin-bottom: var(--space-sm);
   }
 
