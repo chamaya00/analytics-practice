@@ -1581,8 +1581,17 @@ const { title } = Astro.props;
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* flex, not the plain single-line text this replaced: `gap` carries the
+     visible spacing around the separator, since a flex item's own leading/
+     trailing text-node whitespace collapses at its box edge. Each half gets
+     its own `white-space: nowrap` below — flex's own nowrap default only
+     stops items from moving to a new row, not a single item's own text from
+     wrapping once its box is squeezed. The ≤480px query is what decides to
+     break this onto two deliberate lines instead. */
   .reopen-bar .label {
     display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
     font-weight: 800;
     font-size: var(--font-size-body);
     text-align: left;
@@ -1652,6 +1661,7 @@ const { title } = Astro.props;
        single-line form above keeps the separator. */
     .reopen-bar .label {
       flex-direction: column;
+      align-items: flex-start;
       gap: 2px;
     }
 
