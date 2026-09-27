@@ -396,6 +396,7 @@ const { title } = Astro.props;
     color: var(--color-text);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
+    border-radius: 10px;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
@@ -458,13 +459,17 @@ const { title } = Astro.props;
   }
 
   .chip {
-    min-height: 44px;
-    padding: var(--space-sm) var(--space-md);
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-md);
     font-family: inherit;
-    font-size: var(--font-size-body);
-    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+    font-weight: 600;
+    line-height: 1.15;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
+    border-radius: 999px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
@@ -472,7 +477,7 @@ const { title } = Astro.props;
   .chip.selected {
     color: var(--color-accent-a);
     border-color: var(--color-accent-a);
-    font-weight: 700;
+    font-weight: 800;
   }
 
   .segmented {
@@ -613,17 +618,17 @@ const { title } = Astro.props;
   .place-order {
     display: block;
     width: 100%;
-    min-height: 44px;
+    min-height: 48px;
     padding: var(--space-md);
     font-family: inherit;
     font-size: var(--font-size-body);
-    font-weight: 700;
-    letter-spacing: 0.03em;
+    font-weight: 800;
     text-align: center;
     text-decoration: none;
     color: var(--color-bg);
     background: var(--color-accent-a);
     border: none;
+    border-radius: 12px;
     cursor: pointer;
     transition: transform 100ms ease-out;
     -webkit-tap-highlight-color: transparent;

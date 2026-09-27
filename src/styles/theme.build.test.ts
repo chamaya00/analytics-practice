@@ -29,6 +29,39 @@ describe('dark theme palette (#82 review round 1: #80\'s chosen violet direction
   });
 });
 
+describe('shared design system: pill/rounded corners replace the parody-era square ones, no letter-spacing on button text (#104)', () => {
+  it('the compact-choice chip (drop-off, delivery instructions, rating tags) is a rounded pill, not a square', () => {
+    const rule = css.match(/\.chip\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:999px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+
+  it('the menu/cart add and remove buttons are rounded, not square', () => {
+    const rule = css.match(/\.add-button,\.remove-button\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:10px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+
+  it('the primary CTA (place-order) is rounded and carries no letter-spacing on its label', () => {
+    const rule = css.match(/\.place-order\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:12px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+
+  it('the start-over button is rounded and carries no letter-spacing on its label', () => {
+    const rule = css.match(/\.reset-button\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('border-radius:10px');
+    expect(rule).not.toContain('letter-spacing');
+  });
+});
+
+describe('compact page-title scale replaces the oversized parody-era h1 (#104)', () => {
+  it('--font-size-h1 matches the mock\'s compact page-title scale (docs/design/80-checkout-sf.html\'s h1 uses --font-size-h2, 1rem) instead of the old 1.875rem', () => {
+    const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
+    expect(rootBlock).toContain('--font-size-h1:1rem');
+  });
+});
+
 describe('touch feedback: tap-highlight and pressed state (AC2)', () => {
   const cases: Array<[string, RegExp]> = [
     ['the primary CTA (place-order)', /\.place-order\{[^}]*\}/],
