@@ -433,6 +433,69 @@ const { title } = Astro.props;
     text-align: center;
   }
 
+  /* ---- "Your carts": one card per restaurant (cart-dom.ts) ----
+     Every restaurant is its own cart, so with several the Cart tab lists
+     them rather than merging them. Each card reuses the home feed's
+     .restaurant-card shape (and its touch feedback) with a smaller photo and
+     the cart's own subtotal on the trailing edge. */
+
+  .cart-list-note {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .cart-cards {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin: 0 0 var(--space-lg);
+    padding: 0;
+  }
+
+  .cart-card {
+    align-items: center;
+  }
+
+  .cart-card .cart-card-photo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .cart-card-subtotal {
+    flex: none;
+    margin-left: auto;
+    padding-right: var(--space-xs);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One restaurant's cart and the Offers screen both head the page with a
+     back chevron beside the title; the title sits on the chevron's centre
+     line rather than carrying its usual bottom margin inside the row. */
+  .top-bar h1 {
+    margin: 0;
+    min-width: 0;
+  }
+
+  a.back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+  }
+
+  .checkout-restaurant {
+    margin: 0;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
   .cart-subtotal {
     font-weight: 700;
   }

@@ -212,3 +212,85 @@ describe('initCheckoutPage — a cart too small to qualify for any voucher (AC1,
     expect(props.saved_amount_minor).toBe(0);
   });
 });
+
+describe('initCheckoutPage — one cart per restaurant', () => {
+  // Mission Taqueria's own deliveryFeeMinor is 199, and a $4.25 cart sits
+  // below every SF voucher's minimum spend, so nothing auto-applies.
+  const TACO = {
+    itemId: 'mission-taqueria-al-pastor',
+    restaurantSlug: 'mission-taqueria',
+    restaurantName: 'Mission Taqueria',
+    name: 'Al pastor taco',
+    amountMinor: 425,
+    currency: 'USD' as const,
+  };
+
+  beforeEach(() => {
+    addToCart(window.localStorage, LINE);
+    addToCart(window.localStorage, TACO);
+  });
+
+  it('?restaurant=<slug> prices only that restaurant’s lines, with its own delivery fee', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=mission-taqueria');
+
+    expect(el.querySelector('[data-testid="checkout-restaurant"]')?.textContent).toContain('Mission Taqueria');
+    expect(el.querySelector('[data-testid="breakdown-subtotal"]')?.textContent).toContain('$4.25');
+    expect(el.querySelector('[data-testid="breakdown-delivery-fee"]')?.textContent).toBe('Delivery fee$1.99');
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$7.74');
+    expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('Select an offer');
+  });
+
+  it('fires checkout_viewed with that restaurant’s cart only', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=mission-taqueria');
+    expect(stub).toHaveBeenCalledWith('checkout_viewed', { item_count: 1, amount_minor: 425, currency: 'USD' });
+  });
+
+  it('placing the order fires order_placed for that restaurant’s cart and leaves the other restaurant’s cart in place', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=mission-taqueria');
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+
+    const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
+    expect(props).toMatchObject({ item_count: 1, amount_minor: 425, currency: 'USD', applied_voucher_ids: [] });
+    expect(getOrder(window.localStorage)?.items.map((line) => line.itemId)).toEqual([TACO.itemId]);
+    expect(getCart(window.localStorage).map((line) => line.itemId)).toEqual([LINE.itemId]);
+  });
+
+  it('vouchers are kept per restaurant: the pizza cart’s auto-applied vouchers never reach the taco checkout', () => {
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=north-beach-pizzeria');
+    const taco = root();
+    initCheckoutPage(taco, window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=mission-taqueria');
+    expect(taco.querySelector('[data-testid="breakdown-discount"]')).toBeNull();
+
+    const pizza = root();
+    initCheckoutPage(pizza, window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=north-beach-pizzeria');
+    expect(pizza.querySelector('[data-testid="offers-row"]')?.textContent).toContain('2 applied');
+  });
+
+  it('the Offers row carries the restaurant through to /offers/', () => {
+    const navigate = vi.fn();
+    const el = root();
+    initCheckoutPage(el, window.localStorage, navigate, window.sessionStorage, '?restaurant=mission-taqueria');
+    el.querySelector<HTMLButtonElement>('[data-testid="offers-row"]')?.click();
+    expect(navigate).toHaveBeenCalledWith('/offers/?restaurant=mission-taqueria');
+  });
+
+  it('with several carts and no ?restaurant=, sends the visitor to /cart/ to choose one and fires no checkout_viewed', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const redirect = vi.fn();
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, '', redirect);
+
+    expect(redirect).toHaveBeenCalledWith('/cart/');
+    expect(el.querySelector('[data-testid="place-order"]')).toBeNull();
+    expect(el.querySelector('[data-testid="checkout-choose-cart"] a')?.getAttribute('href')).toBe('/cart/');
+    expect(stub).not.toHaveBeenCalled();
+  });
+});

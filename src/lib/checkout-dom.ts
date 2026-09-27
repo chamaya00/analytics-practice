@@ -5,15 +5,23 @@
 // directly above the CTA, and "Place order" — nothing typed anywhere.
 // "Place order" disables itself on first tap (contract §7's invariant) so a
 // double-tap cannot fire two order_placed events for one order_id.
+//
+// Checkout is for one restaurant's cart at a time (`?restaurant=<slug>`,
+// order-store.ts's `selectRestaurantCart`): the delivery fee, flash fee,
+// vouchers and breakdown are all that restaurant's alone, and placing the
+// order clears only its lines. Opened with no slug and several carts
+// stored, it sends the visitor to the "Your carts" list to pick one.
 
 import {
-  cartItemCount,
   cartSubtotalMinor,
   computeCheckoutBreakdown,
   getCart,
   placeOrder,
+  selectRestaurantCart,
   type CheckoutBreakdown,
+  type RestaurantCart,
 } from './order-store';
+import { ALL_CARTS_PATH, offersPath, restaurantSlugFromSearch } from './cart-routes';
 import type { DeliveryInstructions, DropOffPreset } from './tracking';
 import { track } from './tracking';
 import { formatMoney } from './money';
@@ -169,7 +177,16 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
 }
 
 export interface CheckoutView {
+  /** True whenever no checkout form rendered — an empty cart, or several carts and none named. */
   cartIsEmpty: boolean;
+  /** The one restaurant's cart this checkout is for, `null` whenever `cartIsEmpty`. */
+  cart: RestaurantCart | null;
+}
+
+function defaultRedirect(path: string): void {
+  // replace, not assign: Back from the list must not land on a checkout URL
+  // that immediately redirects to the list again.
+  window.location.replace(path);
 }
 
 export function renderCheckout(
@@ -180,11 +197,27 @@ export function renderCheckout(
   },
   sessionStorage: Storage = window.sessionStorage,
   now: number = Date.now(),
+  requestedSlug: string | null = null,
+  redirect: (path: string) => void = defaultRedirect,
 ): CheckoutView {
   root.innerHTML = '';
 
-  const lines = getCart(storage);
-  if (lines.length === 0) {
+  const selection = selectRestaurantCart(getCart(storage), requestedSlug);
+  if (selection.kind === 'several') {
+    // No single cart to check out: send the visitor to the list, with an
+    // inline link as the fallback if the redirect doesn't happen.
+    const message = document.createElement('p');
+    message.setAttribute('data-testid', 'checkout-choose-cart');
+    message.textContent = 'You have carts from more than one restaurant. ';
+    const link = document.createElement('a');
+    link.href = ALL_CARTS_PATH;
+    link.textContent = 'Choose one to check out';
+    message.append(link);
+    root.append(message);
+    redirect(ALL_CARTS_PATH);
+    return { cartIsEmpty: true, cart: null };
+  }
+  if (selection.kind === 'empty') {
     // #80's checkout "Empty" state: an inline message and a CTA back to the
     // home feed, never a $0.00/₫0 breakdown that looks like a bug.
     const empty = document.createElement('div');
@@ -200,8 +233,11 @@ export function renderCheckout(
 
     empty.append(message, link);
     root.append(empty);
-    return { cartIsEmpty: true };
+    return { cartIsEmpty: true, cart: null };
   }
+
+  const { cart } = selection;
+  const { lines, restaurantSlug } = cart;
 
   const dropOff = choiceField('Drop-off', DROP_OFF_OPTIONS, 'drop-off', 'chip-group');
   const deliveryInstructions = choiceField(
@@ -242,11 +278,11 @@ export function renderCheckout(
   const city: City = lines[0].currency === 'VND' ? 'hcmc' : 'sf';
   const subtotalMinor = cartSubtotalMinor(lines);
   const entries = entriesForCity(city, sessionStorage, now);
-  const previousOffers = getOffersState(storage);
+  const previousOffers = getOffersState(storage, restaurantSlug);
   const sync = syncOffersState(previousOffers, entries, subtotalMinor);
-  setOffersState(storage, sync.state);
+  setOffersState(storage, restaurantSlug, sync.state);
 
-  const restaurant = getRestaurant(lines[0].restaurantSlug);
+  const restaurant = getRestaurant(restaurantSlug);
   const normalDeliveryFeeMinor = restaurant?.deliveryFeeMinor ?? 0;
   const flashDraw = getFlashDraw(sessionStorage, city);
   const flashDeliveryFeeMinor =
@@ -257,7 +293,7 @@ export function renderCheckout(
     discountAmountMinor: appliedDiscountAmountMinor(sync.state, entries),
     flashDeliveryFeeMinor,
   });
-  if (breakdown === null) return { cartIsEmpty: true };
+  if (breakdown === null) return { cartIsEmpty: true, cart: null };
   const breakdownEl = renderBreakdown(breakdown);
 
   const offersRow = document.createElement('button');
@@ -269,7 +305,7 @@ export function renderCheckout(
     appliedCount === 0
       ? 'Offers  ›  Select an offer'
       : `Offers  ›  ${appliedCount} applied · You saved ${formatMoney(breakdown.savedAmountMinor, breakdown.currency)}`;
-  offersRow.addEventListener('click', () => navigate('/offers/'));
+  offersRow.addEventListener('click', () => navigate(offersPath(restaurantSlug)));
 
   const dropNotice = document.createElement('p');
   dropNotice.className = 'offers-drop-notice';
@@ -297,14 +333,18 @@ export function renderCheckout(
     placing = true;
     placeOrderButton.disabled = true;
 
-    const order = placeOrder(storage, {
-      dropOffPreset: dropOff.getValue(),
-      deliveryInstructions: deliveryInstructions.getValue(),
-      utensils: utensilsField.getValue() === 'yes',
-      appliedVoucherIds: appliedVoucherIds(sync.state),
-      savedAmountMinor: breakdown.savedAmountMinor,
-    });
-    clearOffersState(storage);
+    const order = placeOrder(
+      storage,
+      {
+        dropOffPreset: dropOff.getValue(),
+        deliveryInstructions: deliveryInstructions.getValue(),
+        utensils: utensilsField.getValue() === 'yes',
+        appliedVoucherIds: appliedVoucherIds(sync.state),
+        savedAmountMinor: breakdown.savedAmountMinor,
+      },
+      restaurantSlug,
+    );
+    clearOffersState(storage, restaurantSlug);
 
     track('order_placed', {
       order_id: order.orderId,
@@ -321,7 +361,13 @@ export function renderCheckout(
     navigate('/order-placed/');
   });
 
+  const restaurantLine = document.createElement('p');
+  restaurantLine.className = 'checkout-restaurant';
+  restaurantLine.setAttribute('data-testid', 'checkout-restaurant');
+  restaurantLine.textContent = `Your order from ${cart.restaurantName}`;
+
   root.append(
+    restaurantLine,
     offersRow,
     dropNotice,
     dropOff.element,
@@ -331,9 +377,10 @@ export function renderCheckout(
     disclosure,
     placeOrderButton,
   );
-  return { cartIsEmpty: false };
+  return { cartIsEmpty: false, cart };
 }
 
+/** `checkout_viewed` describes the one restaurant's cart being checked out — never the whole stored cart, and never fired for the empty state or the several-carts redirect. */
 export function initCheckoutPage(
   root: HTMLElement,
   storage: Storage = window.localStorage,
@@ -341,14 +388,23 @@ export function initCheckoutPage(
     window.location.href = path;
   },
   sessionStorage: Storage = window.sessionStorage,
+  search: string = window.location.search,
+  redirect: (path: string) => void = defaultRedirect,
 ): void {
-  const view = renderCheckout(root, storage, navigate, sessionStorage);
-  if (view.cartIsEmpty) return;
+  const view = renderCheckout(
+    root,
+    storage,
+    navigate,
+    sessionStorage,
+    Date.now(),
+    restaurantSlugFromSearch(search),
+    redirect,
+  );
+  if (view.cartIsEmpty || view.cart === null) return;
 
-  const lines = getCart(storage);
   track('checkout_viewed', {
-    item_count: cartItemCount(lines),
-    amount_minor: cartSubtotalMinor(lines),
-    currency: lines[0].currency,
+    item_count: view.cart.itemCount,
+    amount_minor: view.cart.subtotalMinor,
+    currency: view.cart.currency,
   });
 }

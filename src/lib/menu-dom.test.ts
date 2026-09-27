@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initMenuPage } from './menu-dom';
-import { getCart } from './order-store';
+import { addToCart, getCart } from './order-store';
+import { formatMoney } from './money';
 import { restaurantsForCity } from './restaurants';
 import { resetTrack, setTrack } from './tracking';
 
@@ -75,5 +76,30 @@ describe('initMenuPage (AC1, AC2, AC5)', () => {
     el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${firstItem.id}"]`)?.click();
     el.querySelector<HTMLButtonElement>(`[data-testid="decrement-${firstItem.id}"]`)?.click();
     expect(el.querySelector(`[data-testid="add-${firstItem.id}"]`)).not.toBeNull();
+  });
+});
+
+describe('the menu’s cart summary counts only this restaurant’s cart', () => {
+  it('ignores another restaurant’s lines and links to this restaurant’s own cart', () => {
+    const other = restaurantsForCity('sf')[1];
+    const otherItem = other.menu[0].items[0];
+    addToCart(window.localStorage, {
+      itemId: otherItem.id,
+      restaurantSlug: other.slug,
+      restaurantName: other.name,
+      name: otherItem.name,
+      amountMinor: otherItem.amountMinor,
+      currency: 'USD',
+    });
+
+    const el = root();
+    initMenuPage(el, restaurant, window.localStorage);
+    expect(el.querySelector('[data-testid="cart-summary"]')).toBeNull();
+
+    el.querySelector<HTMLButtonElement>(`[data-testid="add-${firstItem.id}"]`)?.click();
+
+    const summary = el.querySelector<HTMLAnchorElement>('[data-testid="cart-summary"]');
+    expect(summary?.textContent).toBe(`1 item — ${formatMoney(firstItem.amountMinor, 'USD')}`);
+    expect(summary?.getAttribute('href')).toBe(`/cart/?restaurant=${restaurant.slug}`);
   });
 });
