@@ -7,6 +7,7 @@
 
 import { CITIES, CITY_CURRENCY, CITY_NAMES, formatMoneyForCity, type City } from './money';
 import { getStoredCity, setStoredCity } from './location';
+import { CITY_CHANGED_EVENT } from './city-events';
 import { CUISINE_SHORTCUTS, restaurantsForCity, getRestaurant, type Restaurant } from './restaurants';
 import { getVisitorId } from './order-store';
 import { estimateEtaMinutes, etaLabel } from './eta';
@@ -525,9 +526,6 @@ function renderTileCard(restaurant: Restaurant, draw: FlashDraw | null, now: num
 }
 
 const carouselCleanups = new WeakMap<HTMLElement, () => void>();
-
-/** Fired whenever the feed renders for a (possibly new) city — #146's wallet chip listens for this to re-render the balance in the newly-selected city's currency, since the pill and the chip must always agree on which city is current. */
-export const CITY_CHANGED_EVENT = 'parody:citychanged';
 
 function renderFeed(root: HTMLElement, pillRoot: HTMLElement, city: City, sessionStorage: Storage, visitorId: string): void {
   const now = Date.now();

@@ -24,7 +24,7 @@ import {
   type WalletSession,
 } from './auth-client';
 import { getWallet, claimDrip, type WalletBalances } from './wallet-client';
-import { CITY_CHANGED_EVENT } from './home-dom';
+import { CITY_CHANGED_EVENT } from './city-events';
 
 const DRIP_WINDOW_TIMES = '7:00 AM, 3:00 PM and 11:00 PM';
 
