@@ -125,6 +125,51 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 6370
   },
+  "public/images/dishes/ca-phe-nha-go-18-bac-xiu.jpg": {
+    "id": "SKoZa7rcLlU",
+    "query": "vietnamese white coffee",
+    "photographer": "One Zen",
+    "photographerUrl": "https://unsplash.com/@onezen",
+    "photoUrl": "https://unsplash.com/photos/black-ceramic-teacup-with-saucer-close-up-photography-SKoZa7rcLlU",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 6780
+  },
+  "public/images/dishes/ca-phe-nha-go-18-banh-bong-lan-trung-muoi.jpg": {
+    "id": "nHO7hvHjPFQ",
+    "query": "salted egg sponge cake",
+    "photographer": "Keriliwi",
+    "photographerUrl": "https://unsplash.com/@keriliwi",
+    "photoUrl": "https://unsplash.com/photos/a-piece-of-cake-on-a-plate-on-a-table-nHO7hvHjPFQ",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 6175
+  },
+  "public/images/dishes/ca-phe-nha-go-18-ca-phe-den-da.jpg": {
+    "id": "0iYgMT7lH7E",
+    "query": "black iced coffee",
+    "photographer": "Matt Hoffman",
+    "photographerUrl": "https://unsplash.com/@__matthoffman__",
+    "photoUrl": "https://unsplash.com/photos/iced-cold-drinks-in-drinking-glass-0iYgMT7lH7E",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 5426
+  },
+  "public/images/dishes/ca-phe-nha-go-18-ca-phe-muoi.jpg": {
+    "id": "2ZCu4wC-mW8",
+    "query": "salted cream coffee",
+    "photographer": "Aditya Saxena",
+    "photographerUrl": "https://unsplash.com/@adityaries",
+    "photoUrl": "https://unsplash.com/photos/a-cup-of-coffee-with-whipped-cream-on-top-2ZCu4wC-mW8",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 5002
+  },
+  "public/images/dishes/ca-phe-nha-go-18-ca-phe-sua-da.jpg": {
+    "id": "f_Fpa1EnDh0",
+    "query": "vietnamese iced coffee",
+    "photographer": "marke",
+    "photographerUrl": "https://unsplash.com/@sabinajeinku",
+    "photoUrl": "https://unsplash.com/photos/a-glass-of-coffee-sitting-on-top-of-a-wooden-table-f_Fpa1EnDh0",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 6123
+  },
   "public/images/dishes/cole-valley-mezze-chicken-shawarma-plate.jpg": {
     "id": "bW9iU_naYsI",
     "query": "chicken shawarma plate",
@@ -296,6 +341,51 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 7755
   },
+  "public/images/dishes/goi-cuon-co-hai-cho-cu-bi-cuon.jpg": {
+    "id": "4DSfZvyhnXc",
+    "query": "pork skin rice paper rolls",
+    "photographer": "Alimentos Fotogénicos",
+    "photographerUrl": "https://unsplash.com/@alimentosfotogenicos",
+    "photoUrl": "https://unsplash.com/photos/a-plate-of-food-on-a-table-with-chopsticks-4DSfZvyhnXc",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 8746
+  },
+  "public/images/dishes/goi-cuon-co-hai-cho-cu-bo-bia.jpg": {
+    "id": "lRHVnuO7x2s",
+    "query": "jicama spring rolls",
+    "photographer": "You Le",
+    "photographerUrl": "https://unsplash.com/@le_y0u",
+    "photoUrl": "https://unsplash.com/photos/a-bowl-of-food-with-chopsticks-on-a-table-lRHVnuO7x2s",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 4829
+  },
+  "public/images/dishes/goi-cuon-co-hai-cho-cu-cha-gio.jpg": {
+    "id": "0hfmzgZklGI",
+    "query": "vietnamese fried spring rolls",
+    "photographer": "Jon Handley",
+    "photographerUrl": "https://unsplash.com/@handley4eu",
+    "photoUrl": "https://unsplash.com/photos/a-row-of-food-items-sitting-on-top-of-a-black-plate-0hfmzgZklGI",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 5904
+  },
+  "public/images/dishes/goi-cuon-co-hai-cho-cu-goi-cuon-tom-thit.jpg": {
+    "id": "eGQ0C20ihH4",
+    "query": "shrimp pork spring rolls rice paper",
+    "photographer": "Rimsha Noor",
+    "photographerUrl": "https://unsplash.com/@rimshaj123",
+    "photoUrl": "https://unsplash.com/photos/a-white-plate-topped-with-pastries-on-top-of-a-wooden-table-eGQ0C20ihH4",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7619
+  },
+  "public/images/dishes/goi-cuon-co-hai-cho-cu-nuoc-mia.jpg": {
+    "id": "MkRJhzqNQkE",
+    "query": "sugarcane juice",
+    "photographer": "Lachlan Wang",
+    "photographerUrl": "https://unsplash.com/@lachlanwang",
+    "photoUrl": "https://unsplash.com/photos/iced-green-beverage-in-a-plastic-cup-MkRJhzqNQkE",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 6504
+  },
   "public/images/dishes/golden-lotus-dim-sum-congee.jpg": {
     "id": "kcA-c3f_3FE",
     "query": "century egg congee bowl",
@@ -377,6 +467,24 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 6464
   },
+  "public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-kho.jpg": {
+    "id": "MGFPFWSZfgM",
+    "query": "dry rice noodles pork",
+    "photographer": "Markus Tourunen",
+    "photographerUrl": "https://unsplash.com/@maladesign",
+    "photoUrl": "https://unsplash.com/photos/brown-wooden-chopsticks-MGFPFWSZfgM",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7193
+  },
+  "public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-muc.jpg": {
+    "id": "numWCxGQu0E",
+    "query": "squid noodle soup",
+    "photographer": "Yoav Aziz",
+    "photographerUrl": "https://unsplash.com/@yoavaziz",
+    "photoUrl": "https://unsplash.com/photos/vegetable-salad-in-bowl-numWCxGQu0E",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 9256
+  },
   "public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-nam-vang.jpg": {
     "id": "veHBwTsaPSs",
     "query": "hu tieu noodle soup",
@@ -385,6 +493,24 @@
     "photoUrl": "https://unsplash.com/photos/bowl-of-cooked-food-veHBwTsaPSs",
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 8216
+  },
+  "public/images/dishes/hu-tieu-nam-vang-hoa-phat-mi-hoanh-thanh.jpg": {
+    "id": "eHrypVnkpI0",
+    "query": "wonton egg noodle soup",
+    "photographer": "martin becker",
+    "photographerUrl": "https://unsplash.com/@martinb26",
+    "photoUrl": "https://unsplash.com/photos/three-bowls-of-food-on-a-table-with-a-red-packet-eHrypVnkpI0",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 9209
+  },
+  "public/images/dishes/hu-tieu-nam-vang-hoa-phat-tra-tac.jpg": {
+    "id": "d_QmYZDKwwE",
+    "query": "kumquat honey iced tea",
+    "photographer": "Vivian Elebiyo",
+    "photographerUrl": "https://unsplash.com/@vivianelebiyo",
+    "photoUrl": "https://unsplash.com/photos/person-holding-clear-glass-jar-with-orange-juice-d_QmYZDKwwE",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 6482
   },
   "public/images/dishes/inner-richmond-sushi-bar-chirashi-bowl.jpg": {
     "id": "i9TGriScRD8",
@@ -700,6 +826,69 @@
     "photoUrl": "https://unsplash.com/photos/a-bowl-of-soup-with-meat-and-vegetables-vPMQl71yFDI",
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 9090
+  },
+  "public/images/dishes/quan-che-di-sau-che-ba-mau.jpg": {
+    "id": "gTQwby1aBm4",
+    "query": "three color dessert",
+    "photographer": "Babs Gorniak",
+    "photographerUrl": "https://unsplash.com/@babs_gorniak",
+    "photoUrl": "https://unsplash.com/photos/a-white-plate-topped-with-a-slice-of-cake-covered-in-fruit-gTQwby1aBm4",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7859
+  },
+  "public/images/dishes/quan-che-di-sau-che-thai.jpg": {
+    "id": "aUr_0I-HfGA",
+    "query": "che thai fruit dessert",
+    "photographer": "Vitalii Kyktov",
+    "photographerUrl": "https://unsplash.com/@i_am_vitality",
+    "photoUrl": "https://unsplash.com/photos/dessert-with-strawberry-and-edible-flower-garnish-aUr_0I-HfGA",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7615
+  },
+  "public/images/dishes/quan-lau-ut-hanh-lau-ga-la-e.jpg": {
+    "id": "DKoPFGp5Ds4",
+    "query": "chicken herb hotpot",
+    "photographer": "Bayu Syaits",
+    "photographerUrl": "https://unsplash.com/@bayusyaits",
+    "photoUrl": "https://unsplash.com/photos/grilled-chicken-lunch-bowl-with-corn-DKoPFGp5Ds4",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7804
+  },
+  "public/images/dishes/quan-lau-ut-hanh-lau-mam.jpg": {
+    "id": "mdfEaq1hqnk",
+    "query": "mekong fish hotpot",
+    "photographer": "Milo Weiler",
+    "photographerUrl": "https://unsplash.com/@miloweiler",
+    "photoUrl": "https://unsplash.com/photos/orange-and-silver-fishes-on-water-mdfEaq1hqnk",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 8170
+  },
+  "public/images/dishes/quan-lau-ut-hanh-lau-thai-hai-san.jpg": {
+    "id": "vrX8M4Plu8U",
+    "query": "thai seafood hotpot",
+    "photographer": "Roni Herdyanzah",
+    "photographerUrl": "https://unsplash.com/@roniherdyanzah",
+    "photoUrl": "https://unsplash.com/photos/crab-soup-on-white-ceramic-bowl-vrX8M4Plu8U",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7919
+  },
+  "public/images/dishes/quan-lau-ut-hanh-nam-kim-cham-them.jpg": {
+    "id": "sCAPM_4Oqek",
+    "query": "enoki mushrooms",
+    "photographer": "Tushar Shetty",
+    "photographerUrl": "https://unsplash.com/@tusharshetty04",
+    "photoUrl": "https://unsplash.com/photos/a-group-of-small-mushrooms-growing-out-of-the-ground-sCAPM_4Oqek",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7067
+  },
+  "public/images/dishes/quan-lau-ut-hanh-tra-chanh.jpg": {
+    "id": "QBTNFWnyxKg",
+    "query": "iced lime tea",
+    "photographer": "Upin",
+    "photographerUrl": "https://unsplash.com/@upin1501",
+    "photoUrl": "https://unsplash.com/photos/clear-drinking-glass-with-water-and-sliced-lemon-QBTNFWnyxKg",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 6213
   },
   "public/images/dishes/saigon-pho-quan-bo.jpg": {
     "id": "J1W-4H9OrH8",
