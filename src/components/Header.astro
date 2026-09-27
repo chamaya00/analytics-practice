@@ -201,6 +201,12 @@ const TAB_ICON_PATHS: Record<string, string> = {
       left: 0;
       right: 0;
       bottom: 0;
+      /* Fixed at the viewport bottom with page content (e.g. .restaurant-card,
+         BaseLayout.astro) painted after it in the DOM, so without an explicit
+         stack this bar loses to ordinary content while scrolling. Above page
+         content, below the flash overlay's 20 and the confirm dialog's 30
+         (both BaseLayout.astro) so those still cover it unchanged (#118). */
+      z-index: 10;
       background: var(--color-surface);
       border-top: 1px solid var(--color-border);
       padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
