@@ -48,13 +48,19 @@ export function renderOrderPlaced(
   summary.setAttribute('data-testid', 'order-placed-summary');
   summary.textContent = `${order.itemCount} item${order.itemCount === 1 ? '' : 's'} from ${restaurantNames}, ${formatMoney(order.amountMinor, order.currency)}.`;
 
+  // The same estimate stored on the order at placeOrder (order-store.ts) —
+  // not re-derived, so it can never drift from what checkout showed (AC2).
+  const eta = document.createElement('p');
+  eta.setAttribute('data-testid', 'order-placed-eta');
+  eta.textContent = `Arrives in about ${order.etaMinutes} min`;
+
   const trackLink = document.createElement('a');
   trackLink.href = '/tracker/';
   trackLink.className = 'order-placed-cta';
   trackLink.setAttribute('data-testid', 'track-order');
   trackLink.textContent = 'Track your order';
 
-  wrap.append(badge, heading, summary, trackLink);
+  wrap.append(badge, heading, summary, eta, trackLink);
   root.append(wrap);
   return { redirectedToRestaurants: false };
 }

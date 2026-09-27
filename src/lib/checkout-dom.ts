@@ -16,6 +16,7 @@ import {
   cartSubtotalMinor,
   computeCheckoutBreakdown,
   getCart,
+  getVisitorId,
   placeOrder,
   selectRestaurantCart,
   type CheckoutBreakdown,
@@ -26,6 +27,7 @@ import type { DeliveryInstructions, DropOffPreset } from './tracking';
 import { track } from './tracking';
 import { formatMoney } from './money';
 import { getRestaurant } from './restaurants';
+import { estimateEtaMinutes } from './eta';
 import { flashFeeForRestaurant, getFlashDraw } from './flash-deal';
 import { clearOffersState, getOffersState, setOffersState } from './offers-store';
 import { appliedDiscountAmountMinor, appliedVoucherIds, entriesForCity, syncOffersState } from './vouchers';
@@ -392,8 +394,15 @@ export function renderCheckout(
   restaurantLine.setAttribute('data-testid', 'checkout-restaurant');
   restaurantLine.textContent = `Your order from ${cart.restaurantName}`;
 
+  const etaLine = document.createElement('p');
+  etaLine.className = 'checkout-restaurant';
+  etaLine.setAttribute('data-testid', 'checkout-eta');
+  const etaMinutes = estimateEtaMinutes(getVisitorId(storage), restaurantSlug);
+  etaLine.textContent = `Arrives in about ${etaMinutes} min`;
+
   root.append(
     restaurantLine,
+    etaLine,
     dropOff.element,
     deliveryInstructions.element,
     miniFields,
