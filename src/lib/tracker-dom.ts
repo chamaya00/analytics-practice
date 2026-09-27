@@ -211,7 +211,7 @@ export function renderTrackerView(
     const countdown = document.createElement('p');
     countdown.className = 'tracker-countdown';
     countdown.setAttribute('data-testid', 'tracker-countdown');
-    countdown.textContent = `Arrives in about ${formatCountdown(Math.ceil(view.remainingMs / 1000))}`;
+    countdown.textContent = `${formatCountdown(Math.ceil(view.remainingMs / 1000))} until estimated arrival`;
     root.append(countdown);
   }
 

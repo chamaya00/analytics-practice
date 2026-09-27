@@ -1,8 +1,8 @@
 // Seeds an order placed 3 minutes ago with an 18-minute estimate and a
 // 7-minute delivery time (#121), so /tracker renders mid-countdown — past
 // the "Picked up" threshold (2/7 of 7min), short of both "On the way" (4/7)
-// and the order's own Delivered time — with a live "Arrives in about 15:00"
-// counting down toward the (later, un-early) estimate.
+// and the order's own Delivered time — with a live "15:00 until estimated
+// arrival" counting down toward the (later, un-early) estimate.
 
 /* global window -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
 window.localStorage.setItem('parody.city', 'sf');

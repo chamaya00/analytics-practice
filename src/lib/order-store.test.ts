@@ -16,6 +16,7 @@ import {
   linesForRestaurant,
   markOrderDelivered,
   minutesSinceOrder,
+  ORDER_KEY,
   pickDeliveryMs,
   placeOrder,
   recordTrackerView,
@@ -383,6 +384,42 @@ describe('clearOrder / start over (AC1)', () => {
 
     expect(getOrder(window.localStorage)).toBeNull();
     expect(getVisitorId(window.localStorage)).toBe(visitorId);
+  });
+});
+
+describe('getOrder — an order stored before #121 (no etaMinutes/deliveryMs)', () => {
+  /** Same shape `placeOrder` wrote before #121 added `etaMinutes`/`deliveryMs` — a
+   * visitor's order already in progress on the live site when this shipped. */
+  function storeLegacyOrder(): void {
+    window.localStorage.setItem(
+      ORDER_KEY,
+      JSON.stringify({
+        orderId: 'legacy-order-1',
+        placedAt: new Date().toISOString(),
+        items: [LINE],
+        itemCount: 1,
+        amountMinor: 1400,
+        currency: 'USD',
+        dropOffPreset: 'home',
+        deliveryInstructions: 'hand_to_me',
+        utensils: true,
+        appliedVoucherIds: [],
+        savedAmountMinor: 0,
+        viewCount: 0,
+        deliveredEventFired: false,
+        rating: null,
+      }),
+    );
+  }
+
+  it('fills in a finite etaMinutes and the fixed 7-minute deliveryMs rather than leaving them undefined', () => {
+    storeLegacyOrder();
+    const visitorId = getVisitorId(window.localStorage);
+
+    const order = getOrder(window.localStorage);
+
+    expect(order?.etaMinutes).toBe(estimateEtaMinutes(visitorId, LINE.restaurantSlug));
+    expect(order?.deliveryMs).toBe(7 * 60_000);
   });
 });
 

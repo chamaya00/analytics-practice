@@ -301,11 +301,34 @@ export function clearRestaurantCart(storage: Storage, restaurantSlug: string): C
   return remaining;
 }
 
+/** The fixed delivery time every order used before #121 — the fallback for an
+ * order stored under that shape, so it keeps behaving exactly as it did. */
+const LEGACY_DELIVERY_MS = 7 * 60_000;
+
+/**
+ * Fills in `etaMinutes`/`deliveryMs` for an order stored before #121 added
+ * them (a visitor's order already in progress on the live site when this
+ * shipped). Without this, `isDelivered`'s `elapsedMs >= order.deliveryMs`
+ * compares against `undefined` and is never true, so the order never reaches
+ * Delivered and the countdown reads NaN. `deliveryMs` falls back to the fixed
+ * 7 minutes every order used to take; `etaMinutes` is re-derived the same
+ * deterministic way a current order's is, from this visitor and the order's
+ * own restaurant.
+ */
+function withLegacyDefaults(order: PlacedOrder, storage: Storage): PlacedOrder {
+  if (order.etaMinutes !== undefined && order.deliveryMs !== undefined) return order;
+  return {
+    ...order,
+    etaMinutes: order.etaMinutes ?? estimateEtaMinutes(getVisitorId(storage), order.items[0]?.restaurantSlug ?? ''),
+    deliveryMs: order.deliveryMs ?? LEGACY_DELIVERY_MS,
+  };
+}
+
 export function getOrder(storage: Storage): PlacedOrder | null {
   const raw = storage.getItem(ORDER_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as PlacedOrder;
+    return withLegacyDefaults(JSON.parse(raw) as PlacedOrder, storage);
   } catch {
     return null;
   }

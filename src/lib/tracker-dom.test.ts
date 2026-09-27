@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
-import { addToCart, getOrder, placeOrder } from './order-store';
+import { addToCart, getOrder, ORDER_KEY, placeOrder } from './order-store';
 import { resetTrack, setTrack } from './tracking';
 
 const LINE = {
@@ -84,7 +84,7 @@ describe('initTrackerPage — active order (AC1, AC2, AC4)', () => {
 
     initTrackerPage(el, window.localStorage);
     const first = el.querySelector('[data-testid="tracker-countdown"]')?.textContent;
-    expect(first).toContain('Arrives in about');
+    expect(first).toContain('until estimated arrival');
 
     vi.advanceTimersByTime(2000);
     const second = el.querySelector('[data-testid="tracker-countdown"]')?.textContent;
@@ -224,6 +224,59 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
 
     expect(el.querySelector('[data-testid="rating-submit"]')).toBeNull();
     expect(el.textContent).toContain('Thanks for rating this order');
+  });
+});
+
+describe('initTrackerPage — an order stored before #121 (no etaMinutes/deliveryMs)', () => {
+  /** Same shape `placeOrder` wrote before #121 added `etaMinutes`/`deliveryMs` — a
+   * visitor's order already in progress on the live site when this shipped. */
+  function storeLegacyOrder(): void {
+    window.localStorage.setItem(
+      ORDER_KEY,
+      JSON.stringify({
+        orderId: '11111111-1111-4111-8111-111111111111',
+        placedAt: new Date().toISOString(),
+        items: [LINE],
+        itemCount: 1,
+        amountMinor: 1400,
+        currency: 'USD',
+        dropOffPreset: 'home',
+        deliveryInstructions: 'hand_to_me',
+        utensils: true,
+        appliedVoucherIds: [],
+        savedAmountMinor: 0,
+        viewCount: 0,
+        deliveredEventFired: false,
+        rating: null,
+      }),
+    );
+  }
+
+  it('shows a finite live countdown rather than "NaN:NaN"', () => {
+    storeLegacyOrder();
+    const el = root();
+
+    initTrackerPage(el, window.localStorage);
+
+    const countdown = el.querySelector('[data-testid="tracker-countdown"]')?.textContent;
+    expect(countdown).not.toContain('NaN');
+    expect(countdown).toContain('until estimated arrival');
+  });
+
+  it('reaches Delivered at the fixed 7-minute fallback, firing order_delivered exactly once', () => {
+    storeLegacyOrder();
+    vi.setSystemTime(Date.now() + 7 * 60_000);
+    const stub = vi.fn();
+    setTrack(stub);
+
+    initTrackerPage(root(), window.localStorage);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    expect(el.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
+      'Delivered',
+    );
+    expect(stub.mock.calls.filter(([name]) => name === 'order_delivered')).toHaveLength(1);
   });
 });
 
