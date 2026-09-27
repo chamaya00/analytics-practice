@@ -55,13 +55,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     this app for any of the above, ever — because the choices above are the only ones this app
     actually asks you to make.
   </p>
-  <p>
-    <strong>One more thing, in the interest of actually being honest about it:</strong> to stop spam
-    from overwhelming this free database, every write is checked against a short-term limit keyed to
-    a scrambled (one-way hashed) version of your IP address. That scrambled value is kept for <strong>up to one hour</strong>,
-    only to enforce that limit, and it never appears next to anything
-    you did here — it isn't stored in the same place as the events above and can't be joined back to
-    them. We're naming it here because it's still something your visit causes this site to process,
-    even though it never becomes part of the dataset you can query.
-  </p>
+  <div class="demo-disclosure" data-testid="about-disclosure">
+    <span
+      ><svg
+        class="icon-info"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="11" x2="12" y2="16.5"
+        ></line><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"></circle></svg
+      ></span
+    >
+    <span>
+      <strong>One more thing, in the interest of actually being honest about it:</strong> to stop spam
+      from overwhelming this free database, every write is checked against a short-term limit keyed to
+      a scrambled (one-way hashed) version of your IP address. That scrambled value is kept for <strong>up to one hour</strong>,
+      only to enforce that limit, and it never appears next to anything
+      you did here — it isn't stored in the same place as the events above and can't be joined back to
+      them. We're naming it here because it's still something your visit causes this site to process,
+      even though it never becomes part of the dataset you can query.
+    </span>
+  </div>
 </BaseLayout>
