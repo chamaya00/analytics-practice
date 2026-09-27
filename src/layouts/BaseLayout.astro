@@ -1260,9 +1260,11 @@ const { title } = Astro.props;
     }
   }
 
-  /* ---- flash-deal sheet (#87/#89): drag handle, header, live mm:ss
-     countdown, the two drawn restaurants — docs/design/
-     87-flash-sheet-hcmc.html, rendered by flash-sheet-dom.ts. */
+  /* ---- flash-deal sheet (#87/#89, grown to #119/#120's Grab-sized sheet):
+     drag handle, a full-bleed header (amount + live mm:ss countdown) over
+     the min-spend line, then 5–6 deal restaurants scrolling inside the
+     sheet's own ~88vh while the header stays put — docs/design/
+     119-flash-sheet-open-hcmc.html, rendered by flash-sheet-dom.ts. */
 
   .flash-sheet-overlay {
     position: fixed;
@@ -1278,6 +1280,10 @@ const { title } = Astro.props;
     padding: 0;
   }
 
+  /* 88vh rather than a pixel guess: a percentage of the viewport height
+     directly produces "roughly 85-90% at 375px" at any viewport (#119's own
+     mock rationale). overflow:hidden so the sheet's own rounded top corners
+     clip the header's full-bleed color block. */
   .flash-sheet-overlay .sheet {
     position: fixed;
     left: 0;
@@ -1285,13 +1291,17 @@ const { title } = Astro.props;
     bottom: 0;
     max-width: 26rem;
     margin: 0 auto;
+    height: 88vh;
+    display: flex;
+    flex-direction: column;
     background: var(--color-bg);
-    border-radius: 20px 20px 0 0;
-    padding: var(--space-sm) var(--space-lg) var(--space-lg);
+    border-radius: 12px 12px 0 0;
     box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
+    overflow: hidden;
   }
 
   .flash-sheet-overlay .drag-handle {
+    flex: none;
     display: block;
     width: 40px;
     height: 4px;
@@ -1299,7 +1309,7 @@ const { title } = Astro.props;
     border: none;
     border-radius: 999px;
     background: var(--color-border);
-    margin: 0 auto var(--space-sm);
+    margin: var(--space-sm) auto;
   }
 
   .flash-sheet-overlay .sheet-close {
@@ -1314,34 +1324,34 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
+  /* Full-bleed, no side inset — a colour block spanning the sheet's whole
+     width, not the old inset card-style header (#119). */
   .flash-sheet-overlay .sheet-header {
+    flex: none;
     background: var(--color-accent-a);
     color: #fff;
-    border-radius: 12px;
-    padding: var(--space-sm) var(--space-md);
-    margin-top: var(--space-lg);
-    text-align: center;
+    padding: var(--space-md) var(--space-lg) var(--space-lg);
   }
 
   .flash-sheet-overlay .sheet-header h1 {
-    margin: 0 0 var(--space-sm);
-    font-size: 1.0625rem;
+    margin: 0 0 var(--space-md);
+    font-size: 1.375rem;
     font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
   .flash-sheet-overlay .countdown {
     display: flex;
-    justify-content: center;
     gap: var(--space-sm);
   }
 
   .flash-sheet-overlay .countdown .tile {
-    background: #1a1230;
+    background: var(--color-text);
     color: #ffffff;
-    border-radius: 8px;
-    min-width: 52px;
+    border-radius: 10px;
+    min-width: 44px;
     padding: var(--space-xs) var(--space-sm);
-    font-size: 1.375rem;
+    font-size: 1.25rem;
     font-weight: 800;
     text-align: center;
     font-variant-numeric: tabular-nums;
@@ -1350,28 +1360,35 @@ const { title } = Astro.props;
   .flash-sheet-overlay .countdown .tile-sep {
     color: #fff;
     font-weight: 800;
-    font-size: 1.375rem;
+    font-size: 1.25rem;
     align-self: center;
   }
 
   .flash-sheet-overlay .min-spend-line {
+    flex: none;
     text-align: center;
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
-    margin: var(--space-sm) 0 var(--space-md);
+    padding: var(--space-md) var(--space-lg);
   }
 
+  /* The only region that scrolls — the header and min-spend line above it
+     are flex siblings that never move (#119's "fixed header, scrolling
+     list" split). */
   .flash-sheet-overlay .restaurant-list {
+    flex: 1;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
+    padding: 0 var(--space-lg) var(--space-lg);
   }
 
   .flash-sheet-overlay .restaurant-row {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-sm);
+    gap: var(--space-md);
     width: 100%;
-    padding: var(--space-sm) 0;
+    padding: var(--space-md) 0;
     border-top: 1px solid var(--color-border);
     background: none;
     border-left: none;
@@ -1391,8 +1408,8 @@ const { title } = Astro.props;
   .flash-sheet-overlay .restaurant-photo {
     position: relative;
     flex: none;
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
   }
 
   /* Radius on the image itself, not `overflow: hidden` on `.restaurant-photo`
@@ -1411,26 +1428,31 @@ const { title } = Astro.props;
     top: -4px;
     background: var(--color-accent-b);
     color: var(--color-badge-ink);
-    font-size: 0.5625rem;
+    font-size: 0.625rem;
     font-weight: 800;
-    padding: 1px 4px;
-    border-radius: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
   }
 
   .flash-sheet-overlay .restaurant-main {
     flex: 1;
     min-width: 0;
+    align-self: center;
   }
 
+  /* One line, ellipsis-truncated (#119: no drawn name clips at 375px). */
   .flash-sheet-overlay .restaurant-name {
     font-weight: 700;
-    margin: 0 0 2px;
+    margin: 0 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .flash-sheet-overlay .restaurant-meta {
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
-    margin: 0 0 2px;
+    margin: 0 0 3px;
   }
 
   .flash-sheet-overlay .restaurant-fee {
@@ -1445,6 +1467,82 @@ const { title } = Astro.props;
     font-weight: 500;
     text-decoration: line-through;
     margin-left: 4px;
+  }
+
+  /* ---- the collapsed reopen bar (#120): "{amount} off flash deals" plus a
+     live mm:ss, pinned above the phone tab bar — docs/design/
+     119-flash-bar-collapsed-hcmc.html. Fixed on every width (unlike
+     .cart-summary-bar, phone-only) since there's no tab bar to clear above
+     480px, matching .footer-bar's own pattern for the same reason. */
+
+  .reopen-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    max-width: 26rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    background: var(--color-accent-a);
+    color: #fff;
+    border: none;
+    border-radius: 12px 12px 0 0;
+    padding: var(--space-md) var(--space-lg);
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .reopen-bar .label {
+    font-weight: 800;
+    font-size: var(--font-size-body);
+    text-align: left;
+  }
+
+  .reopen-bar .right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: none;
+  }
+
+  .reopen-bar .lightning {
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+
+  .reopen-bar .countdown {
+    display: flex;
+    gap: 4px;
+  }
+
+  .reopen-bar .tile {
+    background: var(--color-text);
+    color: #fff;
+    border-radius: 10px;
+    min-width: 30px;
+    padding: 3px 5px;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .reopen-bar .tile-sep {
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.8125rem;
+  }
+
+  @media (max-width: 480px) {
+    .reopen-bar {
+      bottom: calc(56px + env(safe-area-inset-bottom));
+    }
   }
 
   /* The home feed's own flash badge (#87/#89): an inline tag beside the
