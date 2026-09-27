@@ -165,7 +165,8 @@ function renderDripCard(
 
     const fine = document.createElement('p');
     fine.className = 'wallet-drip-fine';
-    fine.textContent = `${formatRelativeToInstant(balances.nextWindowStart, now())}. You've collected this window's drip; drips open at ${DRIP_WINDOW_TIMES}.`;
+    const relative = formatRelativeToInstant(balances.nextWindowStart, now());
+    fine.textContent = `${relative.charAt(0).toUpperCase()}${relative.slice(1)}. You've collected this window's drip; drips open at ${DRIP_WINDOW_TIMES}.`;
 
     container.append(eyebrow, headline, fine);
   }
