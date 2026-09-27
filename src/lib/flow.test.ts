@@ -34,13 +34,22 @@ function root(): HTMLElement {
   return el;
 }
 
+// Stand-in for Header.astro's home-only `[data-testid="city-pill-slot"]` —
+// see home-dom.test.ts's own copy of this helper for why each call gets its
+// own element rather than a shared document-wide lookup.
+function pillRoot(): HTMLElement {
+  const el = document.createElement('div');
+  document.body.appendChild(el);
+  return el;
+}
+
 describe('home → restaurant → items → cart → checkout → order-placed → tracker (AC1, AC5)', () => {
   it('walks the whole flow, firing location_selected/home_viewed/restaurant_opened with exact props, and never the retired landing_viewed/restaurants_viewed', () => {
     const events: [string, unknown][] = [];
     setTrack((name, props) => events.push([name, props]));
 
     const homeRoot = root();
-    initHomePage(homeRoot, window.localStorage);
+    initHomePage(homeRoot, pillRoot(), window.localStorage);
     homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
 
     const restaurant = restaurantsForCity('sf')[0];
@@ -86,10 +95,11 @@ describe('home → restaurant → items → cart → checkout → order-placed �
     setTrack((name, props) => events.push([name, props]));
 
     const homeRoot = root();
-    initHomePage(homeRoot, window.localStorage);
+    const pill = pillRoot();
+    initHomePage(homeRoot, pill, window.localStorage);
     homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
 
-    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
+    pill.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
     homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
 
     const locationSelected = events.filter(([name]) => name === 'location_selected');
@@ -102,10 +112,11 @@ describe('home → restaurant → items → cart → checkout → order-placed �
     setTrack((name, props) => events.push([name, props]));
 
     const homeRoot = root();
-    initHomePage(homeRoot, window.localStorage);
+    const pill = pillRoot();
+    initHomePage(homeRoot, pill, window.localStorage);
     homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-sf"]')?.click();
 
-    homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
+    pill.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
     homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
 
     const locationSelected = events.filter(([name]) => name === 'location_selected');
@@ -150,7 +161,7 @@ describe('the promo mechanic completes with no error when Supabase is not config
     resetTrack();
     expect(() => {
       const homeRoot = root();
-      initHomePage(homeRoot, window.localStorage, window.sessionStorage);
+      initHomePage(homeRoot, pillRoot(), window.localStorage, window.sessionStorage);
       homeRoot.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
       // The flash sheet opens on this first load; dismiss it via the scrim so the feed underneath is reachable.
       homeRoot.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click();

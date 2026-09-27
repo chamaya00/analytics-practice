@@ -8,6 +8,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     import { initHomePage } from '../lib/home-dom';
 
     const root = document.getElementById('home-root');
-    if (root) initHomePage(root);
+    const pillRoot = document.querySelector<HTMLElement>('[data-testid="city-pill-slot"]');
+    if (root && pillRoot) initHomePage(root, pillRoot);
   </script>
 </BaseLayout>
