@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { downloadUrl, entriesToFetch, pickResult, validateEntry } from './fetch-photos.mjs';
+import { budgetSpent, downloadUrl, entriesToFetch, pickResult, validateEntry } from './fetch-photos.mjs';
 
 const good = { path: 'public/images/restaurants/ben-thanh-banh-mi.jpg', query: 'banh mi sandwich', width: 320, height: 240 };
 
@@ -50,5 +50,13 @@ describe('fetch-photos selection', () => {
       'public/images/a.jpg',
       'public/images/b.jpg',
     ]);
+  });
+});
+
+describe('fetch-photos rate limit', () => {
+  it('stops only when Unsplash says the hour is spent, not when the header is missing', () => {
+    expect(budgetSpent(new Headers({ 'x-ratelimit-remaining': '0' }))).toBe(true);
+    expect(budgetSpent(new Headers({ 'x-ratelimit-remaining': '12' }))).toBe(false);
+    expect(budgetSpent(new Headers())).toBe(false);
   });
 });
