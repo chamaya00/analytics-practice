@@ -112,6 +112,12 @@ const TAB_ICON_PATHS: Record<string, string> = {
     font-size: var(--font-size-nav-title);
     line-height: 1.2;
     letter-spacing: normal;
+    /* Grid/flex items default to min-width: auto (their content's min-content
+       size), which ignores the 1fr track above and overflows into the pill's
+       column instead of wrapping at the wordmark's own <wbr> points — the
+       same fix docs/design's .voucher-main/.confirm-button already use for
+       exactly this. */
+    min-width: 0;
   }
 
   /* docs/design/80-two-city-brand-and-flow.md: lowercase, weight-split,
@@ -225,6 +231,18 @@ const TAB_ICON_PATHS: Record<string, string> = {
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
       column-gap: var(--space-sm);
+    }
+
+    /* .wordmark's own `flex: none` (above) is right everywhere else — it
+       only exists to stop `.wordmark` itself becoming a flex container
+       (which would split the bare <wbr> elements' anonymous boxes apart).
+       In the three-column row it also has to be allowed to shrink and wrap
+       at those <wbr> points instead of overflowing column 1 — the first
+       composition that actually puts the wordmark under width pressure
+       (docs/design/137-carousel-header-tiles.md's own "Header row"). */
+    .brand-group--home .wordmark {
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     .brand-group--home .city-pill-slot,
