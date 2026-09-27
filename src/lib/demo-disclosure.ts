@@ -10,6 +10,11 @@ export function renderDemoDisclosure(): HTMLElement {
   disclosure.className = 'demo-disclosure';
   disclosure.setAttribute('data-testid', 'demo-disclosure');
 
+  const iconWrapper = document.createElement('span');
+  iconWrapper.innerHTML =
+    '<svg class="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>';
+  const icon = iconWrapper.firstElementChild!;
+
   const text = document.createElement('span');
   text.textContent = 'This is a demo. No payment is taken and no food is sent. ';
 
@@ -18,6 +23,6 @@ export function renderDemoDisclosure(): HTMLElement {
   link.textContent = 'What we log, and why →';
 
   text.append(link);
-  disclosure.append(text);
+  disclosure.append(icon, text);
   return disclosure;
 }
