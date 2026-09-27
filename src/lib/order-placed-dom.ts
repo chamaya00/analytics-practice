@@ -62,7 +62,10 @@ export function renderOrderPlaced(
   eta.append(`Arrives in about ${order.etaMinutes} min`);
 
   const trackLink = document.createElement('a');
-  trackLink.href = '/tracker/';
+  // #147 "Order stack rules": arriving from here opens the order just
+  // placed, not whichever order the tracker would default to on its own —
+  // tracker-dom.ts reads this hash once, on load.
+  trackLink.href = `/tracker/#order-${order.orderId}`;
   trackLink.className = 'order-placed-cta';
   trackLink.setAttribute('data-testid', 'track-order');
   trackLink.textContent = 'Track your order';

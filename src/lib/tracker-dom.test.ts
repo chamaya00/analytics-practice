@@ -146,8 +146,10 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
     expect(ratingPrompt).not.toBeNull();
     expect(disclosure?.textContent).toContain('This is a demo. No payment is taken and no food is sent.');
     expect(disclosure?.querySelector('a')?.getAttribute('href')).toBe('/about/');
-    // The disclosure sits directly above the rating prompt (AC4).
-    const children = Array.from(el.children);
+    // The disclosure sits directly above the rating prompt (AC4), both inside
+    // the open order card.
+    const card = el.querySelector('[data-testid="tracker-open-card"]');
+    const children = Array.from(card?.children ?? []);
     expect(children.indexOf(disclosure as Element) + 1).toBe(children.indexOf(ratingPrompt as Element));
   });
 
