@@ -69,6 +69,16 @@ getting a surprisingly good deal."
   computed live rather than fixed copy — and refusing the loyalty-program
   framing (points, tiers named "Bronze/Silver/Gold") since the owner's model
   is a single basket's live subtotal, not an account that accrues over time.
+
+  > **Superseded in part, 2026-09-27 (#135, specified in
+  > `162-rating-win-tips-rewards-vip.md`):** the owner chose account-level
+  > VIP levels (Gold, Platinum) on #135 (decision O2). The refusal of tiers
+  > named Gold and so on no longer holds *for those two levels*. Everything
+  > else here stands: there are still no points and no coins, this
+  > catalogue's spend ladder is unchanged and keeps the word Tier, and "no
+  > third general-purpose stack layer" still holds. #135's thanks voucher is
+  > the one named exception, with its own breakdown line outside the two
+  > stack groups.
 - **Voucherify's own coupon-UI guidance** (also cited in #80): state the
   savings number, don't make the visitor subtract it themselves, and show a
   progress indicator toward the next threshold rather than a flat "not

@@ -303,6 +303,15 @@ reduce`, the swap is instant.
   recommendation:** once per page load, for the order open by default, exactly
   as today, and not again when a row is opened. That keeps its shape and its
   cadence.
+- > **Superseded, 2026-09-27 (#135, specified in
+  > `162-rating-win-tips-rewards-vip.md`):** both halves of the rule below
+  > are reversed. The rating moves out of the open card into a two-step
+  > rating sheet (driver, then restaurant). History rows gain Rate, Tip and
+  > Order again, so history is no longer read-only, and the history row's
+  > "Never: show the rating prompt, stars, tip or reorder" no longer holds.
+  > A delivered open card shows #135's Delivered hero and done rail in place
+  > of the "Delivered N min ago" line and full stepper. The order-stack
+  > rules, the driver slot, the live states and the avatars are unchanged.
 - **Rating prompt.** It sits where it does today relative to the stepper:
   stepper → (new) driver card → demo disclosure → "How was your order?". It is
   inside the open card and appears only for an order that is open and delivered.
