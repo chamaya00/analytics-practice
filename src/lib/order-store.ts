@@ -97,6 +97,72 @@ export function cartSubtotalMinor(lines: CartLine[]): number {
   return lines.reduce((total, line) => total + line.amountMinor * line.quantity, 0);
 }
 
+/**
+ * One restaurant's cart. Storage keeps the single `parody.cart` array it
+ * always has (no migration); a "cart" is simply the lines that share one
+ * `restaurantSlug`, so every restaurant is checked out, priced and cleared
+ * on its own — its own delivery fee, its own vouchers, its own order.
+ */
+export interface RestaurantCart {
+  restaurantSlug: string;
+  restaurantName: string;
+  lines: CartLine[];
+  itemCount: number;
+  subtotalMinor: number;
+  currency: Currency;
+}
+
+/** The lines belonging to one restaurant's cart, in stored order. */
+export function linesForRestaurant(lines: CartLine[], restaurantSlug: string): CartLine[] {
+  return lines.filter((line) => line.restaurantSlug === restaurantSlug);
+}
+
+/** Every restaurant's cart, in the order its first line was added. Empty for an empty cart. */
+export function cartsByRestaurant(lines: CartLine[]): RestaurantCart[] {
+  const order: string[] = [];
+  for (const line of lines) {
+    if (!order.includes(line.restaurantSlug)) order.push(line.restaurantSlug);
+  }
+  return order.map((slug) => {
+    const own = linesForRestaurant(lines, slug);
+    return {
+      restaurantSlug: slug,
+      restaurantName: own[0].restaurantName,
+      lines: own,
+      itemCount: cartItemCount(own),
+      subtotalMinor: cartSubtotalMinor(own),
+      currency: own[0].currency,
+    };
+  });
+}
+
+/**
+ * Which cart a screen that works on one restaurant's cart (cart, checkout,
+ * Offers) should show, given the `?restaurant=` it was opened with:
+ *
+ * - a requested slug that still has lines → that restaurant's cart;
+ * - otherwise nothing stored → `empty`;
+ * - otherwise exactly one restaurant's cart → that one;
+ * - otherwise several → `several`, and the caller shows (or sends the
+ *   visitor to) the "Your carts" list rather than guessing.
+ *
+ * An unknown, stale (its cart was just emptied) or missing slug falls
+ * through to the last three rules, so no link can strand a visitor.
+ */
+export type CartSelection =
+  | { kind: 'empty' }
+  | { kind: 'single'; cart: RestaurantCart }
+  | { kind: 'several'; carts: RestaurantCart[] };
+
+export function selectRestaurantCart(lines: CartLine[], requestedSlug: string | null): CartSelection {
+  const carts = cartsByRestaurant(lines);
+  const requested = requestedSlug ? carts.find((cart) => cart.restaurantSlug === requestedSlug) : undefined;
+  if (requested) return { kind: 'single', cart: requested };
+  if (carts.length === 0) return { kind: 'empty' };
+  if (carts.length === 1) return { kind: 'single', cart: carts[0] };
+  return { kind: 'several', carts };
+}
+
 /** The cart's own currency — every line shares one (one city's catalogue at a time). `null` for an empty cart, since there's nothing to infer it from. */
 export function cartCurrency(lines: CartLine[]): Currency | null {
   return lines[0]?.currency ?? null;
@@ -218,6 +284,14 @@ export function clearCart(storage: Storage): void {
   storage.removeItem(CART_KEY);
 }
 
+/** Removes one restaurant's lines and keeps every other restaurant's cart intact. Returns what is left. */
+export function clearRestaurantCart(storage: Storage, restaurantSlug: string): CartLine[] {
+  const remaining = getCart(storage).filter((line) => line.restaurantSlug !== restaurantSlug);
+  if (remaining.length === 0) clearCart(storage);
+  else setCart(storage, remaining);
+  return remaining;
+}
+
 export function getOrder(storage: Storage): PlacedOrder | null {
   const raw = storage.getItem(ORDER_KEY);
   if (!raw) return null;
@@ -243,13 +317,17 @@ export interface PlaceOrderFields {
 }
 
 /**
- * Writes the placed-order record from the current cart and clears the cart —
- * "the cart clears when an order is placed" (issue #67, AC9). Does not fire
- * any event; the caller fires `order_placed` once, guarded against a
- * double-tap (see checkout-dom.ts).
+ * Writes the placed-order record from one restaurant's cart and clears only
+ * that restaurant's lines — "the cart clears when an order is placed" (issue
+ * #67, AC9), now per restaurant, so any other restaurant's cart survives the
+ * order. Without `restaurantSlug` it orders the whole stored cart, the
+ * single-cart behaviour this had before carts were split. Does not fire any
+ * event; the caller fires `order_placed` once, guarded against a double-tap
+ * (see checkout-dom.ts).
  */
-export function placeOrder(storage: Storage, fields: PlaceOrderFields): PlacedOrder {
-  const items = getCart(storage);
+export function placeOrder(storage: Storage, fields: PlaceOrderFields, restaurantSlug?: string): PlacedOrder {
+  const all = getCart(storage);
+  const items = restaurantSlug === undefined ? all : linesForRestaurant(all, restaurantSlug);
   const order: PlacedOrder = {
     orderId: generateId(),
     placedAt: new Date().toISOString(),
@@ -267,7 +345,8 @@ export function placeOrder(storage: Storage, fields: PlaceOrderFields): PlacedOr
     rating: null,
   };
   setOrder(storage, order);
-  clearCart(storage);
+  if (restaurantSlug === undefined) clearCart(storage);
+  else clearRestaurantCart(storage, restaurantSlug);
   return order;
 }
 

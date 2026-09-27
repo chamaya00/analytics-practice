@@ -3,19 +3,23 @@ import {
   addToCart,
   cartCurrency,
   cartItemCount,
+  cartsByRestaurant,
   cartSubtotalMinor,
   clearCart,
+  clearRestaurantCart,
   clearOrder,
   computeCheckoutBreakdown,
   getCart,
   getOrder,
   getSessionId,
   getVisitorId,
+  linesForRestaurant,
   markOrderDelivered,
   minutesSinceOrder,
   placeOrder,
   recordTrackerView,
   removeFromCart,
+  selectRestaurantCart,
   setItemQuantity,
   submitRating,
 } from './order-store';
@@ -208,6 +212,128 @@ describe('placeOrder (AC1, AC9)', () => {
       utensils: true,
     });
     expect(first.orderId).not.toBe(second.orderId);
+  });
+});
+
+describe('one cart per restaurant', () => {
+  const PIZZA = {
+    itemId: 'north-beach-pizzeria-margherita',
+    restaurantSlug: 'north-beach-pizzeria',
+    restaurantName: 'North Beach Pizzeria',
+    name: 'Margherita',
+    amountMinor: 1650,
+    currency: 'USD' as const,
+  };
+  const TACO = {
+    itemId: 'mission-taqueria-al-pastor',
+    restaurantSlug: 'mission-taqueria',
+    restaurantName: 'Mission Taqueria',
+    name: 'Al pastor taco',
+    amountMinor: 425,
+    currency: 'USD' as const,
+  };
+  const PHO = {
+    itemId: 'saigon-pho-quan-bo',
+    restaurantSlug: 'saigon-pho-quan',
+    restaurantName: 'Saigon Phở Quán',
+    name: 'Phở bò',
+    amountMinor: 55000,
+    currency: 'VND' as const,
+  };
+
+  function seed(): void {
+    addToCart(window.localStorage, PIZZA);
+    addToCart(window.localStorage, TACO);
+    addToCart(window.localStorage, TACO);
+    addToCart(window.localStorage, PHO);
+  }
+
+  it('linesForRestaurant returns only that restaurant’s lines', () => {
+    seed();
+    const lines = getCart(window.localStorage);
+    expect(linesForRestaurant(lines, 'mission-taqueria').map((line) => line.itemId)).toEqual([TACO.itemId]);
+    expect(linesForRestaurant(lines, 'nowhere')).toEqual([]);
+  });
+
+  it('cartsByRestaurant groups lines into one cart per restaurant, in the order each was first added, with its own count, subtotal and currency', () => {
+    seed();
+    const carts = cartsByRestaurant(getCart(window.localStorage));
+    expect(carts.map((cart) => cart.restaurantSlug)).toEqual(['north-beach-pizzeria', 'mission-taqueria', 'saigon-pho-quan']);
+    expect(carts[1]).toMatchObject({ restaurantName: 'Mission Taqueria', itemCount: 2, subtotalMinor: 850, currency: 'USD' });
+    expect(carts[2]).toMatchObject({ itemCount: 1, subtotalMinor: 55000, currency: 'VND' });
+  });
+
+  it('cartsByRestaurant is empty for an empty cart', () => {
+    expect(cartsByRestaurant([])).toEqual([]);
+  });
+
+  it('clearRestaurantCart removes one restaurant’s lines and keeps the rest', () => {
+    seed();
+    const remaining = clearRestaurantCart(window.localStorage, 'mission-taqueria');
+    expect(remaining.map((line) => line.restaurantSlug)).toEqual(['north-beach-pizzeria', 'saigon-pho-quan']);
+    expect(getCart(window.localStorage)).toEqual(remaining);
+  });
+
+  it('clearRestaurantCart on the last cart leaves nothing stored', () => {
+    addToCart(window.localStorage, PIZZA);
+    clearRestaurantCart(window.localStorage, 'north-beach-pizzeria');
+    expect(window.localStorage.getItem('parody.cart')).toBeNull();
+  });
+
+  describe('selectRestaurantCart', () => {
+    it('is empty for an empty cart, whatever slug is asked for', () => {
+      expect(selectRestaurantCart([], null)).toEqual({ kind: 'empty' });
+      expect(selectRestaurantCart([], 'north-beach-pizzeria')).toEqual({ kind: 'empty' });
+    });
+
+    it('picks the only cart when no slug is given', () => {
+      addToCart(window.localStorage, PIZZA);
+      const selection = selectRestaurantCart(getCart(window.localStorage), null);
+      expect(selection.kind === 'single' && selection.cart.restaurantSlug).toBe('north-beach-pizzeria');
+    });
+
+    it('returns every cart when several exist and no slug is given', () => {
+      seed();
+      const selection = selectRestaurantCart(getCart(window.localStorage), null);
+      expect(selection.kind === 'several' && selection.carts).toHaveLength(3);
+    });
+
+    it('picks the named restaurant’s cart when it has lines', () => {
+      seed();
+      const selection = selectRestaurantCart(getCart(window.localStorage), 'saigon-pho-quan');
+      expect(selection.kind).toBe('single');
+      expect(selection.kind === 'single' && selection.cart.lines.map((line) => line.itemId)).toEqual([PHO.itemId]);
+    });
+
+    it('falls back to the no-slug rules for an unknown slug or one whose cart is empty', () => {
+      seed();
+      expect(selectRestaurantCart(getCart(window.localStorage), 'not-a-restaurant').kind).toBe('several');
+      expect(selectRestaurantCart(getCart(window.localStorage), 'golden-lotus-dim-sum').kind).toBe('several');
+
+      window.localStorage.clear();
+      addToCart(window.localStorage, PIZZA);
+      const selection = selectRestaurantCart(getCart(window.localStorage), 'mission-taqueria');
+      expect(selection.kind === 'single' && selection.cart.restaurantSlug).toBe('north-beach-pizzeria');
+    });
+  });
+
+  it('placeOrder with a restaurant slug orders only that restaurant’s lines and leaves every other cart in place', () => {
+    seed();
+    const order = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      'mission-taqueria',
+    );
+
+    expect(order.items.map((line) => line.itemId)).toEqual([TACO.itemId]);
+    expect(order.itemCount).toBe(2);
+    expect(order.amountMinor).toBe(850);
+    expect(order.currency).toBe('USD');
+    expect(getCart(window.localStorage).map((line) => line.restaurantSlug)).toEqual([
+      'north-beach-pizzeria',
+      'saigon-pho-quan',
+    ]);
+    expect(getOrder(window.localStorage)?.orderId).toBe(order.orderId);
   });
 });
 

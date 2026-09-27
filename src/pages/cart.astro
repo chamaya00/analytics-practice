@@ -3,7 +3,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Cart — Dontdropthatpromo">
-  <h1>Cart</h1>
+  <!-- The page heading is cart-dom.ts's own: "Cart", "Your carts", or the
+       restaurant's name, depending on which cart view the stored cart and
+       ?restaurant= resolve to. -->
   <div id="cart-root" data-testid="cart-root"></div>
   <script>
     import { initCartPage } from '../lib/cart-dom';

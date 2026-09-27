@@ -16,7 +16,10 @@ name: photos
 #
 # The owner approved images.unsplash.com and unsplash.com as download sources
 # on 2026-09-27. The site never hotlinks either: what ships is the committed
-# file.
+# file. Search goes through Unsplash's official API (api.unsplash.com) with
+# the UNSPLASH_ACCESS_KEY secret: the keyless endpoint answers 401 to hosted
+# runners. A demo-mode key allows 50 requests an hour, so a big manifest
+# lands over a few re-runs of this job - each run commits what it got.
 
 on:
   pull_request:
@@ -56,6 +59,8 @@ jobs:
           node-version: '22'
 
       - id: fetch
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
         run: |
           if node scripts/fetch-photos.mjs; then
             echo "failed=false" >> "$GITHUB_OUTPUT"
@@ -67,6 +72,9 @@ jobs:
       # retry only has the failures left to do.
       - name: Commit fetched photos
         run: |
+          # The directory is gone when a branch has just deleted its last
+          # placeholder and nothing has downloaded yet; git add would refuse.
+          mkdir -p public/images
           git add public/images docs/design/photos.lock.json
           if git diff --cached --quiet; then
             echo "Nothing new to commit."

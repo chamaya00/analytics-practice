@@ -14,6 +14,7 @@ const LIGHT_TEXT_MUTED = '#6b5d85';
 const LIGHT_ACCENT_A = '#6c3ce0';
 const LIGHT_ACCENT_B = '#ff7a45';
 const LIGHT_BADGE_INK = '#241b33';
+const LIGHT_DANGER = '#c4213a';
 
 const DARK_BG = '#16101f';
 const DARK_SURFACE = '#1e1730';
@@ -22,6 +23,7 @@ const DARK_TEXT_MUTED = '#b7a6d9';
 const DARK_ACCENT_A = '#b79cff';
 const DARK_ACCENT_B = '#ffa36b';
 const DARK_BADGE_INK = '#16101f';
+const DARK_DANGER = '#ff8a9b';
 
 describe('light palette contrast (#82 review round 1, item 2)', () => {
   it('body text clears 4.5:1 against both bg and surface', () => {
@@ -70,5 +72,15 @@ describe('badge fill (--color-accent-b) is never text-on-background (#80 "Contra
   it('white text on the fill fails in both themes — why dark ink is the rule, not a suggestion', () => {
     expect(contrastRatio('#ffffff', LIGHT_ACCENT_B)).toBeLessThan(4.5);
     expect(contrastRatio('#ffffff', DARK_ACCENT_B)).toBeLessThan(4.5);
+  });
+});
+
+describe('danger fill (--color-danger) carries --color-bg text: the cart’s swipe-revealed "Remove" and the confirm dialog’s "Remove"', () => {
+  it('bg-coloured text on the danger fill clears 4.5:1 in the light theme', () => {
+    expect(contrastRatio(LIGHT_BG, LIGHT_DANGER)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('bg-coloured text on the danger fill clears 4.5:1 in the dark theme', () => {
+    expect(contrastRatio(DARK_BG, DARK_DANGER)).toBeGreaterThanOrEqual(4.5);
   });
 });

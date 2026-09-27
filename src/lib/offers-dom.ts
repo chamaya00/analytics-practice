@@ -3,10 +3,15 @@
 // membership (qualifying vs. greyed), a checkbox per voucher, and the
 // sticky "You saved"/"Apply" footer. Every control here is a checkbox or a
 // button — no typed field anywhere (#80's settled decision, AC5).
+//
+// Like checkout, it works on one restaurant's cart (`?restaurant=<slug>`):
+// the subtotal the vouchers qualify against, the delivery fee the delivery
+// voucher waives and the stored selection itself are all that restaurant's
+// own (offers-store.ts keeps one selection per restaurant).
 
-import { formatMoney, type Currency } from './money';
-import { cartSubtotalMinor, getCart, otherwiseDeliveryFeeMinor } from './order-store';
-import { getStoredCity } from './location';
+import { formatMoney, type City, type Currency } from './money';
+import { cartSubtotalMinor, getCart, otherwiseDeliveryFeeMinor, selectRestaurantCart } from './order-store';
+import { ALL_CARTS_PATH, checkoutPath, restaurantSlugFromSearch } from './cart-routes';
 import { getFlashDraw, flashFeeForRestaurant } from './flash-deal';
 import { getRestaurant } from './restaurants';
 import { getOffersState, setOffersState } from './offers-store';
@@ -102,6 +107,11 @@ export interface OffersView {
   cartIsEmpty: boolean;
 }
 
+function defaultRedirect(path: string): void {
+  // replace, not assign — same reason as checkout-dom.ts's own.
+  window.location.replace(path);
+}
+
 export function renderOffers(
   root: HTMLElement,
   storage: Storage,
@@ -110,12 +120,25 @@ export function renderOffers(
     window.location.href = path;
   },
   now: number = Date.now(),
+  requestedSlug: string | null = null,
+  redirect: (path: string) => void = defaultRedirect,
 ): OffersView {
   root.innerHTML = '';
 
-  const lines = getCart(storage);
-  const city = lines[0]?.currency === 'VND' ? 'hcmc' : (getStoredCity(storage) ?? 'sf');
-  if (lines.length === 0) {
+  const selection = selectRestaurantCart(getCart(storage), requestedSlug);
+  if (selection.kind === 'several') {
+    const message = document.createElement('p');
+    message.setAttribute('data-testid', 'offers-choose-cart');
+    message.textContent = 'You have carts from more than one restaurant. ';
+    const link = document.createElement('a');
+    link.href = ALL_CARTS_PATH;
+    link.textContent = 'Choose one first';
+    message.append(link);
+    root.append(message);
+    redirect(ALL_CARTS_PATH);
+    return { cartIsEmpty: true };
+  }
+  if (selection.kind === 'empty') {
     const empty = document.createElement('p');
     empty.setAttribute('data-testid', 'offers-empty');
     empty.textContent = 'Nothing qualifies yet. Add more to your cart to see offers.';
@@ -123,13 +146,14 @@ export function renderOffers(
     return { cartIsEmpty: true };
   }
 
-  const currency = lines[0].currency;
+  const { lines, restaurantSlug, currency } = selection.cart;
+  const city: City = currency === 'VND' ? 'hcmc' : 'sf';
   const subtotalMinor = cartSubtotalMinor(lines);
   const entries = entriesForCity(city, sessionStorage, now);
 
-  const previous = getOffersState(storage);
+  const previous = getOffersState(storage, restaurantSlug);
   const sync = syncOffersState(previous, entries, subtotalMinor);
-  setOffersState(storage, sync.state);
+  setOffersState(storage, restaurantSlug, sync.state);
 
   const unlockedDiscountIds = sync.state.qualifyingDiscountIds.filter(
     (id) => !previous.qualifyingDiscountIds.includes(id),
@@ -139,12 +163,12 @@ export function renderOffers(
   );
 
   function rerender(): void {
-    renderOffers(root, storage, sessionStorage, navigate, now);
+    renderOffers(root, storage, sessionStorage, navigate, now, restaurantSlug, redirect);
   }
 
   function toggle(id: string, group: StackGroup): void {
-    const next = manualSelect(getOffersState(storage), id as never, group);
-    setOffersState(storage, next);
+    const next = manualSelect(getOffersState(storage, restaurantSlug), id as never, group);
+    setOffersState(storage, restaurantSlug, next);
     rerender();
   }
 
@@ -157,7 +181,7 @@ export function renderOffers(
   back.setAttribute('data-testid', 'offers-back');
   back.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5 8 12l7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  back.addEventListener('click', () => navigate('/checkout/'));
+  back.addEventListener('click', () => navigate(checkoutPath(restaurantSlug)));
   const heading = document.createElement('h1');
   heading.textContent = 'Offers';
   topBar.append(back, heading);
@@ -209,7 +233,7 @@ export function renderOffers(
     root.append(sectionTitle, list);
   }
 
-  const restaurant = getRestaurant(lines[0].restaurantSlug);
+  const restaurant = getRestaurant(restaurantSlug);
   const normalFeeMinor = restaurant?.deliveryFeeMinor ?? 0;
   const draw = getFlashDraw(sessionStorage, city);
   const flashFeeMinor =
@@ -229,7 +253,7 @@ export function renderOffers(
   applyButton.className = 'footer-apply';
   applyButton.setAttribute('data-testid', 'offers-apply');
   applyButton.textContent = 'Apply';
-  applyButton.addEventListener('click', () => navigate('/checkout/'));
+  applyButton.addEventListener('click', () => navigate(checkoutPath(restaurantSlug)));
   footer.append(savedLabel, applyButton);
   root.append(footer);
 
@@ -243,6 +267,8 @@ export function initOffersPage(
   navigate: (path: string) => void = (path) => {
     window.location.href = path;
   },
+  search: string = window.location.search,
+  redirect: (path: string) => void = defaultRedirect,
 ): void {
-  renderOffers(root, storage, sessionStorage, navigate);
+  renderOffers(root, storage, sessionStorage, navigate, Date.now(), restaurantSlugFromSearch(search), redirect);
 }

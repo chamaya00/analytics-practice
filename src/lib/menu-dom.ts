@@ -5,7 +5,8 @@
 
 import type { Restaurant } from './restaurants';
 import { currencyForRestaurant } from './restaurants';
-import { addToCart, cartItemCount, cartSubtotalMinor, getCart, setItemQuantity } from './order-store';
+import { addToCart, cartItemCount, cartSubtotalMinor, getCart, linesForRestaurant, setItemQuantity } from './order-store';
+import { cartPath } from './cart-routes';
 import { formatMoney } from './money';
 import { initCartBadge } from './header-dom';
 import { track } from './tracking';
@@ -131,14 +132,17 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
     root.append(sectionEl);
   }
 
-  const wholeCart = getCart(storage);
-  const itemCount = cartItemCount(wholeCart);
+  // This restaurant's own cart only — every restaurant is its own cart, so a
+  // summary that counted another restaurant's lines would link to a
+  // checkout that doesn't include them.
+  const restaurantCart = linesForRestaurant(getCart(storage), restaurant.slug);
+  const itemCount = cartItemCount(restaurantCart);
   if (itemCount > 0) {
     const summary = document.createElement('a');
-    summary.href = '/cart/';
+    summary.href = cartPath(restaurant.slug);
     summary.className = 'cart-summary';
     summary.setAttribute('data-testid', 'cart-summary');
-    summary.textContent = `${itemCount} item${itemCount === 1 ? '' : 's'} — ${formatMoney(cartSubtotalMinor(wholeCart), currency)}`;
+    summary.textContent = `${itemCount} item${itemCount === 1 ? '' : 's'} — ${formatMoney(cartSubtotalMinor(restaurantCart), currency)}`;
     root.append(summary);
   }
 }
