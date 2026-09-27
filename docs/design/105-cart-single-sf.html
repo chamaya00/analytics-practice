@@ -92,8 +92,8 @@
   }
   .cart-line-info { flex: 1; min-width: 0; }
   .cart-line-name { font-weight: 800; font-size: var(--font-size-body); margin: 0 0 var(--space-xs); }
-  .cart-line-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-xs) var(--space-sm); }
-  .cart-line-total { font-weight: 700; font-size: var(--font-size-body); flex: none; }
+  .cart-line-row { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-xs); }
+  .cart-line-total { font-weight: 700; font-size: var(--font-size-body); }
 
   .stepper {
     display: inline-flex;
@@ -184,7 +184,6 @@
 
   <div class="cart-lines">
     <div class="swipe-row-outer open">
-      <div class="swipe-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Remove</div>
       <div class="swipe-content">
         <div class="photo-placeholder">[photo: tacos close up]</div>
         <div class="cart-line-info">
@@ -195,6 +194,7 @@
           </div>
         </div>
       </div>
+      <div class="swipe-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>Remove</div>
     </div>
 
     <div class="swipe-row-outer">

@@ -202,7 +202,9 @@ restaurant only.
 **Removing a line — two paths, no Remove button on the row:**
 
 1. **Swipe left** on a row slides its content left to reveal a fixed
-   `88px`, `--color-danger`-filled "Remove" panel behind it — this document
+   `88px`, `--color-danger`-filled "Remove" panel behind it, sitting at the
+   row's **right** edge (the gesture is named for the direction the
+   content moves, not for the side the panel sits on) — this document
    mocks exactly one row in this state, per the "look outside" section's
    finding that the gesture itself is the confirmation, so tapping the
    revealed panel removes the line with no further dialog.
@@ -265,9 +267,9 @@ slightly different for no reason.
   preview and its own "Go to checkout." Heading is the restaurant's name,
   no suffix.
 - **SwipeRow** — wraps a cart line item. States: closed (default), open
-  (content shifted left, `--color-danger` "Remove" panel revealed). Tapping
-  the revealed panel removes the line with no further dialog, per the
-  "look outside" finding above.
+  (content shifted left, `--color-danger` "Remove" panel revealed at the
+  row's right edge). Tapping the revealed panel removes the line with no
+  further dialog, per the "look outside" finding above.
 - **RemoveConfirmModal** — scrim + centered sheet, reached only from tapping
   `−` at quantity 1. Fixed copy shape: "Remove {dish}?", "It'll be taken out
   of your {restaurant} cart.", Cancel (neutral) / Remove (danger-filled).
@@ -331,6 +333,35 @@ Twenty PNGs total (ten files × two widths), committed alongside.
   off the right edge. Fixed by moving each line's price under its stepper
   (a `flex-wrap: wrap` row) instead of beside it — both wrap cleanly at the
   narrower width and neither clips, confirmed in the re-render.
+- **Driver review, revision round 1: the flex-sibling fix above put the
+  panel on the wrong side.** Making the action panel and the content div
+  flex siblings (rather than a clipped, translated single box) fixed the
+  clipping, but the two divs were written action-panel-first, and a flex
+  row places its children in source order — so the danger panel rendered
+  at the row's *left* edge, against both this spec's own wording ("slides
+  its content left to *reveal*") and #113's shipped behaviour. Fixed by
+  reordering the markup (content div first, action panel second) rather
+  than adding `order` or any positioning property — the same flex layout,
+  read the other way round. Between the review's two offered options —
+  clip the photo tile partway off the left edge to mimic a mid-swipe
+  translate, or keep the content fully visible — this took the fully
+  visible option: reintroducing any clipped or translated edge is exactly
+  what the first finding above spent an iteration removing, for a mock
+  that only ever shows the row at rest in its open state, never mid-drag.
+  The same review also caught the price sitting in two different places
+  between the open row (wrapped under the stepper, from the finding above)
+  and the closed rows (still beside the stepper, flush right, because they
+  had the width to fit it there) — the two states read as different rows
+  rather than the same row in two states. Fixed by dropping the
+  `flex-wrap`/`justify-content: space-between` trick and giving every
+  `.cart-line-row` a plain `flex-direction: column`, so the price sits
+  under the stepper on every row, open or closed, narrow or wide, with no
+  dependence on how much width happens to be left. Re-rendered all four
+  pictures (SF/HCMC × wide/narrow); confirmed by eye and re-grepped for
+  `left` describing the panel's side (none left uncorrected — the two
+  remaining "left" occurrences in this document, in the SwipeRow bullet
+  above and "Removing a line" §5, both name the gesture's direction and
+  now say explicitly that the panel itself sits at the row's right edge).
 - **Checked deliberately: which tab reads as "current" on a screen that
   isn't one of the three destinations.** The restaurant/menu screen marks
   Home current (it's reached from the feed); the cart screens mark Cart
