@@ -10,16 +10,27 @@
 // and fires rating_submitted once, against the order currently open, when
 // "Submit" is tapped.
 
-import { findOrder, getOrders, minutesSinceOrder, recordTrackerView, submitRating, type PlacedOrder } from './order-store';
+import {
+  findOrder,
+  getOrders,
+  markRatingPrompted,
+  minutesSinceOrder,
+  recordTrackerView,
+  submitDriverRating,
+  submitRating,
+  type PlacedOrder,
+} from './order-store';
 import {
   computeOrderStack,
   computeTrackerView,
+  decideRatingPrompt,
   defaultOpenOrderId,
   STEPS,
   type TrackerView,
 } from './tracker-state';
 import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
+import { openRatingSheet } from './rating-sheet-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
 import { formatMoney } from './money';
@@ -569,6 +580,40 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
   }
 
   render();
+
+  // #163's multi-order rule (docs/design/162-*): decided once, here, at page
+  // load — not on every render tick, which is what "at most once per page
+  // load" and "the sheet never chains into another order's sheet" both come
+  // down to. Every other qualifying order is marked prompted in the same
+  // tick so it never auto-opens on a later load; the chosen order (if any) is
+  // marked the moment the sheet actually opens, right below.
+  const ratingPromptDecision = decideRatingPrompt(initialOrders, openOrderId, Date.now());
+  for (const passedOverId of ratingPromptDecision.passedOverOrderIds) {
+    markRatingPrompted(storage, passedOverId);
+  }
+  if (ratingPromptDecision.openOrderId) {
+    openRatingSheetFor(ratingPromptDecision.openOrderId);
+  }
+
+  function openRatingSheetFor(orderId: string): void {
+    const target = findOrder(storage, orderId);
+    if (!target) return;
+    markRatingPrompted(storage, orderId);
+    openRatingSheet({
+      order: target,
+      onSubmitDriverRating: (stars) => {
+        submitDriverRating(storage, orderId, stars);
+        render();
+      },
+      onSubmitRestaurant: (stars, tags) => {
+        const updated = submitRating(storage, orderId, stars, tags);
+        if (!updated) return;
+        track('rating_submitted', { order_id: orderId, stars, tags });
+        render();
+      },
+      onClose: render,
+    });
+  }
 
   // Ticks every second (#121 AC4) — the live countdown depends on it, not
   // just the stepper advancing.
