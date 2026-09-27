@@ -17,7 +17,7 @@ export const CITY_CURRENCY: Record<City, Currency> = {
   hcmc: 'VND',
 };
 
-const CITY_LOCALE: Record<City, string> = {
+export const CITY_LOCALE: Record<City, string> = {
   sf: 'en-US',
   hcmc: 'vi-VN',
 };
@@ -53,6 +53,24 @@ export function formatMoney(amountMinor: number, currency: Currency): string {
 
 export function formatMoneyForCity(amountMinor: number, city: City): string {
   return formatMoney(amountMinor, currencyForCity(city));
+}
+
+/**
+ * The wallet header chip's compact form (docs/design/143-wallet.md, "The
+ * compact rule for long balances"): `Intl.NumberFormat`'s own
+ * `notation: 'compact'`, through the same locale/currency pairing as
+ * `formatMoneyForCity` rather than a hand-built abbreviation — the caller
+ * decides when to use this over the full form (the mock's own 9-character
+ * threshold, the width of `600.000 ₫`).
+ */
+export function formatMoneyCompactForCity(amountMinor: number, city: City): string {
+  const currency = currencyForCity(city);
+  const value = currency === 'USD' ? amountMinor / 100 : amountMinor;
+  return new Intl.NumberFormat(CITY_LOCALE[city], {
+    style: 'currency',
+    currency,
+    notation: 'compact',
+  }).format(value);
 }
 
 /**

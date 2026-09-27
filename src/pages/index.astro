@@ -6,9 +6,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <div id="home-root" data-testid="home-root"></div>
   <script>
     import { initHomePage } from '../lib/home-dom';
+    import { initWallet } from '../lib/wallet-dom';
+    import { getStoredCity } from '../lib/location';
 
     const root = document.getElementById('home-root');
     const pillRoot = document.querySelector<HTMLElement>('[data-testid="city-pill-slot"]');
+    const balanceRoot = document.querySelector<HTMLElement>('[data-testid="balance-slot"]');
     if (root && pillRoot) initHomePage(root, pillRoot);
+    if (balanceRoot) {
+      void initWallet(balanceRoot, document.body, () => getStoredCity(window.localStorage) ?? 'sf');
+    }
   </script>
 </BaseLayout>

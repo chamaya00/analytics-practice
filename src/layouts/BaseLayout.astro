@@ -2191,4 +2191,260 @@ const { title } = Astro.props;
       animation: none;
     }
   }
+
+  /* ---- wallet chip and sheet (docs/design/143-wallet.md; #146) ----
+     Rendered at runtime by wallet-dom.ts into Header.astro's `.balance-slot`
+     (empty and `display:none`-by-default at compile time, same as
+     `.city-pill-slot`) and into `document.body` for the sheet overlay — both
+     get no scoped `<style>` of their own, same unscoped-by-necessity pattern
+     as the home feed above. */
+
+  .wallet-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 32px;
+    padding: 0.25rem 0.75rem;
+    font-family: inherit;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* A transparent 44px hit area rather than a bigger visible chip — the
+     chip's own paint stays the mock's compact pill size (docs/design/
+     143-wallet.md: "a 44px hit area from a transparent ::after extending
+     6px vertically"). */
+  .wallet-chip::after {
+    content: '';
+    position: absolute;
+    inset: -6px -8px;
+  }
+
+  .wallet-chip--drip {
+    border-color: var(--color-accent-a);
+  }
+
+  .wallet-chip-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 800;
+    color: #fff;
+    background: var(--color-accent-a);
+    border: 2px solid var(--color-bg);
+    border-radius: 999px;
+  }
+
+  .wallet-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+  }
+
+  .wallet-sheet-overlay .scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(36, 27, 51, 0.45);
+    border: none;
+    padding: 0;
+  }
+
+  .wallet-sheet-overlay .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: 26rem;
+    margin: 0 auto;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 0 var(--space-lg) var(--space-lg);
+    background: var(--color-bg);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
+    animation: confirm-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .wallet-sheet-overlay .drag-handle {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-sm) 0;
+  }
+
+  .wallet-sheet-overlay .drag-handle-bar {
+    width: 40px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-border);
+  }
+
+  .wallet-sheet-overlay .sheet-close {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text);
+  }
+
+  .wallet-sheet-overlay .sheet-close svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .wallet-sheet-overlay h1 {
+    margin: 0 0 2px;
+    font-size: var(--font-size-h2);
+    font-weight: 800;
+  }
+
+  .wallet-sheet-kicker {
+    margin: 0 0 var(--space-md);
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .wallet-sheet-balance {
+    margin: 0 0 var(--space-sm);
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wallet-sheet-other-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-sm) 0;
+    margin-bottom: var(--space-md);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wallet-drip-card {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    background: var(--color-surface);
+    border-radius: 12px;
+  }
+
+  .wallet-drip-eyebrow {
+    margin: 0 0 var(--space-xs);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .wallet-drip-eyebrow--accent {
+    color: var(--color-accent-a);
+  }
+
+  .wallet-drip-headline {
+    margin: 0 0 2px;
+    font-size: 1.375rem;
+    font-weight: 800;
+  }
+
+  .wallet-drip-fine {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .wallet-drip-collect {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    margin-top: var(--space-sm);
+    padding: var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-body);
+    font-weight: 800;
+    color: var(--color-bg);
+    background: var(--color-accent-a);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .wallet-drip-collect:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .wallet-sheet-account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .wallet-sheet-account-text {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .wallet-sign-out {
+    flex: none;
+    min-height: 44px;
+    padding: 0 var(--space-sm);
+    font-family: inherit;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text);
+    background: none;
+    border: none;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Visually hidden but still announced — the sign-out live region
+     (docs/design/143-wallet.md: "a polite live region says…"). */
+  .wallet-live-region {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wallet-sheet-overlay .sheet {
+      animation: none;
+    }
+  }
 </style>

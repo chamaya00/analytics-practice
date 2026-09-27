@@ -7,6 +7,7 @@
 
 import { CITIES, CITY_CURRENCY, CITY_NAMES, formatMoneyForCity, type City } from './money';
 import { getStoredCity, setStoredCity } from './location';
+import { CITY_CHANGED_EVENT } from './city-events';
 import { CUISINE_SHORTCUTS, restaurantsForCity, getRestaurant, type Restaurant } from './restaurants';
 import { getVisitorId } from './order-store';
 import { estimateEtaMinutes, etaLabel } from './eta';
@@ -528,6 +529,7 @@ const carouselCleanups = new WeakMap<HTMLElement, () => void>();
 
 function renderFeed(root: HTMLElement, pillRoot: HTMLElement, city: City, sessionStorage: Storage, visitorId: string): void {
   const now = Date.now();
+  document.dispatchEvent(new CustomEvent(CITY_CHANGED_EVENT, { detail: { city } }));
   const initial = ensureFlashDraw(sessionStorage, city, now);
   const { isNewDraw } = initial;
   let draw = initial.draw;
