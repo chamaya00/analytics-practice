@@ -81,8 +81,12 @@ export function renderFlashSheet(
   minSpendLine.className = 'min-spend-line';
   minSpendLine.textContent = `Order now with min. spend ${formatMoneyForCity(FLASH_MINIMUM_SPEND_MINOR[city], city)}`;
 
+  // Its own class, not home-dom.ts's `.restaurant-list` — that global rule
+  // sets a margin/gap meant for the home feed's card list, which leaked
+  // into this scrolling region and doubled its row spacing before this was
+  // split out (found rendering the tall sheet, #120).
   const list = document.createElement('div');
-  list.className = 'restaurant-list';
+  list.className = 'deal-list';
 
   let closed = false;
   let intervalId: ReturnType<typeof setInterval> | undefined;

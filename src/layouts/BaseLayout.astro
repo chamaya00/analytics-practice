@@ -1374,8 +1374,9 @@ const { title } = Astro.props;
 
   /* The only region that scrolls — the header and min-spend line above it
      are flex siblings that never move (#119's "fixed header, scrolling
-     list" split). */
-  .flash-sheet-overlay .restaurant-list {
+     list" split). Its own class, not home-dom.ts's `.restaurant-list`,
+     whose global margin/gap rule (line ~253) would otherwise leak in. */
+  .flash-sheet-overlay .deal-list {
     flex: 1;
     overflow-y: auto;
     display: flex;
