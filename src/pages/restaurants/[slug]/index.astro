@@ -13,8 +13,8 @@ const { restaurant } = Astro.props;
 ---
 
 <BaseLayout title={`${restaurant.name} — dontdropthatpromo`}>
-  <img class="restaurant-hero" src={restaurant.heroImage} alt="" width="343" height="180" />
-  <h1>{restaurant.name}</h1>
+  <img class="menu-hero" src={restaurant.heroImage} alt="" width="343" height="160" />
+  <h1 class="restaurant-title">{restaurant.name}</h1>
   <p class="restaurant-meta" data-testid="restaurant-meta">
     {restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} · {etaRangeLabel(restaurant)}
   </p>
