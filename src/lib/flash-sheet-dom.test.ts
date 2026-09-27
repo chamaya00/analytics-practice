@@ -137,7 +137,9 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
     const icon = meta?.querySelector('.vehicle-icon');
     expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
     expect(icon?.getAttribute('aria-hidden')).toBe('true');
-    expect(icon?.nextSibling?.textContent).toMatch(/^ \d+ min$/);
+    // No space character between icon and text (round 1 review, item 3) —
+    // the gap is the icon's own CSS margin, not a literal leading space.
+    expect(icon?.nextSibling?.textContent).toMatch(/^\d+ min$/);
   });
 
   it('a drawn SF restaurant shows a car icon, not a motorbike (#130 AC4)', () => {

@@ -118,20 +118,26 @@ describe('home feed contents (AC2)', () => {
     expect(card?.querySelector(`[data-testid="deal-badge-${dealRestaurant.slug}"]`)).not.toBeNull();
 
     // #130 AC3: the rating is immediately followed by the formatted review
-    // count in parentheses — asserted against the exact node text, not a
-    // loose containment check, since the meta line is now a sequence of
-    // nodes (text + icon + text) rather than one string.
-    const meta = card?.querySelector('.restaurant-card-meta');
-    expect(meta?.textContent).toContain(
-      `★ ${dealRestaurant.rating.toFixed(1)} (${formatReviewCount(dealRestaurant.reviewCount)})`,
+    // count in parentheses, on the cuisine line (round 1 review, item 1: the
+    // rating moved off the icon/ETA/fee line to stop that line wrapping a
+    // lone "delivery" at 375px) — asserted against the exact node text, not
+    // a loose containment check.
+    const tag = card?.querySelector('.restaurant-card-tag');
+    expect(tag?.textContent).toBe(
+      `${dealRestaurant.cuisineTag} · ★ ${dealRestaurant.rating.toFixed(1)} (${formatReviewCount(dealRestaurant.reviewCount)})`,
     );
 
-    // #130 AC4: a car icon (SF) sits immediately before the "N min" estimate.
+    // #130 AC4: a car icon (SF) leads the meta line, immediately before the
+    // "N min" estimate — no space character between them, since the gap is
+    // the icon's own CSS margin (round 1 review, item 3: two sources of gap
+    // read as two spaces).
+    const meta = card?.querySelector('.restaurant-card-meta');
     const icon = meta?.querySelector('.vehicle-icon');
     expect(icon).not.toBeNull();
+    expect(meta?.firstChild).toBe(icon);
     expect(icon?.getAttribute('data-vehicle')).toBe('car');
     expect(icon?.getAttribute('aria-hidden')).toBe('true');
-    expect(icon?.nextSibling?.textContent).toMatch(/^ \d+ min/);
+    expect(icon?.nextSibling?.textContent).toMatch(/^\d+ min/);
 
     const noDealRestaurant = restaurantsForCity('sf').find((restaurant) => !restaurant.hasDeal)!;
     const plainCard = el.querySelector(`[data-testid="restaurant-card-${noDealRestaurant.slug}"]`);

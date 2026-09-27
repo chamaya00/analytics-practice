@@ -11,9 +11,23 @@
 
 import type { City } from './money';
 
+// Redrawn for the round 1 review (item 2): at the old 14px size the motorbike
+// read as a squiggle and the car as a blob. Both are now drawn to read at
+// ~16px — the scooter as two wheels, a low footboard, a raised seat and a
+// front column with a handlebar; the car as a side profile with a
+// window/roofline cut into the body, not a single unbroken silhouette.
 export const VEHICLE_ICON_PATHS: Record<City, string> = {
-  hcmc: '<circle cx="5.5" cy="17" r="2.3"/><circle cx="18" cy="17" r="2.3"/><path d="M7.7 17h4.8l2-5h3.7M13 12 10.5 8H7" stroke-linecap="round" stroke-linejoin="round"/>',
-  sf: '<path d="M4 16.5h1.3a2 2 0 0 0 4 0h5.4a2 2 0 0 0 4 0H20v-2.8l-2-4.2H8L4.5 13l-.5 1Z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/>',
+  hcmc:
+    '<circle cx="5.5" cy="18" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/>' +
+    '<path d="M7.5 17h7.5" stroke-linecap="round"/>' +
+    '<path d="M8.5 17v-2.5h2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M15 17v-4.5" stroke-linecap="round"/>' +
+    '<path d="M13.3 12.5h3.4" stroke-linecap="round"/>',
+  sf:
+    '<path d="M5 16v-2.5l1.6-3.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.8 1l1.6 3.5V16" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M5 16h14" stroke-linecap="round"/>' +
+    '<path d="M9 9.3 8 12h8l-1-2.7" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<circle cx="7.5" cy="16.5" r="1.6"/><circle cx="16.5" cy="16.5" r="1.6"/>',
 };
 
 /** "motorbike" for HCMC, "car" for SF — the data-vehicle value a test asserts against rather than the raw path data (#130 AC4/AC5). */

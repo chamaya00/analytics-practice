@@ -149,9 +149,13 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   name.className = 'restaurant-card-name';
   name.textContent = restaurant.name;
 
+  // The rating moves onto the cuisine line (#130 round 1 review, item 1) —
+  // "Bánh mì · ★ 4.8 (3k+)" — so the icon+ETA+fee line has room at 375px;
+  // combined on one line with the icon and fee, it wrapped a lone "delivery"
+  // onto its own line on every card.
   const tag = document.createElement('span');
   tag.className = 'restaurant-card-tag';
-  tag.textContent = restaurant.cuisineTag;
+  tag.textContent = `${restaurant.cuisineTag} · ★ ${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)})`;
 
   const flashFeeMinor = flashFeeFor(restaurant, draw, now);
   const effectiveFeeMinor = flashFeeMinor ?? restaurant.deliveryFeeMinor;
@@ -160,11 +164,7 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   meta.className = 'restaurant-card-meta';
   const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
   const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
-  meta.append(
-    `★ ${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)}) · `,
-    createVehicleIcon(restaurant.city),
-    ` ${eta} · ${feeLabel} delivery`,
-  );
+  meta.append(createVehicleIcon(restaurant.city), `${eta} · ${feeLabel} delivery`);
 
   body.append(name, tag, meta);
 

@@ -316,7 +316,7 @@ export function renderFlashSheet(
     meta.append(
       `★${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)}) · ${restaurant.cuisineTag} · `,
       createVehicleIcon(restaurant.city),
-      ` ${eta}`,
+      eta,
     );
 
     const fee = document.createElement('p');

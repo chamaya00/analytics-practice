@@ -310,18 +310,19 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  /* The city vehicle icon beside every delivery estimate (#130) — sized and
-     coloured to the surrounding text everywhere it appears (home cards, the
-     restaurant page, flash-sheet rows, checkout, order placed, the tracker
-     countdown), all of them plain inline/block text except the restaurant
-     page's own flex .restaurant-meta below, which centres it via
-     align-items instead of the vertical-align nudge used here. */
+  /* The city vehicle icon beside every delivery estimate (#130) — sized in
+     `em` so it scales with the line it sits in (round 1 review, item 2: a
+     fixed 14px read as a speck next to the tracker's large bold countdown
+     text). Centred on the text via vertical-align, with the gap to the text
+     that follows coming from this one margin — round 1 review, item 3: a
+     literal leading space in the text after the icon, on top of this
+     margin, read as two spaces. */
   .vehicle-icon {
     flex: none;
-    width: 14px;
-    height: 14px;
-    vertical-align: -2px;
-    margin-right: 3px;
+    width: 1.2em;
+    height: 1.2em;
+    vertical-align: -0.2em;
+    margin-right: 0.3em;
   }
 
   .deal-badge {
@@ -1912,21 +1913,15 @@ const { title } = Astro.props;
     margin: var(--space-md) 0 2px;
   }
 
+  /* Plain inline text, not flex (round 1 review, item 3) — flex's `gap`
+     stacked with the literal " · " separators already in this line's text,
+     reading as extra whitespace around the icon and after the ETA. The
+     .vehicle-icon's own margin (see above) is the only source of the gap
+     around it here too, same as every other site. */
   .restaurant-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
     margin: 0;
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
-  }
-
-  /* A flex item here, not an inline glyph — no vertical-align nudge needed
-     (that's for the plain-text sites; see .vehicle-icon above), and no
-     margin-right since `gap` already spaces every item in this row. */
-  .restaurant-meta .vehicle-icon {
-    margin-right: 0;
   }
 
   /* The menu's own Add/Sold-out control — a true pill, distinct from
