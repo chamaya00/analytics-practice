@@ -99,7 +99,8 @@ describe('the menu’s cart summary counts only this restaurant’s cart', () =>
     el.querySelector<HTMLButtonElement>(`[data-testid="add-${firstItem.id}"]`)?.click();
 
     const summary = el.querySelector<HTMLAnchorElement>('[data-testid="cart-summary"]');
-    expect(summary?.textContent).toBe(`1 item — ${formatMoney(firstItem.amountMinor, 'USD')}`);
+    expect(summary?.querySelector('.summary-text')?.textContent).toBe(`1 item — ${formatMoney(firstItem.amountMinor, 'USD')}`);
+    expect(summary?.querySelector('.view-cart')?.textContent).toBe('View cart');
     expect(summary?.getAttribute('href')).toBe(`/cart/?restaurant=${restaurant.slug}`);
   });
 });

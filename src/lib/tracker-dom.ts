@@ -21,6 +21,11 @@ import { renderDemoDisclosure } from './demo-disclosure';
 const STAR_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
 
+// 105-tracker.html's own rail dot: a checkmark once a step is reached
+// (current or done), nothing inside it while still ahead.
+const CHECK_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 const TAG_LABELS: Record<RatingTag, string> = {
   fast: 'Fast',
   great_packaging: 'Great packaging',
@@ -35,15 +40,32 @@ function renderStepper(currentIndex: number): HTMLElement {
 
   STEPS.forEach((label, index) => {
     const item = document.createElement('li');
+    const reached = index <= currentIndex;
     if (index < currentIndex) item.classList.add('done');
     if (index === currentIndex) {
       item.classList.add('current');
       item.setAttribute('aria-current', 'step');
     }
+
+    const rail = document.createElement('span');
+    rail.className = 'step-rail';
+
+    const dot = document.createElement('span');
+    dot.className = 'step-dot';
+    if (reached) dot.innerHTML = CHECK_ICON;
+    rail.append(dot);
+
+    if (index < STEPS.length - 1) {
+      const line = document.createElement('span');
+      line.className = 'step-line';
+      rail.append(line);
+    }
+
     const stepLabel = document.createElement('span');
     stepLabel.className = 'step-label';
     stepLabel.textContent = label;
-    item.append(stepLabel);
+
+    item.append(rail, stepLabel);
     stepper.append(item);
   });
 
@@ -56,7 +78,8 @@ function renderRatingPrompt(onSubmit: (stars: number, tags: RatingTag[]) => void
   prompt.setAttribute('data-testid', 'rating-prompt');
 
   const heading = document.createElement('h2');
-  heading.textContent = 'Rate your order';
+  heading.className = 'home-section-title';
+  heading.textContent = 'How was your order?';
   prompt.append(heading);
 
   let stars = 0;
@@ -150,10 +173,16 @@ function renderRatedPrompt(stars: number): HTMLElement {
   return prompt;
 }
 
+export interface TrackerOrderSummary {
+  restaurantName: string;
+  itemCount: number;
+}
+
 export function renderTrackerView(
   root: HTMLElement,
   view: TrackerView,
   onSubmitRating: (stars: number, tags: RatingTag[]) => void,
+  orderSummary: TrackerOrderSummary | null = null,
 ): void {
   root.innerHTML = '';
 
@@ -169,6 +198,14 @@ export function renderTrackerView(
     empty.append(message, link);
     root.append(empty);
     return;
+  }
+
+  if (orderSummary) {
+    const summary = document.createElement('p');
+    summary.className = 'tracker-summary';
+    summary.setAttribute('data-testid', 'tracker-order-summary');
+    summary.textContent = `${orderSummary.restaurantName} · ${orderSummary.itemCount} item${orderSummary.itemCount === 1 ? '' : 's'}`;
+    root.append(summary);
   }
 
   const currentIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
@@ -213,7 +250,8 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
       });
     }
 
-    renderTrackerView(root, view, onSubmitRating);
+    const orderSummary = latest ? { restaurantName: latest.items[0]?.restaurantName ?? '', itemCount: latest.itemCount } : null;
+    renderTrackerView(root, view, onSubmitRating, orderSummary);
   }
 
   render();

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { ALL_RESTAURANTS, etaRangeLabel } from '../../../lib/restaurants';
+import { ALL_RESTAURANTS, currencyForRestaurant, etaRangeLabel } from '../../../lib/restaurants';
+import { formatMoney } from '../../../lib/money';
 
 export function getStaticPaths() {
   return ALL_RESTAURANTS.map((restaurant) => ({
@@ -10,13 +11,15 @@ export function getStaticPaths() {
 }
 
 const { restaurant } = Astro.props;
+const deliveryFeeLabel =
+  restaurant.deliveryFeeMinor === 0 ? 'Free' : formatMoney(restaurant.deliveryFeeMinor, currencyForRestaurant(restaurant));
 ---
 
 <BaseLayout title={`${restaurant.name} — dontdropthatpromo`}>
-  <img class="restaurant-hero" src={restaurant.heroImage} alt="" width="343" height="180" />
-  <h1>{restaurant.name}</h1>
+  <img class="menu-hero" src={restaurant.heroImage} alt="" width="343" height="160" />
+  <h1 class="restaurant-title">{restaurant.name}</h1>
   <p class="restaurant-meta" data-testid="restaurant-meta">
-    {restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} · {etaRangeLabel(restaurant)}
+    {restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} · {etaRangeLabel(restaurant)} · {deliveryFeeLabel} delivery
   </p>
   <div id="menu-root" data-testid="menu-root" data-slug={restaurant.slug}></div>
   <script>

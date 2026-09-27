@@ -24,6 +24,7 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
     sectionEl.setAttribute('data-testid', `menu-section-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
 
     const heading = document.createElement('h2');
+    heading.className = 'home-section-title';
     heading.textContent = section.title;
     sectionEl.append(heading);
 
@@ -43,8 +44,8 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
       img.src = item.image;
       img.alt = '';
       img.loading = 'lazy';
-      img.width = 64;
-      img.height = 64;
+      img.width = 84;
+      img.height = 84;
 
       const textWrap = document.createElement('div');
       textWrap.className = 'menu-item-text';
@@ -107,7 +108,7 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
       } else {
         const add = document.createElement('button');
         add.type = 'button';
-        add.className = 'add-button';
+        add.className = 'pill-btn';
         add.setAttribute('data-testid', `add-${item.id}`);
         add.textContent = 'Add';
         add.addEventListener('click', () => {
@@ -140,9 +141,18 @@ export function renderMenu(root: HTMLElement, storage: Storage, restaurant: Rest
   if (itemCount > 0) {
     const summary = document.createElement('a');
     summary.href = cartPath(restaurant.slug);
-    summary.className = 'cart-summary';
+    summary.className = 'cart-summary-bar';
     summary.setAttribute('data-testid', 'cart-summary');
-    summary.textContent = `${itemCount} item${itemCount === 1 ? '' : 's'} — ${formatMoney(cartSubtotalMinor(restaurantCart), currency)}`;
+
+    const summaryText = document.createElement('span');
+    summaryText.className = 'summary-text';
+    summaryText.textContent = `${itemCount} item${itemCount === 1 ? '' : 's'} — ${formatMoney(cartSubtotalMinor(restaurantCart), currency)}`;
+
+    const viewCart = document.createElement('span');
+    viewCart.className = 'view-cart';
+    viewCart.textContent = 'View cart';
+
+    summary.append(summaryText, viewCart);
     root.append(summary);
   }
 }

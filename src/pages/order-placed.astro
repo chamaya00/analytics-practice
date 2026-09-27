@@ -3,7 +3,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Order placed — Dontdropthatpromo">
-  <h1>Order placed</h1>
+  <!-- The page heading is order-placed-dom.ts's own, inside its centered
+       confirmation wrapper (105-order-placed.html) — there is no separate
+       static heading here. -->
   <div id="order-placed-root" data-testid="order-placed-root"></div>
   <script>
     import { initOrderPlacedPage } from '../lib/order-placed-dom';

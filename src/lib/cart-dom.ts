@@ -21,7 +21,7 @@ import {
   type CartSelection,
   type RestaurantCart,
 } from './order-store';
-import { getRestaurant } from './restaurants';
+import { getMenuItem, getRestaurant } from './restaurants';
 import { formatMoney, currencyForCity } from './money';
 import { getStoredCity } from './location';
 import { initCartBadge } from './header-dom';
@@ -29,6 +29,14 @@ import { track } from './tracking';
 import { ALL_CARTS_PATH, cartPath, checkoutPath, restaurantSlugFromSearch } from './cart-routes';
 import { attachSwipeRow } from './swipe-row';
 import { openConfirmDialog } from './confirm-dialog-dom';
+
+// 105-cart-single-sf.html's own icon: "Remove" reads from this plus its bold
+// weight, not the danger fill alone.
+const TRASH_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const CHEVRON_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5 16 12 9 19" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function heading(text: string): HTMLElement {
   const h1 = document.createElement('h1');
@@ -111,7 +119,11 @@ function renderCartList(root: HTMLElement, carts: RestaurantCart[]): void {
     subtotal.setAttribute('data-testid', `cart-card-subtotal-${cart.restaurantSlug}`);
     subtotal.textContent = formatMoney(cart.subtotalMinor, cart.currency);
 
-    card.append(body, subtotal);
+    const chevron = document.createElement('span');
+    chevron.className = 'cart-card-chevron';
+    chevron.innerHTML = CHEVRON_ICON;
+
+    card.append(body, subtotal, chevron);
     item.append(card);
     list.append(item);
   }
@@ -159,6 +171,22 @@ function renderRestaurantCart(
     content.className = 'cart-line';
     content.setAttribute('data-testid', `cart-line-content-${line.itemId}`);
 
+    // Same photo-tile treatment as the menu row this line was added from
+    // (105-cart-single-sf.html) — looked up from the catalogue by itemId,
+    // since a CartLine itself carries no image (a presentation lookup, not
+    // a cart-shape change).
+    const itemImage = getMenuItem(line.itemId)?.item.image;
+    if (itemImage) {
+      const photo = document.createElement('img');
+      photo.className = 'menu-item-photo';
+      photo.src = itemImage;
+      photo.alt = '';
+      photo.loading = 'lazy';
+      photo.width = 84;
+      photo.height = 84;
+      content.append(photo);
+    }
+
     const text = document.createElement('div');
     text.className = 'cart-line-text';
 
@@ -170,8 +198,6 @@ function renderRestaurantCart(
     const lineTotal = document.createElement('span');
     lineTotal.className = 'cart-line-total';
     lineTotal.textContent = formatMoney(line.amountMinor * line.quantity, line.currency);
-
-    text.append(name, lineTotal);
 
     const stepper = document.createElement('div');
     stepper.className = 'quantity-stepper';
@@ -216,14 +242,19 @@ function renderRestaurantCart(
     });
 
     stepper.append(minus, count, plus);
-    content.append(text, stepper);
+    // 105-cart-single-sf.html's own column: name, then the stepper, then the
+    // line price, stacked beside the photo tile — not the stepper trailing
+    // the row on its own.
+    text.append(name, stepper, lineTotal);
+    content.append(text);
 
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'swipe-action';
     remove.setAttribute('data-testid', `swipe-remove-${line.itemId}`);
     remove.setAttribute('aria-label', `Remove ${line.name}`);
-    remove.textContent = 'Remove';
+    remove.innerHTML = TRASH_ICON;
+    remove.append(document.createTextNode('Remove'));
     remove.addEventListener('click', () => {
       removeFromCart(storage, line.itemId);
       rerender();
@@ -235,23 +266,36 @@ function renderRestaurantCart(
     list.append(row);
   }
 
-  const subtotal = document.createElement('p');
-  subtotal.className = 'cart-subtotal';
-  subtotal.setAttribute('data-testid', 'cart-subtotal');
-  subtotal.textContent = `Subtotal: ${formatMoney(cartSubtotalMinor(lines), currency)}`;
-
   // #80's cart preview: subtotal, this restaurant's own delivery fee, and
   // one note pointing at checkout for the rest — never the full breakdown
-  // twice.
+  // twice. 105-cart-single-sf.html renders these as label/value rows, the
+  // same .breakdown-row shape as Checkout's own breakdown, not bold text
+  // lines.
+  const breakdown = document.createElement('div');
+  breakdown.className = 'cart-breakdown';
+
+  function breakdownRow(testId: string, label: string, amountMinor: number): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'breakdown-row';
+    el.setAttribute('data-testid', testId);
+    const labelEl = document.createElement('span');
+    labelEl.className = 'muted';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('span');
+    valueEl.textContent = formatMoney(amountMinor, currency);
+    el.append(labelEl, valueEl);
+    return el;
+  }
+
   const deliveryFeeMinor = getRestaurant(restaurantSlug)?.deliveryFeeMinor ?? 0;
-  const deliveryPreview = document.createElement('p');
-  deliveryPreview.className = 'cart-delivery-preview';
-  deliveryPreview.setAttribute('data-testid', 'cart-delivery-preview');
-  deliveryPreview.textContent = `Delivery fee: ${formatMoney(deliveryFeeMinor, currency)}`;
+  const subtotal = breakdownRow('cart-subtotal', 'Subtotal', cartSubtotalMinor(lines));
+  const deliveryPreview = breakdownRow('cart-delivery-preview', 'Delivery fee', deliveryFeeMinor);
 
   const feeNote = document.createElement('p');
   feeNote.className = 'cart-fee-note';
   feeNote.textContent = '+ service fee and any discount at checkout';
+
+  breakdown.append(subtotal, deliveryPreview, feeNote);
 
   const checkoutLink = document.createElement('a');
   checkoutLink.href = checkoutPath(restaurantSlug);
@@ -259,7 +303,7 @@ function renderRestaurantCart(
   checkoutLink.setAttribute('data-testid', 'go-to-checkout');
   checkoutLink.textContent = 'Go to checkout';
 
-  root.append(topBar, list, subtotal, deliveryPreview, feeNote, checkoutLink);
+  root.append(topBar, list, breakdown, checkoutLink);
 }
 
 /**

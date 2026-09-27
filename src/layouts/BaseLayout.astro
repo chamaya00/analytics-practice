@@ -411,10 +411,22 @@ const { title } = Astro.props;
     border: none;
     border-radius: 12px;
     cursor: pointer;
+    /* #105's icon-plus-label reading (105-cart-single-sf.html): "Remove"
+       reads from its own trash icon and weight, not the red fill alone. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     -moz-user-select: none;
     user-select: none;
+  }
+
+  .swipe-action svg {
+    width: 18px;
+    height: 18px;
   }
 
   .swipe-action:active {
@@ -426,6 +438,10 @@ const { title } = Astro.props;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    /* Without this the column's default stretch would give the stepper
+       pill (an inline-flex item here, not a block) the row's full width
+       instead of sizing to its own content (105-cart-single-sf.html). */
+    align-items: flex-start;
     gap: 2px;
   }
 
@@ -434,9 +450,14 @@ const { title } = Astro.props;
     overflow-wrap: anywhere;
   }
 
+  /* 84px/10px radius, matching the home feed's own restaurant-card thumbnail
+     treatment (#105: criterion 2) — shared by the menu's dish rows and the
+     cart's line-item rows below, not a separate class per screen. */
   .menu-item-photo {
     flex: none;
-    border-radius: 8px;
+    width: 84px;
+    height: 84px;
+    border-radius: 10px;
     object-fit: cover;
   }
 
@@ -467,21 +488,35 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
+  /* #105: a rounded pill container with two filled circular buttons — the
+     mocks' own stepper shape (105-menu-sf.html, 105-cart-single-sf.html),
+     replacing the bordered-square buttons #104 left behind on this
+     component. */
   .quantity-stepper {
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
+    min-height: 36px;
+    padding: 0 var(--space-sm);
+    border-radius: 999px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-a);
   }
 
   .quantity-stepper button {
-    min-width: 44px;
-    min-height: 44px;
+    width: 22px;
+    height: 22px;
     font-family: inherit;
-    font-size: var(--font-size-body);
-    color: var(--color-text);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-bg);
+    background: var(--color-accent-a);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
@@ -507,17 +542,43 @@ const { title } = Astro.props;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .cart-summary {
-    position: sticky;
-    bottom: 0;
-    display: block;
-    padding: var(--space-md);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    color: var(--color-accent-a);
-    font-weight: 700;
+  /* #105's CartSummaryBar: fixed above the phone tab bar (105-menu-sf.html's
+     .cart-summary-bar), a plain rounded bar at the foot of content on
+     desktop where there is no tab bar to clear. */
+  .cart-summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-accent-a);
+    color: var(--color-bg);
     text-decoration: none;
-    text-align: center;
+  }
+
+  .cart-summary-bar .summary-text {
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+  }
+
+  .cart-summary-bar .view-cart {
+    font-weight: 800;
+  }
+
+  @media (max-width: 480px) {
+    .cart-summary-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(56px + env(safe-area-inset-bottom));
+    }
+  }
+
+  @media (min-width: 481px) {
+    .cart-summary-bar {
+      border-radius: 12px;
+      margin-top: var(--space-lg);
+    }
   }
 
   /* ---- "Your carts": one card per restaurant (cart-dom.ts) ----
@@ -583,12 +644,13 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  .cart-subtotal {
-    font-weight: 700;
-  }
-
-  .cart-delivery-preview {
-    color: var(--color-text-muted);
+  /* 105-cart-single-sf.html's breakdown-preview: Subtotal and Delivery fee
+     as .breakdown-row label/value lines (Checkout's own shape), not bold
+     "Subtotal: $X" text. */
+  .cart-breakdown {
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
   }
 
   .cart-fee-note {
@@ -623,7 +685,9 @@ const { title } = Astro.props;
     padding: var(--space-lg);
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 20px;
+    /* #105's own critique caught a one-off 16px on this sheet and corrected
+       it to the system's own 12px card radius (105-cart-remove-modal.html). */
+    border-radius: 12px;
     box-shadow: 0 8px 24px rgba(36, 27, 51, 0.18);
     animation: confirm-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -894,6 +958,7 @@ const { title } = Astro.props;
     display: flex;
     gap: var(--space-xs);
     align-items: flex-start;
+    margin-top: var(--space-sm);
     margin-bottom: var(--space-md);
     padding: var(--space-xs) var(--space-md);
     background: var(--color-surface);
@@ -1397,51 +1462,133 @@ const { title } = Astro.props;
     vertical-align: 1px;
   }
 
-  /* ---- order placed ---- */
+  /* ---- order placed (#105: centered confirmation, 105-order-placed.html) ---- */
 
-  .order-placed-mark {
-    color: var(--color-accent-a);
-    margin: var(--space-lg) 0;
+  .order-placed-wrap {
+    text-align: center;
+    padding-top: var(--space-lg);
+  }
+
+  .order-placed-wrap h1 {
+    margin: 0 0 var(--space-sm);
+  }
+
+  .order-placed-wrap p {
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-lg);
+  }
+
+  .order-placed-badge {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto var(--space-lg);
+    border-radius: 999px;
+    background: var(--color-accent-a);
+    color: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .order-placed-badge svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* A distinct pill CTA rather than reusing .place-order (theme.build.test.ts
+     locks that class to a full-width 12px-radius rectangle) — this mock
+     draws a centered, inline pill instead. */
+  .order-placed-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 var(--space-xl);
+    border-radius: 999px;
+    background: var(--color-accent-a);
+    color: var(--color-bg);
+    font-weight: 800;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* ---- tracker stepper ---- */
 
+  /* #105's rail-and-dot reading (105-tracker.html), replacing #83's
+     border-left-plus-pseudo-element dots with an explicit rail so each
+     step's check icon has somewhere to sit — the class stays `.stepper`
+     (theme.build.test.ts asserts a rule by that name) even though its
+     internal shape has changed. */
   .stepper {
     list-style: none;
     margin: var(--space-lg) 0 0;
     padding: 0;
-    border-left: 2px solid var(--color-border);
   }
 
   .stepper li {
-    position: relative;
-    padding: 0 0 var(--space-lg) var(--space-lg);
+    display: flex;
+    gap: var(--space-md);
   }
 
-  .stepper li:last-child {
-    padding-bottom: 0;
+  .step-rail {
+    flex: none;
+    width: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .stepper li::before {
-    content: '';
-    position: absolute;
-    left: -7px;
-    top: 2px;
-    width: 12px;
-    height: 12px;
+  .step-dot {
+    flex: none;
+    width: 20px;
+    height: 20px;
     border-radius: 999px;
     background: var(--color-bg);
     border: 2px solid var(--color-border);
+    color: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .stepper li.done::before {
+  .step-dot svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .step-line {
+    flex: 1;
+    width: 2px;
+    min-height: var(--space-lg);
+    background: var(--color-border);
+  }
+
+  .stepper li:last-child .step-line {
+    display: none;
+  }
+
+  .stepper li .step-label {
+    padding: 1px 0 var(--space-lg);
+    color: var(--color-text-muted);
+  }
+
+  .stepper li:last-child .step-label {
+    padding-bottom: 0;
+  }
+
+  .stepper li.done .step-dot,
+  .stepper li.current .step-dot {
     background: var(--color-accent-a);
     border-color: var(--color-accent-a);
   }
 
-  .stepper li.current::before {
+  .stepper li.current .step-dot {
     background: var(--color-accent-b);
     border-color: var(--color-accent-b);
+  }
+
+  .stepper li.done .step-line {
+    background: var(--color-accent-a);
   }
 
   .stepper li.done .step-label,
@@ -1450,8 +1597,10 @@ const { title } = Astro.props;
     color: var(--color-text);
   }
 
-  .stepper li .step-label {
+  .tracker-summary {
+    font-size: var(--font-size-muted);
     color: var(--color-text-muted);
+    margin: 0 0 var(--space-lg);
   }
 
   .flavor-text {
@@ -1502,8 +1651,70 @@ const { title } = Astro.props;
     margin-bottom: var(--space-md);
   }
 
+  /* ---- #105: restaurant menu composition, cart-card chevron, menu pill
+     buttons — the last of this issue's own rules that don't already sit
+     beside the shared component they extend above. Kept in its own section
+     rather than interleaved with #107/#116's Checkout and Offers work
+     above. ---- */
+
+  .menu-hero {
+    display: block;
+    width: 100%;
+    height: 160px;
+    margin-bottom: var(--space-md);
+    border-radius: 12px;
+    object-fit: cover;
+  }
+
+  .restaurant-title {
+    margin: var(--space-md) 0 2px;
+  }
+
+  .restaurant-meta {
+    display: flex;
+    gap: var(--space-sm);
+    margin: 0;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  /* The menu's own Add/Sold-out control — a true pill, distinct from
+     .add-button (theme.build.test.ts locks that one to border-radius:10px
+     from #104's own fix, one step short of this mock's fully rounded
+     999px). */
+  .pill-btn {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-md);
+    border-radius: 999px;
+    border: none;
+    background: var(--color-accent-a);
+    color: var(--color-bg);
+    font-family: inherit;
+    font-weight: 800;
+    font-size: var(--font-size-muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pill-btn.sold-out {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-weight: 700;
+    cursor: default;
+  }
+
+  .cart-card-chevron {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: var(--color-text-muted);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .order-placed-mark,
     .voucher-row-unlocking,
     .cart-row > .cart-line,
     .confirm-dialog {

@@ -11,6 +11,11 @@ export interface OrderPlacedView {
   redirectedToRestaurants: boolean;
 }
 
+// 105-order-placed.html's own checkmark, in a filled circular badge —
+// replacing the earlier droplet mark, which sat outside any centered wrapper.
+const CHECK_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 export function renderOrderPlaced(
   root: HTMLElement,
   storage: Storage,
@@ -26,12 +31,17 @@ export function renderOrderPlaced(
     return { redirectedToRestaurants: true };
   }
 
-  const mark = document.createElement('p');
-  mark.className = 'order-placed-mark';
-  mark.setAttribute('data-testid', 'order-placed-mark');
-  mark.setAttribute('aria-hidden', 'true');
-  mark.innerHTML =
-    '<svg width="28" height="42" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z" fill="currentColor" stroke="none"/></svg>';
+  const wrap = document.createElement('div');
+  wrap.className = 'order-placed-wrap';
+
+  const badge = document.createElement('div');
+  badge.className = 'order-placed-badge';
+  badge.setAttribute('data-testid', 'order-placed-mark');
+  badge.setAttribute('aria-hidden', 'true');
+  badge.innerHTML = CHECK_ICON;
+
+  const heading = document.createElement('h1');
+  heading.textContent = 'Order placed';
 
   const restaurantNames = [...new Set(order.items.map((line) => line.restaurantName))].join(', ');
   const summary = document.createElement('p');
@@ -40,11 +50,12 @@ export function renderOrderPlaced(
 
   const trackLink = document.createElement('a');
   trackLink.href = '/tracker/';
-  trackLink.className = 'place-order';
+  trackLink.className = 'order-placed-cta';
   trackLink.setAttribute('data-testid', 'track-order');
   trackLink.textContent = 'Track your order';
 
-  root.append(mark, summary, trackLink);
+  wrap.append(badge, heading, summary, trackLink);
+  root.append(wrap);
   return { redirectedToRestaurants: false };
 }
 
