@@ -33,6 +33,24 @@ function pillRoot(): HTMLElement {
   return el;
 }
 
+// The first-order slide's claim/sub render in .carousel-slide-panel, not the
+// caption strip (carousel-claim/-sub), which stays empty for that slide only
+// (driver review, PR #150 round 1, item 1) — this reads whichever one has
+// the current slide's text, so most assertions don't need to know which.
+function currentSlideText(el: HTMLElement): { claim: string; sub: string } {
+  const panelClaim = el.querySelector('[data-testid="carousel-panel-claim"]');
+  if (panelClaim) {
+    return {
+      claim: panelClaim.textContent ?? '',
+      sub: el.querySelector('[data-testid="carousel-panel-sub"]')?.textContent ?? '',
+    };
+  }
+  return {
+    claim: el.querySelector('[data-testid="carousel-claim"]')?.textContent ?? '',
+    sub: el.querySelector('[data-testid="carousel-sub"]')?.textContent ?? '',
+  };
+}
+
 function mockMatchMedia(reducedMotion: boolean): void {
   vi.stubGlobal(
     'matchMedia',
@@ -290,8 +308,18 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
 
     for (const [index, slide] of expected.entries()) {
       el.querySelectorAll('[data-testid="carousel-dots"] .carousel-dot')[index].dispatchEvent(new Event('click', { bubbles: true }));
-      expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent, `slide ${index}`).toBe(slide.claim);
-      expect(el.querySelector('[data-testid="carousel-sub"]')?.textContent, `slide ${index}`).toBe(slide.sub);
+      const { claim, sub } = currentSlideText(el);
+      expect(claim, `slide ${index}`).toBe(slide.claim);
+      expect(sub, `slide ${index}`).toBe(slide.sub);
+      if (index === 0) {
+        // First-order slide: claim/sub render in the panel; the caption
+        // strip stays empty rather than repeating the same text.
+        expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent, `slide ${index} caption`).toBe('');
+        expect(el.querySelector('[data-testid="carousel-sub"]')?.textContent, `slide ${index} caption`).toBe('');
+        expect(el.querySelector('[data-testid="carousel-panel"]'), `slide ${index} panel`).not.toBeNull();
+      } else {
+        expect(el.querySelector('[data-testid="carousel-panel"]'), `slide ${index} panel`).toBeNull();
+      }
       const link = el.querySelector('[data-testid="carousel-slide-link"]');
       expect(link?.tagName, `slide ${index} tag`).toBe(slide.href ? 'A' : 'DIV');
       if (slide.href) expect((link as HTMLAnchorElement).getAttribute('href')).toBe(slide.href);
@@ -318,8 +346,9 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     expect(dots).toHaveLength(7);
     for (const [index, slide] of expected.entries()) {
       dots[index].dispatchEvent(new Event('click', { bubbles: true }));
-      expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent, `slide ${index}`).toBe(slide.claim);
-      expect(el.querySelector('[data-testid="carousel-sub"]')?.textContent, `slide ${index}`).toBe(slide.sub);
+      const { claim, sub } = currentSlideText(el);
+      expect(claim, `slide ${index}`).toBe(slide.claim);
+      expect(sub, `slide ${index}`).toBe(slide.sub);
       expect(el.querySelector('[data-testid="carousel-ad-label"]') !== null, `slide ${index} ad label`).toBe(slide.isAd);
     }
   });
@@ -346,14 +375,14 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     const el = root();
     initHomePage(el, pillRoot(), window.localStorage);
 
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
 
     vi.advanceTimersByTime(5000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('Mission Taqueria');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
 
     vi.advanceTimersByTime(5000 * 6);
     // 7 total advances from slide 0 lands back on slide 0.
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
   });
 
   it('does not auto-advance under prefers-reduced-motion: reduce', () => {
@@ -363,9 +392,9 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     const el = root();
     initHomePage(el, pillRoot(), window.localStorage);
 
-    const before = el.querySelector('[data-testid="carousel-claim"]')?.textContent;
+    const before = currentSlideText(el).claim;
     vi.advanceTimersByTime(20000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe(before);
+    expect(currentSlideText(el).claim).toBe(before);
   });
 
   it('pauses auto-advance while the carousel is being touched/pointed/focused, and resumes about 5s after the interaction ends', () => {
@@ -380,20 +409,20 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     // Idle time passes while the interaction is ongoing — no advance, since
     // rotation is paused for the interaction's duration.
     vi.advanceTimersByTime(20000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
 
     carousel.dispatchEvent(new Event('pointerup', { bubbles: true }));
 
     // Not yet resumed immediately after the interaction ends.
     vi.advanceTimersByTime(4000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
 
     // ~5s after the interaction ended, auto-advance resumes (a new 5s
     // interval starts) — its first tick lands 5s after that, so the slide
     // actually changes 10s after the interaction ended.
     vi.advanceTimersByTime(1000);
     vi.advanceTimersByTime(5000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('Mission Taqueria');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
   });
 
   it('touch and focus interactions pause auto-advance the same way pointer interaction does', () => {
@@ -404,13 +433,13 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     initHomePage(touchEl, pillRoot(), window.localStorage);
     touchEl.querySelector('[data-testid="carousel"]')!.dispatchEvent(new Event('touchstart', { bubbles: true }));
     vi.advanceTimersByTime(20000);
-    expect(touchEl.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(touchEl).claim).toBe('$2 off your first order');
 
     const focusEl = root();
     initHomePage(focusEl, pillRoot(), window.localStorage);
     focusEl.querySelector('[data-testid="carousel"]')!.dispatchEvent(new Event('focusin', { bubbles: true }));
     vi.advanceTimersByTime(20000);
-    expect(focusEl.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(focusEl).claim).toBe('$2 off your first order');
   });
 
   it('a pause-button press is the only interaction that stops rotation for good, outlasting a timer advance that would otherwise resume it', () => {
@@ -428,7 +457,7 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     // A temporary touch pause would have resumed by now (previous test) —
     // the explicit pause button must not.
     vi.advanceTimersByTime(20000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
 
     pauseButton.click();
     expect(pauseButton.getAttribute('aria-label')).toBe('Pause carousel');
@@ -475,6 +504,44 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
 
     expect(carouselIntervalCalls()).toHaveLength(2);
     expect(clearIntervalSpy).toHaveBeenCalledWith(firstIntervalId);
+  });
+
+  // #133's own "can also be swiped" — missed by #138's split, added back per
+  // the driver's review on PR #150 round 1, item 3. Pointer Events, same as
+  // swipe-row.ts's cart-row drag; clientY defaults to 0 so a horizontal-only
+  // drag has no vertical component.
+  function pointer(target: EventTarget, type: string, clientX: number, clientY = 0): void {
+    target.dispatchEvent(
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'touch', clientX, clientY }),
+    );
+  }
+
+  it('a horizontal swipe past ~40px changes the slide, in either direction', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, pillRoot(), window.localStorage);
+    const carousel = el.querySelector('[data-testid="carousel"]')!;
+
+    // Swipe left (negative dx): advances to the next slide.
+    pointer(carousel, 'pointerdown', 200);
+    pointer(carousel, 'pointerup', 140);
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
+
+    // Swipe right (positive dx): goes to the previous slide, looping to the last.
+    pointer(carousel, 'pointerdown', 100);
+    pointer(carousel, 'pointerup', 160);
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+  });
+
+  it('a mostly-vertical drag does not change the slide, so the page\'s own scroll wins', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, pillRoot(), window.localStorage);
+    const carousel = el.querySelector('[data-testid="carousel"]')!;
+
+    pointer(carousel, 'pointerdown', 100, 100);
+    pointer(carousel, 'pointerup', 105, 165);
+    expect(currentSlideText(el).claim).toBe('$2 off your first order');
   });
 });
 

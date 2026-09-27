@@ -105,7 +105,12 @@ const { title } = Astro.props;
     display: block;
     width: 100%;
     min-height: 44px;
-    margin-top: var(--space-md);
+    /* No margin-top: main's own padding-top (--space-xl) is the page's
+       standard top clearance, same as every other page's first element.
+       This used to carry its own var(--space-md) on top of that, a leftover
+       from when the location pill sat above it in-feed — now that the pill
+       lives in Header.astro (#137), that stacked to ~42px of dead space
+       above the search field (driver review, PR #150 round 1, item 2). */
     padding: 0 var(--space-md);
     font-family: inherit;
     font-size: var(--font-size-body);
@@ -150,6 +155,38 @@ const { title } = Astro.props;
     object-fit: cover;
   }
 
+  /* The first-order slide's stand-in for a photo (home-dom.ts's
+     renderCarousel) — the old .promo-banner's own surface/border/accent-text
+     treatment, not a new tinted-alpha panel, so it needs no new contrast
+     check: --color-accent-a on --color-surface is already the pairing
+     contrast.test.ts's "accent clears 4.5:1 against both bg and surface"
+     covers (driver review, PR #150 round 1, item 1). */
+  .carousel-slide-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-a);
+    border-radius: 12px;
+  }
+
+  .carousel-slide-panel-claim {
+    font-weight: 800;
+    font-size: var(--font-size-h2);
+    color: var(--color-accent-a);
+  }
+
+  .carousel-slide-panel-sub {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
   /* Fixed dark scrim, deliberately not retheming (same reasoning as
      --color-flash-tile-bg below): it sits over unpredictable photo content,
      not the page's own background — contrast checked in the design doc
@@ -167,6 +204,10 @@ const { title } = Astro.props;
     border-radius: 999px;
   }
 
+  /* 44px hit area, invisible itself — the visible scrim disc is the smaller
+     .carousel-pause-mark inside it, same split as .carousel-dot/
+     .carousel-dot-mark below (driver review, PR #150 round 1, item 5: the
+     mock's chip is much smaller than a 44px disc). */
   .carousel-pause {
     position: absolute;
     top: var(--space-sm);
@@ -178,15 +219,24 @@ const { title } = Astro.props;
     min-width: 44px;
     min-height: 44px;
     padding: 0;
-    background: rgba(0, 0, 0, 0.72);
-    color: #fff;
+    background: none;
     border: none;
-    border-radius: 999px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .carousel-pause svg {
+  .carousel-pause-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    border-radius: 999px;
+  }
+
+  .carousel-pause-mark svg {
     width: 16px;
     height: 16px;
   }
@@ -196,6 +246,12 @@ const { title } = Astro.props;
     flex-direction: column;
     gap: 2px;
     padding: var(--space-sm) 0;
+    /* Pinned to the design doc's own "caption strip" arithmetic (16px
+       padding + 21px claim line + 2px gap + 17px sub line = 56px) so the
+       first-order slide — whose claim/sub move into .carousel-slide-panel
+       above and leave this strip's own text empty — doesn't shrink the
+       slide shorter than every other slide. */
+    min-height: 56px;
   }
 
   .carousel-claim {
@@ -215,11 +271,14 @@ const { title } = Astro.props;
     gap: var(--space-xs);
   }
 
+  /* 44px-tall hit area, but narrow rather than square (24px, the mock's own
+     compact centred row) so 7 of them don't spread across the row's full
+     width (driver review, PR #150 round 1, item 4). */
   .carousel-dot {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
+    width: 24px;
     min-height: 44px;
     padding: 0;
     background: none;

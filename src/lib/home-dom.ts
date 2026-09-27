@@ -22,6 +22,7 @@ import {
   type FlashDraw,
 } from './flash-deal';
 import { renderFlashReopenBar, renderFlashSheet } from './flash-sheet-dom';
+import { gestureAxis } from './swipe-row';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
@@ -89,6 +90,10 @@ function carouselSlidesForCity(city: City): CarouselSlide[] {
 
 const CAROUSEL_ADVANCE_MS = 5000;
 const CAROUSEL_RESUME_MS = 5000;
+/** A horizontal drag past this many px, more horizontal than vertical (`gestureAxis`,
+ * ./swipe-row), is a swipe; short of it, or more vertical, and the page's own
+ * scroll wins (driver review, PR #150 round 1, item 3). */
+const CAROUSEL_SWIPE_PX = 40;
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -131,6 +136,13 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
   pauseButton.type = 'button';
   pauseButton.className = 'carousel-pause';
   pauseButton.setAttribute('data-testid', 'carousel-pause');
+  // The button is the full 44px hit area; the visible scrim disc is this
+  // smaller inner mark, same split as .carousel-dot/.carousel-dot-mark below
+  // (driver review, PR #150 round 1, item 5 — the mock's chip reads much
+  // smaller than a 44px disc).
+  const pauseMark = document.createElement('span');
+  pauseMark.className = 'carousel-pause-mark';
+  pauseButton.append(pauseMark);
   media.append(pauseButton);
 
   const caption = document.createElement('div');
@@ -209,7 +221,7 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
     const label = pausedForGood ? 'Play carousel' : 'Pause carousel';
     pauseButton.setAttribute('aria-label', label);
     pauseButton.setAttribute('aria-pressed', pausedForGood ? 'true' : 'false');
-    pauseButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${pausedForGood ? PLAY_ICON : PAUSE_ICON}</svg>`;
+    pauseMark.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${pausedForGood ? PLAY_ICON : PAUSE_ICON}</svg>`;
   }
 
   pauseButton.addEventListener('click', () => {
@@ -241,6 +253,27 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
       img.alt = '';
       img.src = slide.photo;
       link.append(img);
+    } else {
+      // The first-order slide has no photo (docs/design/137's "Image
+      // budget" — it stays text-only). Left as an empty media box it read
+      // as a failed image load (driver review, PR #150 round 1, item 1), so
+      // its claim/sub render here instead, in a tinted panel — the same
+      // surface/border/accent-text treatment the old .promo-banner used.
+      // The caption strip below stays empty for this slide rather than
+      // repeating the same text twice.
+      const panel = document.createElement('div');
+      panel.className = 'carousel-slide-panel';
+      panel.setAttribute('data-testid', 'carousel-panel');
+      const panelClaim = document.createElement('span');
+      panelClaim.className = 'carousel-slide-panel-claim';
+      panelClaim.setAttribute('data-testid', 'carousel-panel-claim');
+      panelClaim.textContent = slide.claim;
+      const panelSub = document.createElement('span');
+      panelSub.className = 'carousel-slide-panel-sub';
+      panelSub.setAttribute('data-testid', 'carousel-panel-sub');
+      panelSub.textContent = slide.sub;
+      panel.append(panelClaim, panelSub);
+      link.append(panel);
     }
 
     if (slide.type === 'ad') {
@@ -253,8 +286,8 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
 
     media.prepend(link);
 
-    claimEl.textContent = slide.claim;
-    subEl.textContent = slide.sub;
+    claimEl.textContent = slide.type === 'first-order' ? '' : slide.claim;
+    subEl.textContent = slide.type === 'first-order' ? '' : slide.sub;
 
     for (const [index, dot] of dots.entries()) {
       dot.classList.toggle('is-current', index === current);
@@ -273,6 +306,32 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
   for (const type of ['pointerup', 'touchend', 'focusout']) {
     carousel.addEventListener(type, scheduleResume);
   }
+
+  // Swipe navigation (#133's own "can also be swiped", missed by #138's
+  // split — driver review, PR #150 round 1, item 3). Pointer Events cover
+  // touch the same way swipe-row.ts's cart-row drag already does; there is
+  // no live drag-follow here (the design doc names none), so this only
+  // reads the gesture on release, using the same axis lock (gestureAxis)
+  // the cart row uses to tell a swipe from the page's own vertical scroll.
+  let swipeStart: { pointerId: number; x: number; y: number } | null = null;
+
+  carousel.addEventListener('pointerdown', (event) => {
+    swipeStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+  });
+
+  carousel.addEventListener('pointerup', (event) => {
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (gestureAxis(dx, dy, CAROUSEL_SWIPE_PX) !== 'horizontal') return;
+    goToSlide(current + (dx < 0 ? 1 : -1));
+    pauseAndScheduleResume();
+  });
+
+  carousel.addEventListener('pointercancel', () => {
+    swipeStart = null;
+  });
 
   slideEl.append(media, caption);
   carousel.append(slideEl, dotsRow);

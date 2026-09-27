@@ -143,13 +143,13 @@ describe('promo carousel fits at 375px (#137)', () => {
     expect(rule).toContain('height:200px');
   });
 
-  it('the pause control and every dot clear the 44px touch-target floor (docs/design/46-phone-native.md)', () => {
+  it('the pause control clears the 44px touch-target floor in both dimensions (docs/design/46-phone-native.md); each dot clears it in height, narrower in width by the driver\'s own round-1 review (PR #150) compacting the row', () => {
     const pauseRule = css.match(/\.carousel-pause\{[^}]*\}/)?.[0] ?? '';
     expect(pauseRule).toContain('min-width:44px');
     expect(pauseRule).toContain('min-height:44px');
 
     const dotRule = css.match(/\.carousel-dot\{[^}]*\}/)?.[0] ?? '';
-    expect(dotRule).toContain('min-width:44px');
+    expect(dotRule).toContain('width:24px');
     expect(dotRule).toContain('min-height:44px');
   });
 

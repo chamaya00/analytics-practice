@@ -256,13 +256,14 @@ const TAB_ICON_PATHS: Record<string, string> = {
       justify-content: center;
     }
 
-    /* Dashed border: this repository's own convention for "reference only,
-       not this issue's to build" (#136 owns the real wallet balance). */
+    /* Invisible on the live page — a dashed border is this repository's mock
+       convention for "reference only, not this issue's to build", but
+       shipped as-is it reads as an unexplained outline to a real visitor
+       (driver review, PR #150 round 1, item 6). The slot, its size and the
+       reserved grid column stay; #136 fills it with the real balance. */
     .brand-group--home .balance-slot {
       justify-self: end;
       padding: 0 var(--space-sm);
-      border: 1px dashed var(--color-border);
-      border-radius: 999px;
       min-width: 44px;
     }
 
