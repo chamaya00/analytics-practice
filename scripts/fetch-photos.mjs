@@ -84,13 +84,35 @@ export function pickResult(results, usedIds) {
   return results.find((result) => result?.id && result?.urls?.raw && !usedIds.has(result.id)) ?? null;
 }
 
-/** Entries that need fetching: the file is missing, or the lock records a different pin. */
+/**
+ * Entries that need fetching: the file is missing, the lock records a
+ * different pin, or - for an unpinned slot - the manifest's query changed.
+ * Editing a query is how a role swaps a photo that came back wrong for its
+ * slot without knowing an Unsplash id.
+ */
 export function entriesToFetch(entries, lock, fileExists) {
   return entries.filter((entry) => {
     const locked = lock[entry.path];
     if (!locked || !fileExists(entry.path)) return true;
-    return entry.photo !== undefined && entry.photo !== locked.id;
+    if (entry.photo !== undefined) return entry.photo !== locked.id;
+    return locked.query !== undefined && locked.query !== entry.query;
   });
+}
+
+/**
+ * The searches to try for one slot, most specific first: the query with the
+ * slot's orientation, then without it, then with its last word dropped. A
+ * narrow phrase ("com tam restaurant vietnam") can find nothing in one
+ * orientation and plenty without it. Three at most - each costs a request.
+ */
+export function searchAttempts(query, orientation) {
+  const words = query.trim().split(/\s+/);
+  const attempts = [
+    { query: words.join(' '), orientation },
+    { query: words.join(' '), orientation: null },
+  ];
+  if (words.length > 2) attempts.push({ query: words.slice(0, -1).join(' '), orientation: null });
+  return attempts;
 }
 
 /** Thrown when the hour's request budget is spent, so the run stops rather than failing every slot left. */
@@ -117,12 +139,18 @@ async function getJson(url) {
 async function resolvePhoto(entry, usedIds) {
   if (entry.photo) return getJson(`${API}/photos/${entry.photo}`);
   const orientation = entry.width >= entry.height * 1.2 ? 'landscape' : 'squarish';
-  const { body, spent } = await getJson(
-    `${API}/search/photos?query=${encodeURIComponent(entry.query)}&per_page=20&orientation=${orientation}`,
-  );
-  const picked = pickResult(body.results ?? [], usedIds);
-  if (!picked) throw new Error(`no unused result for "${entry.query}"`);
-  return { body: picked, spent };
+  const tried = [];
+  for (const attempt of searchAttempts(entry.query, orientation)) {
+    const filter = attempt.orientation ? `&orientation=${attempt.orientation}` : '';
+    const { body, spent } = await getJson(
+      `${API}/search/photos?query=${encodeURIComponent(attempt.query)}&per_page=20${filter}`,
+    );
+    const picked = pickResult(body.results ?? [], usedIds);
+    if (picked) return { body: picked, spent };
+    if (spent) throw new RateLimited('hourly request budget spent');
+    tried.push(`"${attempt.query}"${attempt.orientation ? ` (${attempt.orientation})` : ''}: ${body.total ?? 0} results`);
+  }
+  throw new Error(`no unused result - ${tried.join('; ')}`);
 }
 
 /** Unsplash's API terms ask for a ping to the photo's download_location on every download. */
@@ -161,7 +189,9 @@ async function main() {
   for (const [i, entry] of todo.entries()) {
     let fetched = false;
     try {
-      if (lock[entry.path]) usedIds.delete(lock[entry.path].id);
+      // A missing file may come back as the same photo; a swap (the query or
+      // pin changed while the file is still here) must not.
+      if (lock[entry.path] && !existsSync(entry.path)) usedIds.delete(lock[entry.path].id);
       const { body: photo, spent: searchSpent } = await resolvePhoto(entry, usedIds);
       const response = await fetch(downloadUrl(photo.urls.raw, entry.width, entry.height));
       if (!response.ok) throw new Error(`image download answered ${response.status}`);
