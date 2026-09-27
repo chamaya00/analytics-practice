@@ -200,8 +200,8 @@ describe('initWallet (AC3: signed in, stubbed RPC returning 2000 cents and 60000
       expect(sheet!.querySelector('[data-testid="wallet-drip-card"]')?.getAttribute('role')).toBe('status');
     });
 
-    const claimCalls = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls.filter(([url]: [string]) =>
-      url.endsWith('/rpc/wallet_claim_drip'),
+    const claimCalls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.filter((call: unknown[]) =>
+      (call[0] as string).endsWith('/rpc/wallet_claim_drip'),
     );
     expect(claimCalls).toHaveLength(1);
 

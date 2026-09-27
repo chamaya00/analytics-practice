@@ -24,6 +24,7 @@ import {
   type WalletSession,
 } from './auth-client';
 import { getWallet, claimDrip, type WalletBalances } from './wallet-client';
+import { CITY_CHANGED_EVENT } from './home-dom';
 
 const DRIP_WINDOW_TIMES = '7:00 AM, 3:00 PM and 11:00 PM';
 
@@ -448,4 +449,12 @@ export async function initWallet(
   }
 
   renderChip(chipRoot, getCity(), liveBalances, openSheet);
+
+  // The chip follows the city pill (docs/design/143-wallet.md: "switching
+  // city switches the currency") — home-dom.ts fires this on every feed
+  // render, including a city switch through the location picker.
+  document.addEventListener(CITY_CHANGED_EVENT, () => {
+    if (!liveSession || sheetHandle) return;
+    renderChip(chipRoot, getCity(), liveBalances, openSheet);
+  });
 }

@@ -526,8 +526,12 @@ function renderTileCard(restaurant: Restaurant, draw: FlashDraw | null, now: num
 
 const carouselCleanups = new WeakMap<HTMLElement, () => void>();
 
+/** Fired whenever the feed renders for a (possibly new) city — #146's wallet chip listens for this to re-render the balance in the newly-selected city's currency, since the pill and the chip must always agree on which city is current. */
+export const CITY_CHANGED_EVENT = 'parody:citychanged';
+
 function renderFeed(root: HTMLElement, pillRoot: HTMLElement, city: City, sessionStorage: Storage, visitorId: string): void {
   const now = Date.now();
+  document.dispatchEvent(new CustomEvent(CITY_CHANGED_EVENT, { detail: { city } }));
   const initial = ensureFlashDraw(sessionStorage, city, now);
   const { isNewDraw } = initial;
   let draw = initial.draw;
