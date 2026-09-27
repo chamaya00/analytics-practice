@@ -78,6 +78,70 @@ export function computeOrderStack(
   return { live, past };
 }
 
+/** The moment an order reaches Delivered — `placedAt` plus its own `deliveryMs`, the same instant `isDelivered` compares against. */
+export function deliveredAtMs(order: PlacedOrder): number {
+  return new Date(order.placedAt).getTime() + order.deliveryMs;
+}
+
+/** How long after delivery the rating sheet still auto-opens for an order
+ * (#163, docs/design/162-*, "The multi-order rule" — a Guess, 24 hours). */
+export const RATING_PROMPT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Both steps stored — a skipped step stays `null` forever, which is exactly
+ * why "once per order" is keyed on `ratingPromptedAt` rather than on this
+ * (#163, docs/design/162-*, "Storage"). */
+export function isRatingFullyDone(order: PlacedOrder): boolean {
+  return order.driverRating !== null && order.rating !== null;
+}
+
+/** Whether the rating sheet may auto-open for `order` at `now`: delivered,
+ * never yet prompted, not fully rated, and delivered within the last 24
+ * hours (#163, docs/design/162-*, "The multi-order rule"). */
+function qualifiesForRatingPrompt(order: PlacedOrder, now: number): boolean {
+  if (!isDelivered(order, now)) return false;
+  if (order.ratingPromptedAt !== null) return false;
+  if (isRatingFullyDone(order)) return false;
+  return now - deliveredAtMs(order) <= RATING_PROMPT_WINDOW_MS;
+}
+
+export interface RatingPromptDecision {
+  /** The one order to auto-open the rating sheet for, or `null` when nothing qualifies. */
+  openOrderId: string | null;
+  /** Every other qualifying order, deliberately passed over this tick — the caller marks each one prompted, alongside `openOrderId` itself. */
+  passedOverOrderIds: string[];
+}
+
+/**
+ * #163's multi-order rule, as a pure decision over every stored order at one
+ * instant: at most one order opens, chosen from whichever currently qualify
+ * (delivered, never prompted, not fully rated, within the 24-hour window) —
+ * the open card's own order if it qualifies, otherwise the most recently
+ * delivered qualifying order. Every other qualifying order is reported so the
+ * caller can mark it prompted in the same tick, which is what stops it from
+ * ever auto-opening later (docs/design/162-*, "Two orders landing together" /
+ * "Returning to three delivered, unrated orders"). The caller is expected to
+ * call this once per page load, not on every render tick — "at most once per
+ * page load" is enforced by when this is called, not by anything in here.
+ */
+export function decideRatingPrompt(
+  orders: PlacedOrder[],
+  openCardOrderId: string | null,
+  now: number = Date.now(),
+): RatingPromptDecision {
+  const qualifying = orders.filter((order) => qualifiesForRatingPrompt(order, now));
+  if (qualifying.length === 0) return { openOrderId: null, passedOverOrderIds: [] };
+
+  const openCard = openCardOrderId ? qualifying.find((order) => order.orderId === openCardOrderId) : undefined;
+  const chosen =
+    openCard ??
+    qualifying.reduce((latest, order) => (deliveredAtMs(order) > deliveredAtMs(latest) ? order : latest));
+
+  return {
+    openOrderId: chosen.orderId,
+    passedOverOrderIds: qualifying.filter((order) => order.orderId !== chosen.orderId).map((order) => order.orderId),
+  };
+}
+
 /**
  * Which order the tracker opens by default (#148, "Order stack rules"): the
  * live order arriving soonest, because that's the one a person has to act on
