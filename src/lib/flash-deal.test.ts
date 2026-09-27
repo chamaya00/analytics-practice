@@ -5,6 +5,8 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  FLASH_DRAW_SIZE_MAX,
+  FLASH_DRAW_SIZE_MIN,
   FLASH_WINDOW_MS,
   drawFlashDeal,
   ensureFlashDraw,
@@ -13,6 +15,7 @@ import {
   getFlashDraw,
   isFlashLive,
   setFlashDraw,
+  setFlashDrawState,
   type FlashDraw,
 } from './flash-deal';
 
@@ -41,12 +44,27 @@ describe('drawFlashDeal — range and step (AC4)', () => {
     expect([...amounts].sort((a, b) => a - b)).toEqual([200, 300, 400, 500, 600]);
   });
 
-  it('draws two distinct restaurants from the city catalogue, each with a free-or-reduced fee mode', () => {
-    const draw = drawFlashDeal('hcmc', 0, seededRandom([0, 0, 0.9, 0, 0.1]));
-    expect(draw.restaurants).toHaveLength(2);
-    expect(draw.restaurants[0].slug).not.toBe(draw.restaurants[1].slug);
-    expect(['free', 'reduced']).toContain(draw.restaurants[0].feeMode);
-    expect(['free', 'reduced']).toContain(draw.restaurants[1].feeMode);
+  it('draws 5–6 distinct restaurants from the city catalogue, each with a free-or-reduced fee mode (#120)', () => {
+    const draw = drawFlashDeal(
+      'hcmc',
+      0,
+      seededRandom([0, 0.9, 0.2, 0.5, 0.7, 0.1, 0.3, 0.05, 0.6, 0.15, 0.85, 0.4]),
+    );
+    expect(draw.restaurants.length).toBeGreaterThanOrEqual(FLASH_DRAW_SIZE_MIN);
+    expect(draw.restaurants.length).toBeLessThanOrEqual(FLASH_DRAW_SIZE_MAX);
+    const slugs = draw.restaurants.map((restaurant) => restaurant.slug);
+    expect(new Set(slugs).size).toBe(slugs.length); // every drawn restaurant is distinct
+    for (const restaurant of draw.restaurants) {
+      expect(['free', 'reduced']).toContain(restaurant.feeMode);
+    }
+  });
+
+  it('a size-pick random below 0.5 draws exactly 5; at or above 0.5 draws exactly 6', () => {
+    const five = drawFlashDeal('hcmc', 0, seededRandom([0, 0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+    expect(five.restaurants).toHaveLength(5);
+
+    const six = drawFlashDeal('hcmc', 0, seededRandom([0, 0.9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+    expect(six.restaurants).toHaveLength(6);
   });
 
   it('a 15:00 countdown starts at the drawn moment', () => {
@@ -99,11 +117,77 @@ describe('session persistence — one draw per city per session (AC4)', () => {
       restaurants: [
         { slug: 'a', feeMode: 'free' },
         { slug: 'b', feeMode: 'reduced' },
+        { slug: 'c', feeMode: 'free' },
+        { slug: 'd', feeMode: 'reduced' },
+        { slug: 'e', feeMode: 'free' },
       ],
     });
     window.sessionStorage.clear(); // simulates a fresh session/tab: no cooldown to check against
     const result = ensureFlashDraw(window.sessionStorage, 'hcmc', 1000, seededRandom([0.2]));
     expect(result.isNewDraw).toBe(true);
+  });
+});
+
+describe('a legacy 2-restaurant stored draw, from before #120 (AC5)', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it('is treated as absent, not thrown on, and a fresh 5–6 draw replaces it', () => {
+    window.sessionStorage.setItem(
+      'flashDeal:hcmc',
+      JSON.stringify({
+        drawnAt: 0,
+        amountMinor: 15000,
+        restaurants: [
+          { slug: 'ben-thanh-banh-mi', feeMode: 'free' },
+          { slug: 'saigon-pho-quan', feeMode: 'reduced' },
+        ],
+      }),
+    );
+
+    expect(getFlashDraw(window.sessionStorage, 'hcmc')).toBeNull();
+
+    let result;
+    expect(
+      () =>
+        (result = ensureFlashDraw(
+          window.sessionStorage,
+          'hcmc',
+          1000,
+          seededRandom([0.4, 0.1, 0.2, 0.6, 0.3, 0.7, 0.5, 0.9, 0.1, 0.8]),
+        )),
+    ).not.toThrow();
+    expect(result!.isNewDraw).toBe(true);
+    expect(result!.draw.restaurants.length).toBeGreaterThanOrEqual(FLASH_DRAW_SIZE_MIN);
+    expect(result!.draw.restaurants.length).toBeLessThanOrEqual(FLASH_DRAW_SIZE_MAX);
+  });
+});
+
+describe('setFlashDrawState — patching collapsed/closedEventFired (AC2, AC7)', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it('patches only the given fields, persists them, and returns the updated draw', () => {
+    const draw: FlashDraw = {
+      drawnAt: 0,
+      amountMinor: 15000,
+      restaurants: [
+        { slug: 'a', feeMode: 'free' },
+        { slug: 'b', feeMode: 'reduced' },
+        { slug: 'c', feeMode: 'free' },
+        { slug: 'd', feeMode: 'reduced' },
+        { slug: 'e', feeMode: 'free' },
+      ],
+    };
+    setFlashDraw(window.sessionStorage, 'hcmc', draw);
+
+    const updated = setFlashDrawState(window.sessionStorage, 'hcmc', draw, { collapsed: true, closedEventFired: true });
+
+    expect(updated.collapsed).toBe(true);
+    expect(updated.closedEventFired).toBe(true);
+    expect(getFlashDraw(window.sessionStorage, 'hcmc')).toEqual(updated);
   });
 });
 

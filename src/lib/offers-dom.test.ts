@@ -194,7 +194,7 @@ describe('renderOffers — the unlock moment and prefers-reduced-motion (AC2)', 
 });
 
 describe('renderOffers — the flash voucher (AC2, AC4)', () => {
-  it('a larger live flash draw beats t2 and is the one auto-selected', () => {
+  it('a larger live flash draw beats t2 and is the one auto-selected, for a 6-restaurant draw (#120 AC4)', () => {
     addToCart(window.localStorage, HCMC_LINE);
     setFlashDraw(window.sessionStorage, 'hcmc', {
       drawnAt: Date.now(),
@@ -202,6 +202,10 @@ describe('renderOffers — the flash voucher (AC2, AC4)', () => {
       restaurants: [
         { slug: 'ben-thanh-banh-mi', feeMode: 'free' },
         { slug: 'saigon-pho-quan', feeMode: 'reduced' },
+        { slug: 'com-tam-quan-nha', feeMode: 'free' },
+        { slug: 'bun-cha-co-ba', feeMode: 'reduced' },
+        { slug: 'hu-tieu-nam-vang-hoa-phat', feeMode: 'free' },
+        { slug: 'goi-cuon-co-hai-cho-cu', feeMode: 'reduced' },
       ],
     });
 
