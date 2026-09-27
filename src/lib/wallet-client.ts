@@ -191,3 +191,92 @@ export async function debitWallet(config: DebitConfig): Promise<DebitResult> {
   if (first.kind !== 'unreachable') return first;
   return postDebit(config);
 }
+
+export interface TipConfig extends WalletClientConfig {
+  /** `wallet_tip`'s idempotency key — one tip per order. */
+  orderId: string;
+  /** One of #162's presets for the order's own currency. The server, not this call, decides which currency that is. */
+  amountMinor: number;
+}
+
+interface RawTip {
+  status: 'tipped' | 'already_tipped' | 'insufficient';
+  amount_minor: number;
+  currency: 'USD' | 'VND';
+  usd_minor: number;
+  vnd_minor: number;
+}
+
+export interface TipBalances {
+  usdMinor: number;
+  vndMinor: number;
+}
+
+export type TipResult =
+  /** `wallet_tip` answered definitively — `insufficient` included, since it's a real answer from the ledger, not a failure. */
+  | ({ kind: 'ok'; status: RawTip['status']; amountMinor: number; currency: RawTip['currency'] } & TipBalances)
+  /** A raised, non-retryable refusal (no debit row for this caller's order, an amount that isn't one of the presets, not authenticated). Distinct from `unreachable` — this is a definitive "no". */
+  | { kind: 'blocked'; message: string }
+  /** Network error, timeout, or HTTP 5xx — the caller shows "couldn't send the tip, nothing was taken" and leaves the panel open. */
+  | { kind: 'unreachable' };
+
+async function postTip(config: TipConfig): Promise<TipResult> {
+  const fetchImpl = config.fetchImpl ?? (typeof fetch === 'function' ? fetch : undefined);
+  if (!fetchImpl) return { kind: 'unreachable' };
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+  const timeoutId = setTimeout(() => controller?.abort(), RPC_TIMEOUT_MS);
+
+  try {
+    const response = await fetchImpl(`${config.url}/rest/v1/rpc/wallet_tip`, {
+      method: 'POST',
+      signal: controller?.signal,
+      headers: {
+        apikey: config.publishableKey,
+        Authorization: `Bearer ${config.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_order_id: config.orderId,
+        p_amount_minor: config.amountMinor,
+      }),
+    });
+
+    if (response.ok) {
+      const raw = (await response.json()) as RawTip;
+      return {
+        kind: 'ok',
+        status: raw.status,
+        amountMinor: raw.amount_minor,
+        currency: raw.currency,
+        usdMinor: raw.usd_minor,
+        vndMinor: raw.vnd_minor,
+      };
+    }
+    if (response.status >= 500) return { kind: 'unreachable' };
+    const body: unknown = await response.json().catch(() => ({}));
+    const message =
+      typeof body === 'object' && body !== null && 'message' in body && typeof (body as { message: unknown }).message === 'string'
+        ? (body as { message: string }).message
+        : 'refused';
+    return { kind: 'blocked', message };
+  } catch {
+    return { kind: 'unreachable' };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * `wallet_tip` (#164). A network-level failure (a rejected fetch, a timeout,
+ * or a 5xx) is retried exactly once with the same `orderId` before being
+ * reported as `unreachable`, the same reasoning as `debitWallet`: the
+ * request may have already landed, and `order_id` is the key `wallet_tip`
+ * checks first, so a retry is safe and resolves the ambiguity rather than
+ * assuming failure.
+ */
+export async function tipWallet(config: TipConfig): Promise<TipResult> {
+  const first = await postTip(config);
+  if (first.kind !== 'unreachable') return first;
+  return postTip(config);
+}
