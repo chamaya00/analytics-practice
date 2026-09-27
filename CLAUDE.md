@@ -22,6 +22,15 @@ of its own. See ADR 0005 (`docs/decisions/0005-hosted-event-store.md`) for
 the store, the write path, and the anti-spam bounds enforced in
 `supabase/migrations/`.
 
+Signing in (Google or Apple, asked for only at Place order) is Supabase
+Auth in the same project: it stores whichever email the provider shares.
+Each signed-in account gets a play-money wallet - balances, drips and
+debits - stored per account in that same Supabase database, guarded by
+Postgres functions no browser request can bypass. No payment is ever taken.
+Neither the email nor any wallet field is ever added to an event (the #79
+rule). See ADR 0008 (`docs/decisions/0008-play-money-wallet-and-sign-in.md`)
+for the sign-in flow, the wallet's schema, and D1's fallback rule.
+
 ## Commands
 
 - Install: `npm ci`
