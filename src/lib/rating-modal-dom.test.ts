@@ -86,6 +86,8 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
     initTrackerPage(root(), window.localStorage);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+    vi.advanceTimersByTime(600); // already Delivered at load — a return visit
 
     expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="rating-sheet-step-label"]')?.textContent).toBe('1 of 2 · Driver');
@@ -103,10 +105,12 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-close"]')?.click();
     expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
     expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
     expect(findOrder(window.localStorage, order.orderId)?.ratingPromptedAt).not.toBeNull();
   });
@@ -116,11 +120,13 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-skip"]')?.click();
     expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
     expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
   });
 
@@ -129,6 +135,7 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
@@ -146,12 +153,15 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     vi.setSystemTime(Date.now() + Math.max(orderA.deliveryMs, orderB.deliveryMs));
 
     initTrackerPage(root(), window.localStorage);
-
-    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(1);
     // The open card defaults to the most recently placed order when nothing
-    // is live (defaultOpenOrderId) — orderB — and the tie goes to it.
-    expect(findOrder(window.localStorage, orderB.orderId)?.ratingPromptedAt).not.toBeNull();
+    // is live (defaultOpenOrderId) — orderB — and the tie goes to it. orderA
+    // is passed over and marked immediately, before orderB's own delay runs.
     expect(findOrder(window.localStorage, orderA.orderId)?.ratingPromptedAt).not.toBeNull();
+    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(0);
+
+    vi.advanceTimersByTime(600);
+    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(1);
+    expect(findOrder(window.localStorage, orderB.orderId)?.ratingPromptedAt).not.toBeNull();
   });
 
   it('returning to three delivered, unrated orders: the sheet opens once, and the DOM never holds more than one', () => {
@@ -164,6 +174,7 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     vi.setSystemTime(Date.now() + Math.max(a.deliveryMs, b.deliveryMs, c.deliveryMs) + 4 * 60 * 60_000);
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
 
     expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(1);
     const prompted = [a, b, c].map((order) => findOrder(window.localStorage, order.orderId)?.ratingPromptedAt);
@@ -172,6 +183,64 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-close"]')?.click();
     initTrackerPage(root(), window.localStorage);
     expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+  });
+
+  it('a return visit (already Delivered at load) opens the sheet after 600ms, and not before', () => {
+    const order = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+
+    initTrackerPage(root(), window.localStorage);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    vi.advanceTimersByTime(599);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    vi.advanceTimersByTime(1);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
+  });
+
+  it('an order that becomes Delivered after load (watched landing) opens the sheet 1.4s after the tick that catches it, and not before', () => {
+    const order = placeOrderFor(LINE);
+
+    initTrackerPage(root(), window.localStorage);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    // The render tick (every 1s) is what notices Delivered — advance to the
+    // first tick at or past the order's own deliveryMs.
+    const tickThatCatchesIt = Math.ceil(order.deliveryMs / 1000) * 1000;
+    vi.advanceTimersByTime(tickThatCatchesIt);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    vi.advanceTimersByTime(1399);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    vi.advanceTimersByTime(1);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="rating-sheet-step-label"]')?.textContent).toBe('1 of 2 · Driver');
+  });
+
+  it('a second order landing while the sheet is open is marked prompted and never opens a second sheet, even after the first closes', () => {
+    const orderA = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + orderA.deliveryMs); // A already Delivered at load — a return visit
+    const orderB = placeOrderFor(LINE_B); // B not yet Delivered — B's own deliveryMs counts from B's own placedAt
+
+    initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
+    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(1);
+    expect(findOrder(window.localStorage, orderA.orderId)?.ratingPromptedAt).not.toBeNull();
+    expect(findOrder(window.localStorage, orderB.orderId)?.ratingPromptedAt).toBeNull();
+
+    // orderB lands while A's sheet is still open — marked prompted, no
+    // second sheet queues.
+    vi.advanceTimersByTime(Math.ceil(orderB.deliveryMs / 1000) * 1000 + 1400);
+    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(1);
+    expect(findOrder(window.localStorage, orderB.orderId)?.ratingPromptedAt).not.toBeNull();
+
+    // Closing A's sheet doesn't retroactively open one for B, this load.
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-close"]')?.click();
+    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(0);
+    vi.advanceTimersByTime(5000);
+    expect(document.querySelectorAll('[data-testid="rating-sheet"]')).toHaveLength(0);
   });
 });
 
@@ -272,6 +341,7 @@ describe('the rating sheet — driver then restaurant (AC2, docs/design/162-*, "
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
     initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
