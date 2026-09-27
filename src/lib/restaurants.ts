@@ -205,6 +205,58 @@ const SF_RESTAURANTS: Restaurant[] = [
       },
     ],
   },
+  {
+    slug: 'bay-grain-bowls',
+    name: 'Bay Grain Bowls',
+    city: 'sf',
+    cuisineTag: 'Bowls',
+    rating: 4.7,
+    etaMinMinutes: 15,
+    etaMaxMinutes: 25,
+    deliveryFeeMinor: 99,
+    hasDeal: false,
+    heroImage: '/images/restaurants/bay-grain-bowls-hero.svg',
+    menu: [
+      {
+        title: 'Bowls',
+        items: [
+          {
+            id: 'bay-grain-bowls-teriyaki-chicken',
+            name: 'Teriyaki chicken bowl',
+            description: 'Grilled chicken, brown rice, seasonal veg.',
+            amountMinor: 1350,
+            image: '/images/dishes/bay-grain-bowls-teriyaki-chicken.svg',
+          },
+          {
+            id: 'bay-grain-bowls-tofu-poke',
+            name: 'Tofu poke bowl',
+            description: 'Marinated tofu, edamame, pickled ginger.',
+            amountMinor: 1250,
+            image: '/images/dishes/bay-grain-bowls-tofu-poke.svg',
+          },
+        ],
+      },
+      {
+        title: 'Sides',
+        items: [
+          {
+            id: 'bay-grain-bowls-miso-soup',
+            name: 'Miso soup',
+            description: 'Traditional miso broth, scallion, tofu.',
+            amountMinor: 350,
+            image: '/images/dishes/bay-grain-bowls-miso-soup.svg',
+          },
+          {
+            id: 'bay-grain-bowls-iced-green-tea',
+            name: 'Iced green tea',
+            description: 'Unsweetened, brewed daily.',
+            amountMinor: 300,
+            image: '/images/dishes/bay-grain-bowls-iced-green-tea.svg',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 const HCMC_RESTAURANTS: Restaurant[] = [
@@ -359,6 +411,58 @@ const HCMC_RESTAURANTS: Restaurant[] = [
             description: 'Chilled herbal tea.',
             amountMinor: 15000,
             image: '/images/dishes/com-tam-quan-nha-sam-lanh.svg',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'bun-cha-co-ba',
+    name: 'Bún Chả Cô Ba',
+    city: 'hcmc',
+    cuisineTag: 'Bún',
+    rating: 4.6,
+    etaMinMinutes: 20,
+    etaMaxMinutes: 30,
+    deliveryFeeMinor: 12000,
+    hasDeal: false,
+    heroImage: '/images/restaurants/bun-cha-co-ba-hero.svg',
+    menu: [
+      {
+        title: 'Bún',
+        items: [
+          {
+            id: 'bun-cha-co-ba-bun-cha-ha-noi',
+            name: 'Bún chả Hà Nội',
+            description: 'Grilled pork patties, rice vermicelli, herbs, dipping sauce.',
+            amountMinor: 45000,
+            image: '/images/dishes/bun-cha-co-ba-bun-cha-ha-noi.svg',
+          },
+          {
+            id: 'bun-cha-co-ba-bun-bo-hue',
+            name: 'Bún bò Huế',
+            description: 'Spicy beef and pork noodle soup, lemongrass.',
+            amountMinor: 50000,
+            image: '/images/dishes/bun-cha-co-ba-bun-bo-hue.svg',
+          },
+        ],
+      },
+      {
+        title: 'Drinks',
+        items: [
+          {
+            id: 'bun-cha-co-ba-tra-chanh',
+            name: 'Trà chanh',
+            description: 'Iced lemon tea.',
+            amountMinor: 15000,
+            image: '/images/dishes/bun-cha-co-ba-tra-chanh.svg',
+          },
+          {
+            id: 'bun-cha-co-ba-sinh-to-bo',
+            name: 'Sinh tố bơ',
+            description: 'Avocado smoothie.',
+            amountMinor: 25000,
+            image: '/images/dishes/bun-cha-co-ba-sinh-to-bo.svg',
           },
         ],
       },

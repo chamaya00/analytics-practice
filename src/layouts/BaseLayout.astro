@@ -186,6 +186,16 @@ const { title } = Astro.props;
     border-color: var(--color-accent-a);
   }
 
+  /* Home feed's "Near you" heading (#80/#104: docs/design/80-home-sf.html's
+     h2.section-title) — its own class rather than the Offers screen's
+     .section-title (defined further below), which is deliberately smaller
+     and muted rather than this compact-page-title scale. */
+  .home-section-title {
+    font-size: var(--font-size-h2);
+    font-weight: 700;
+    margin: var(--space-lg) 0 var(--space-sm);
+  }
+
   /* ---- location picker (home screen 1) ---- */
 
   .location-cards {
@@ -1048,7 +1058,8 @@ const { title } = Astro.props;
     background: var(--color-accent-a);
     border-radius: 4px;
     padding: 1px 4px;
-    margin-top: 2px;
+    margin-left: var(--space-xs);
+    vertical-align: 1px;
   }
 
   /* ---- order placed ---- */
