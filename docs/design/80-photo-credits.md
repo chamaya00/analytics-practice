@@ -33,6 +33,26 @@ nothing importing these paths needs to change.
 | `public/images/restaurants/com-tam-quan-nha-hero.svg` | HCMC, cơm tấm | "com tam restaurant vietnam" | Placeholder — not yet downloaded |
 | `public/images/restaurants/bay-grain-bowls-hero.svg` | SF, grain bowls | "grain bowl restaurant" | Placeholder — not yet downloaded |
 | `public/images/restaurants/bun-cha-co-ba-hero.svg` | HCMC, bún | "bun cha vietnam restaurant" | Placeholder — not yet downloaded |
+| `public/images/restaurants/dogpatch-burger-works-hero.svg` | SF, burgers | "gourmet burger restaurant" | Placeholder — not yet downloaded |
+| `public/images/restaurants/noriega-thai-kitchen-hero.svg` | SF, thai | "thai curry noodle dishes" | Placeholder — not yet downloaded |
+| `public/images/restaurants/inner-richmond-sushi-bar-hero.svg` | SF, sushi | "fresh sushi platter" | Placeholder — not yet downloaded |
+| `public/images/restaurants/valencia-street-tandoor-hero.svg` | SF, indian | "indian curry spread" | Placeholder — not yet downloaded |
+| `public/images/restaurants/cole-valley-mezze-hero.svg` | SF, mediterranean | "mediterranean mezze platter" | Placeholder — not yet downloaded |
+| `public/images/restaurants/geary-boulevard-korean-kitchen-hero.svg` | SF, korean | "korean barbecue table spread" | Placeholder — not yet downloaded |
+| `public/images/restaurants/post-street-ramen-bar-hero.svg` | SF, ramen | "ramen shop counter" | Placeholder — not yet downloaded |
+| `public/images/restaurants/noe-valley-morning-kitchen-hero.svg` | SF, breakfast | "brunch table pancakes coffee" | Placeholder — not yet downloaded |
+| `public/images/restaurants/hayes-valley-green-table-hero.svg` | SF, vegan | "colorful vegan grain bowl" | Placeholder — not yet downloaded |
+| `public/images/restaurants/ocean-beach-fish-house-hero.svg` | SF, seafood | "seafood platter oysters lemon" | Placeholder — not yet downloaded |
+| `public/images/restaurants/hu-tieu-nam-vang-hoa-phat-hero.svg` | HCMC, hủ tiếu | "vietnamese noodle soup stall" | Placeholder — not yet downloaded |
+| `public/images/restaurants/goi-cuon-co-hai-cho-cu-hero.svg` | HCMC, gỏi cuốn | "vietnamese fresh spring rolls" | Placeholder — not yet downloaded |
+| `public/images/restaurants/quan-lau-ut-hanh-hero.svg` | HCMC, lẩu | "vietnamese hotpot table" | Placeholder — not yet downloaded |
+| `public/images/restaurants/ca-phe-nha-go-18-hero.svg` | HCMC, cà phê | "vietnamese coffee phin cafe" | Placeholder — not yet downloaded |
+| `public/images/restaurants/quan-che-di-sau-hero.svg` | HCMC, chè | "vietnamese sweet dessert soup" | Placeholder — not yet downloaded |
+| `public/images/restaurants/com-ga-ba-sau-phu-nhuan-hero.svg` | HCMC, cơm gà | "vietnamese chicken rice plate" | Placeholder — not yet downloaded |
+| `public/images/restaurants/hai-san-kenh-te-quan-7-hero.svg` | HCMC, hải sản | "vietnamese seafood platter table" | Placeholder — not yet downloaded |
+| `public/images/restaurants/banh-xeo-co-nam-tan-dinh-hero.svg` | HCMC, bánh xèo | "vietnamese crispy pancake herbs" | Placeholder — not yet downloaded |
+| `public/images/restaurants/mi-quang-que-son-co-lien-hero.svg` | HCMC, mì quảng | "mi quang turmeric noodle bowl" | Placeholder — not yet downloaded |
+| `public/images/restaurants/bo-bit-tet-chu-tam-go-vap-hero.svg` | HCMC, bò bít tết | "sizzling beef steak pan" | Placeholder — not yet downloaded |
 
 ## Dish thumbnails
 
@@ -73,6 +93,111 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/bun-cha-co-ba-bun-bo-hue.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
 | `public/images/dishes/bun-cha-co-ba-tra-chanh.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
 | `public/images/dishes/bun-cha-co-ba-sinh-to-bo.svg` | "bun cha vietnam close up" | Placeholder — not yet downloaded |
+| `public/images/dishes/dogpatch-burger-works-classic-cheeseburger.svg` | "classic cheeseburger" | Placeholder — not yet downloaded |
+| `public/images/dishes/dogpatch-burger-works-mushroom-swiss-burger.svg` | "mushroom swiss burger" | Placeholder — not yet downloaded |
+| `public/images/dishes/dogpatch-burger-works-crispy-chicken-sandwich.svg` | "crispy chicken sandwich" | Placeholder — not yet downloaded |
+| `public/images/dishes/dogpatch-burger-works-garlic-fries.svg` | "garlic fries" | Placeholder — not yet downloaded |
+| `public/images/dishes/dogpatch-burger-works-vanilla-milkshake.svg` | "vanilla milkshake" | Placeholder — not yet downloaded |
+| `public/images/dishes/noriega-thai-kitchen-pad-see-ew.svg` | "pad see ew noodles" | Placeholder — not yet downloaded |
+| `public/images/dishes/noriega-thai-kitchen-green-curry.svg` | "thai green curry" | Placeholder — not yet downloaded |
+| `public/images/dishes/noriega-thai-kitchen-pad-kra-pao.svg` | "pad kra pao basil" | Placeholder — not yet downloaded |
+| `public/images/dishes/noriega-thai-kitchen-khao-soi.svg` | "khao soi noodle soup" | Placeholder — not yet downloaded |
+| `public/images/dishes/noriega-thai-kitchen-fresh-spring-rolls.svg` | "fresh spring rolls" | Placeholder — not yet downloaded |
+| `public/images/dishes/noriega-thai-kitchen-thai-iced-tea.svg` | "thai iced tea" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-spicy-tuna-roll.svg` | "spicy tuna roll" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-salmon-avocado-roll.svg` | "salmon avocado roll" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-chirashi-bowl.svg` | "chirashi sashimi bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-nigiri-set.svg` | "nigiri sushi set" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.svg` | "miso soup bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-seaweed-salad.svg` | "seaweed salad" | Placeholder — not yet downloaded |
+| `public/images/dishes/valencia-street-tandoor-chicken-tikka-masala.svg` | "chicken tikka masala" | Placeholder — not yet downloaded |
+| `public/images/dishes/valencia-street-tandoor-saag-paneer.svg` | "saag paneer" | Placeholder — not yet downloaded |
+| `public/images/dishes/valencia-street-tandoor-lamb-rogan-josh.svg` | "lamb rogan josh curry" | Placeholder — not yet downloaded |
+| `public/images/dishes/valencia-street-tandoor-garlic-naan.svg` | "garlic naan bread" | Placeholder — not yet downloaded |
+| `public/images/dishes/valencia-street-tandoor-mango-lassi.svg` | "mango lassi" | Placeholder — not yet downloaded |
+| `public/images/dishes/cole-valley-mezze-chicken-shawarma-plate.svg` | "chicken shawarma plate" | Placeholder — not yet downloaded |
+| `public/images/dishes/cole-valley-mezze-falafel-wrap.svg` | "falafel wrap" | Placeholder — not yet downloaded |
+| `public/images/dishes/cole-valley-mezze-lamb-kofta-bowl.svg` | "lamb kofta bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/cole-valley-mezze-hummus-and-pita.svg` | "hummus with pita" | Placeholder — not yet downloaded |
+| `public/images/dishes/cole-valley-mezze-mint-lemonade.svg` | "mint lemonade" | Placeholder — not yet downloaded |
+| `public/images/dishes/geary-boulevard-korean-kitchen-dolsot-bibimbap.svg` | "dolsot bibimbap stone bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/geary-boulevard-korean-kitchen-beef-bulgogi.svg` | "beef bulgogi plate" | Placeholder — not yet downloaded |
+| `public/images/dishes/geary-boulevard-korean-kitchen-kimchi-jjigae.svg` | "kimchi stew pot" | Placeholder — not yet downloaded |
+| `public/images/dishes/geary-boulevard-korean-kitchen-seafood-pancake.svg` | "korean seafood pancake" | Placeholder — not yet downloaded |
+| `public/images/dishes/geary-boulevard-korean-kitchen-barley-tea.svg` | "iced barley tea" | Placeholder — not yet downloaded |
+| `public/images/dishes/post-street-ramen-bar-tonkotsu-ramen.svg` | "tonkotsu ramen bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/post-street-ramen-bar-spicy-miso-ramen.svg` | "spicy miso ramen" | Placeholder — not yet downloaded |
+| `public/images/dishes/post-street-ramen-bar-shoyu-chicken-ramen.svg` | "shoyu ramen bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/post-street-ramen-bar-pork-gyoza.svg` | "pan fried gyoza" | Placeholder — not yet downloaded |
+| `public/images/dishes/post-street-ramen-bar-chicken-karaage.svg` | "chicken karaage plate" | Placeholder — not yet downloaded |
+| `public/images/dishes/noe-valley-morning-kitchen-buttermilk-pancakes.svg` | "buttermilk pancake stack" | Placeholder — not yet downloaded |
+| `public/images/dishes/noe-valley-morning-kitchen-dungeness-crab-benedict.svg` | "crab eggs benedict" | Placeholder — not yet downloaded |
+| `public/images/dishes/noe-valley-morning-kitchen-breakfast-burrito.svg` | "breakfast burrito halved" | Placeholder — not yet downloaded |
+| `public/images/dishes/noe-valley-morning-kitchen-avocado-toast.svg` | "avocado toast sourdough" | Placeholder — not yet downloaded |
+| `public/images/dishes/noe-valley-morning-kitchen-fresh-orange-juice.svg` | "fresh orange juice glass" | Placeholder — not yet downloaded |
+| `public/images/dishes/noe-valley-morning-kitchen-oat-milk-latte.svg` | "oat milk latte" | Placeholder — not yet downloaded |
+| `public/images/dishes/hayes-valley-green-table-mushroom-tacos.svg` | "vegan mushroom tacos" | Placeholder — not yet downloaded |
+| `public/images/dishes/hayes-valley-green-table-tofu-banh-mi.svg` | "tofu banh mi sandwich" | Placeholder — not yet downloaded |
+| `public/images/dishes/hayes-valley-green-table-chickpea-curry.svg` | "chickpea coconut curry" | Placeholder — not yet downloaded |
+| `public/images/dishes/hayes-valley-green-table-sweet-potato-fries.svg` | "sweet potato fries" | Placeholder — not yet downloaded |
+| `public/images/dishes/hayes-valley-green-table-green-smoothie.svg` | "green smoothie glass" | Placeholder — not yet downloaded |
+| `public/images/dishes/ocean-beach-fish-house-fish-and-chips.svg` | "fish and chips basket" | Placeholder — not yet downloaded |
+| `public/images/dishes/ocean-beach-fish-house-cioppino.svg` | "cioppino seafood stew" | Placeholder — not yet downloaded |
+| `public/images/dishes/ocean-beach-fish-house-grilled-salmon-plate.svg` | "grilled salmon plate" | Placeholder — not yet downloaded |
+| `public/images/dishes/ocean-beach-fish-house-clam-chowder.svg` | "clam chowder bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/ocean-beach-fish-house-garlic-sourdough.svg` | "garlic bread sourdough" | Placeholder — not yet downloaded |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-nam-vang.svg` | "hu tieu noodle soup" | Placeholder — not yet downloaded |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-kho.svg` | "dry rice noodles pork" | Placeholder — not yet downloaded |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-muc.svg` | "squid noodle soup" | Placeholder — not yet downloaded |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-mi-hoanh-thanh.svg` | "wonton egg noodle soup" | Placeholder — not yet downloaded |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-tra-tac.svg` | "kumquat iced tea" | Placeholder — not yet downloaded |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-goi-cuon-tom-thit.svg` | "vietnamese fresh spring rolls" | Placeholder — not yet downloaded |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-bo-bia.svg` | "jicama spring rolls" | Placeholder — not yet downloaded |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-bi-cuon.svg` | "pork skin rice paper rolls" | Placeholder — not yet downloaded |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-cha-gio.svg` | "vietnamese fried spring rolls" | Placeholder — not yet downloaded |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-nuoc-mia.svg` | "sugarcane juice" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-lau-ut-hanh-lau-thai-hai-san.svg` | "thai seafood hotpot" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-lau-ut-hanh-lau-mam.svg` | "mekong fish hotpot" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-lau-ut-hanh-lau-ga-la-e.svg` | "chicken herb hotpot" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-lau-ut-hanh-nam-kim-cham-them.svg` | "enoki mushrooms" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-lau-ut-hanh-tra-chanh.svg` | "iced lime tea" | Placeholder — not yet downloaded |
+| `public/images/dishes/ca-phe-nha-go-18-ca-phe-sua-da.svg` | "vietnamese iced coffee" | Placeholder — not yet downloaded |
+| `public/images/dishes/ca-phe-nha-go-18-ca-phe-den-da.svg` | "black iced coffee" | Placeholder — not yet downloaded |
+| `public/images/dishes/ca-phe-nha-go-18-bac-xiu.svg` | "vietnamese white coffee" | Placeholder — not yet downloaded |
+| `public/images/dishes/ca-phe-nha-go-18-ca-phe-muoi.svg` | "salted cream coffee" | Placeholder — not yet downloaded |
+| `public/images/dishes/ca-phe-nha-go-18-banh-bong-lan-trung-muoi.svg` | "salted egg sponge cake" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-che-thai.svg` | "che thai fruit dessert" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-che-ba-mau.svg` | "three color dessert" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-che-chuoi-nuong.svg` | "grilled banana coconut dessert" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-suong-sa-hat-luu.svg` | "water chestnut ruby dessert" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-sua-dau-nanh.svg` | "fresh soy milk" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-rau-ma-dau-xanh.svg` | "pennywort juice" | Placeholder — not yet downloaded |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-xoi-mo.svg` | "crispy fried chicken rice" | Placeholder — not yet downloaded |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-hai-nam.svg` | "hainanese chicken rice" | Placeholder — not yet downloaded |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-goi-ga-bap-cai.svg` | "vietnamese chicken cabbage salad" | Placeholder — not yet downloaded |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-canh-bi-dao.svg` | "winter melon soup" | Placeholder — not yet downloaded |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-tra-da.svg` | "iced green tea glass" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-tom-nuong-muoi-ot.svg` | "grilled prawns chili salt" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-muc-xao-sa-te.svg` | "stir fried squid chili" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.svg` | "steamed clams lemongrass" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "vietnamese snails coconut milk" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-com-chien-hai-san.svg` | "seafood fried rice" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-nuoc-dua-tuoi.svg` | "fresh coconut drink" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-tom-thit.svg` | "banh xeo pancake" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.svg` | "mushroom crispy pancake" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-khot.svg` | "banh khot mini pancakes" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-nuoc-mia-tac.svg` | "sugarcane juice glass" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.svg` | "kumquat iced tea" | Placeholder — not yet downloaded |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-tom-thit.svg` | "mi quang noodles shrimp" | Placeholder — not yet downloaded |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.svg` | "chicken turmeric noodles" | Placeholder — not yet downloaded |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ca-loc.svg` | "fish noodle bowl vietnamese" | Placeholder — not yet downloaded |
+| `public/images/dishes/mi-quang-que-son-co-lien-banh-trang-me.svg` | "sesame rice cracker" | Placeholder — not yet downloaded |
+| `public/images/dishes/mi-quang-que-son-co-lien-nuoc-sam.svg` | "vietnamese herbal drink" | Placeholder — not yet downloaded |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-bit-tet-op-la.svg` | "vietnamese steak and eggs" | Placeholder — not yet downloaded |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-ne-thap-cam.svg` | "bo ne sizzling beef" | Placeholder — not yet downloaded |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-than-bo-uc.svg` | "sirloin steak pepper sauce" | Placeholder — not yet downloaded |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-khoai-tay-chien.svg` | "french fries basket" | Placeholder — not yet downloaded |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-soda-chanh.svg` | "lime soda glass" | Placeholder — not yet downloaded |
 
 ## Weight budget (#80: home feed first paint ≤ 900KB total, each restaurant thumbnail ≤ 40KB)
 

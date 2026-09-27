@@ -134,16 +134,16 @@ describe('home feed contents (AC2)', () => {
     expect(el.querySelector('[data-testid="restaurant-list"]')?.hasAttribute('hidden')).toBe(true);
   });
 
-  it('shows a "Near you" heading above the restaurant list, and 4 restaurants for each city (#104)', () => {
-    expect(restaurantsForCity('sf')).toHaveLength(4);
-    expect(restaurantsForCity('hcmc')).toHaveLength(4);
+  it('shows a "Near you" heading above the restaurant list, and every restaurant for the city (#104; 14 each since catalogue-more.ts)', () => {
+    expect(restaurantsForCity('sf')).toHaveLength(14);
+    expect(restaurantsForCity('hcmc')).toHaveLength(14);
 
     window.localStorage.setItem('parody.city', 'sf');
     const el = root();
     initHomePage(el, window.localStorage);
 
     expect(el.querySelector('[data-testid="near-you-heading"]')?.textContent).toBe('Near you');
-    expect(el.querySelectorAll('[data-testid^="restaurant-card-"]')).toHaveLength(4);
+    expect(el.querySelectorAll('[data-testid^="restaurant-card-"]')).toHaveLength(14);
   });
 
   it('the promo banner shows real discount copy per city, not the placeholder (#104)', () => {
