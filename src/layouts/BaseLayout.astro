@@ -2455,6 +2455,18 @@ const { title } = Astro.props;
   }
 
   @media (min-width: 481px) {
+    /* The sitewide `main { max-width: 40rem }` (global.css) is sized for a
+       single column. #147's wide layout is two columns — Live now capped at
+       25rem, Past orders filling what's left — and needs a wider main or
+       Past orders has almost no room: at 40rem, 25rem plus the 2.5rem gap
+       leaves well under 25rem for two content columns of history rows'
+       photo/name/date/driver/total, so a restaurant name wraps a few
+       characters per line. 62rem matches 147-tracker-live-sf-light.html's
+       own wide `main` rule. */
+    main:has(#tracker-root) {
+      max-width: 62rem;
+    }
+
     .tracker-cols {
       display: grid;
       grid-template-columns: minmax(0, 25rem) minmax(0, 1fr);
