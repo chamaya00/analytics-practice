@@ -125,11 +125,11 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
   overlay.setAttribute('data-testid', 'rating-sheet');
 
   const scrim = doc.createElement('div');
-  scrim.className = 'scrim';
+  scrim.className = 'rating-sheet-scrim';
   scrim.setAttribute('data-testid', 'rating-sheet-scrim');
 
   const panel = doc.createElement('div');
-  panel.className = 'sheet rating-sheet';
+  panel.className = 'rating-sheet-panel';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
 
@@ -369,6 +369,7 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
     const reduced = prefersReducedMotion();
 
     const winEl = doc.createElement('div');
+    winEl.className = 'rating-sheet-win';
     winEl.setAttribute('data-testid', reduced ? 'rating-sheet-win-still' : 'rating-sheet-win');
 
     let canvas: HTMLCanvasElement | null = null;
