@@ -311,3 +311,63 @@ Twenty PNGs total (ten files × two widths), committed alongside.
 
 ## Critique, after opening the rendered pictures
 
+- **Real finding: the swipe-revealed row clipped its own photo tile.** The
+  first pass built the "open" state with `transform: translateX(-88px)` on
+  the row's content inside an `overflow: hidden` wrapper — the standard way
+  to *animate* a swipe. Rendered, it clipped almost the entire 84px photo
+  tile off the row's left edge, because translating the whole row left by
+  more than the tile's own width pushes the tile past the container's left
+  boundary, which `overflow: hidden` then clips permanently rather than
+  scrolling. A text-only read of the markup gave no hint of this — the bug
+  only exists once a browser actually paints it. Fixed by rebuilding the
+  open state as a flex layout instead: the action panel is a normal flex
+  sibling taking a fixed 88px, and the content sibling takes the remainder
+  (`flex: 1`) rather than translating anywhere. Nothing clips, because
+  nothing moves outside its own box. Confirmed in the re-render, both
+  cities.
+- **Second-order finding from the same fix: the narrower "open" row then
+  clipped its own price.** Once the content column lost 88px to the action
+  panel, the stepper and price no longer fit on one line and the price ran
+  off the right edge. Fixed by moving each line's price under its stepper
+  (a `flex-wrap: wrap` row) instead of beside it — both wrap cleanly at the
+  narrower width and neither clips, confirmed in the re-render.
+- **Checked deliberately: which tab reads as "current" on a screen that
+  isn't one of the three destinations.** The restaurant/menu screen marks
+  Home current (it's reached from the feed); the cart screens mark Cart
+  current; the tracker marks Tracker current; order placed and /about mark
+  none, since neither is genuinely any of the three and guessing one would
+  be a claim nothing in the flow supports.
+- **Grep-checked, all ten files:** every `border-radius` value across the
+  set is one of `10px`, `12px`, or `999px` (the exact values `80-home-sf.html`
+  and `80-checkout-sf.html` already use), and every heading/body/muted size
+  is one of the shared `--font-size-*` tokens — no one-off value anywhere.
+  One was caught and fixed by this check: the remove-confirm modal's sheet
+  first used `16px`, a value nothing else in the system uses; changed to
+  the system's own `12px` card radius and re-rendered.
+- **Checked, all ten narrow renders:** the tab bar (or, on the two screens
+  that skip it, the last piece of on-screen content) is fully visible with
+  no overlap, and nothing before it clips mid-line — the menu, cart, and
+  tracker mocks all carry enough content to run past one viewport's height,
+  which is expected scrolling content rather than the clipping criterion 3
+  asks about (checked by confirming the cut is between rows/paragraphs, not
+  through one).
+- **Real finding: the "Your carts" list and the single-restaurant cart
+  disagreed on Mission Taqueria's own subtotal** ($13.75 on the list card,
+  $15.00 once the same restaurant's own line items are added up) — an
+  inconsistency a reader comparing the two files side by side would catch
+  immediately, and exactly the kind of thing this pass exists to find
+  before they do. Fixed by changing the list card to $15.00, matching the
+  single-cart file's real arithmetic; the HCMC pair already agreed
+  (65.000 ₫ in both) because those two files were written from the same
+  numbers the first time.
+- **Covering `--color-danger` with my hand** on the swiped row and the
+  modal: "Remove" still reads from its own trash icon and bold weight, not
+  from the red fill alone — the fill is reinforcement, not the only signal.
+- What I'd remove if forced to cut one thing: the "Your carts" list's
+  chevron. It stayed because every other tappable row in this system
+  (a restaurant card, an Offers-screen voucher row) already implies
+  tappability from its own layout without a chevron, and adding one here
+  is the one inconsistency in an otherwise-reused vocabulary — but cutting
+  it risks a two-restaurant list reading as two static summaries rather
+  than two links, which is worse than one small inconsistency.
+
