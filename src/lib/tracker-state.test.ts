@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeTrackerView, isDelivered } from './tracker-state';
+import { computeOrderStack, computeTrackerView, defaultOpenOrderId, isDelivered } from './tracker-state';
 import type { PlacedOrder } from './order-store';
 
 // One fixed "now" for both the order's timestamp and the view computed from it.
@@ -20,9 +20,10 @@ function orderPlacedAt(
   rating: PlacedOrder['rating'] = null,
   etaMinutes = ETA_MINUTES,
   deliveryMs = DELIVERY_MS,
+  orderId = 'order-1',
 ): PlacedOrder {
   return {
-    orderId: 'order-1',
+    orderId,
     placedAt: new Date(NOW - msAgo).toISOString(),
     etaMinutes,
     deliveryMs,
@@ -132,5 +133,58 @@ describe('computeTrackerView (AC4)', () => {
     // inconsistent: remainingMs still floors at 0 rather than going negative.
     const view = computeTrackerView(orderPlacedAt(ETA_MINUTES * 60_000 + 1, null, ETA_MINUTES, ETA_MINUTES * 60_000 + 60_000), NOW);
     expect(view.kind === 'active' && view.remainingMs).toBe(0);
+  });
+});
+
+describe('computeOrderStack (#148, "Order stack rules")', () => {
+  it('every order not yet Delivered is live, sorted by ascending estimated arrival; delivered orders are past, newest placedAt first', () => {
+    // etaMinutes 30 placed 5min ago -> arrives in 25min; etaMinutes 10 placed
+    // 1min ago -> arrives in 9min, so it sorts first despite being placed later.
+    const soonest = orderPlacedAt(60_000, null, 10, DELIVERY_MS, 'soonest');
+    const later = orderPlacedAt(5 * 60_000, null, 30, DELIVERY_MS, 'later');
+    const delivered = orderPlacedAt(DELIVERY_MS, null, 20, DELIVERY_MS, 'delivered');
+    const stack = computeOrderStack([later, delivered, soonest], null, NOW);
+    expect(stack.live.map((o) => o.orderId)).toEqual(['soonest', 'later']);
+    expect(stack.past.map((o) => o.orderId)).toEqual(['delivered']);
+  });
+
+  it('an order past its own delivery time stays live when it is the open order, until the page is left', () => {
+    const delivered = orderPlacedAt(DELIVERY_MS, null, 20, DELIVERY_MS, 'watched');
+    const stack = computeOrderStack([delivered], 'watched', NOW);
+    expect(stack.live.map((o) => o.orderId)).toEqual(['watched']);
+    expect(stack.past).toEqual([]);
+  });
+
+  it('every order appears in exactly one of live/past, never both', () => {
+    const a = orderPlacedAt(0, null, 20, DELIVERY_MS, 'a');
+    const b = orderPlacedAt(DELIVERY_MS, null, 20, DELIVERY_MS, 'b');
+    const stack = computeOrderStack([a, b], null, NOW);
+    const liveIds = new Set(stack.live.map((o) => o.orderId));
+    const pastIds = new Set(stack.past.map((o) => o.orderId));
+    expect([...liveIds].some((id) => pastIds.has(id))).toBe(false);
+    expect(liveIds.size + pastIds.size).toBe(2);
+  });
+
+  it('hides the past section by returning an empty array when nothing is delivered yet', () => {
+    const a = orderPlacedAt(0, null, 20, DELIVERY_MS, 'a');
+    expect(computeOrderStack([a], 'a', NOW).past).toEqual([]);
+  });
+});
+
+describe('defaultOpenOrderId (#148, "Which order is open by default")', () => {
+  it('is null with nothing stored', () => {
+    expect(defaultOpenOrderId([], NOW)).toBeNull();
+  });
+
+  it('opens the live order arriving soonest, not the one placed most recently', () => {
+    const soonest = orderPlacedAt(60_000, null, 10, DELIVERY_MS, 'soonest');
+    const later = orderPlacedAt(5 * 60_000, null, 30, DELIVERY_MS, 'later');
+    expect(defaultOpenOrderId([later, soonest], NOW)).toBe('soonest');
+  });
+
+  it('falls back to the most recently placed order when nothing is live — today’s single-order screen', () => {
+    const older = orderPlacedAt(DELIVERY_MS + 60_000, null, 20, DELIVERY_MS, 'older');
+    const newer = orderPlacedAt(DELIVERY_MS, null, 20, DELIVERY_MS, 'newer');
+    expect(defaultOpenOrderId([older, newer], NOW)).toBe('newer');
   });
 });
