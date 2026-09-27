@@ -32,8 +32,6 @@ export interface Restaurant {
   city: City;
   cuisineTag: string;
   rating: number;
-  etaMinMinutes: number;
-  etaMaxMinutes: number;
   /** 0 means the fee shows as "Free" — no deal makes any fee 0 in this catalogue yet (#87's job). */
   deliveryFeeMinor: number;
   hasDeal: boolean;
@@ -45,10 +43,6 @@ export function currencyForRestaurant(restaurant: Restaurant): Currency {
   return currencyForCity(restaurant.city);
 }
 
-export function etaRangeLabel(restaurant: Restaurant): string {
-  return `${restaurant.etaMinMinutes}–${restaurant.etaMaxMinutes} min`;
-}
-
 const SF_RESTAURANTS: Restaurant[] = [
   {
     slug: 'mission-taqueria',
@@ -56,8 +50,6 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Tacos',
     rating: 4.6,
-    etaMinMinutes: 20,
-    etaMaxMinutes: 30,
     deliveryFeeMinor: 199,
     hasDeal: true,
     heroImage: '/images/restaurants/mission-taqueria-hero.jpg',
@@ -108,8 +100,6 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Pizza',
     rating: 4.4,
-    etaMinMinutes: 25,
-    etaMaxMinutes: 40,
     deliveryFeeMinor: 299,
     hasDeal: false,
     heroImage: '/images/restaurants/north-beach-pizzeria-hero.jpg',
@@ -160,8 +150,6 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Dim sum',
     rating: 4.7,
-    etaMinMinutes: 30,
-    etaMaxMinutes: 45,
     deliveryFeeMinor: 249,
     hasDeal: false,
     heroImage: '/images/restaurants/golden-lotus-dim-sum-hero.jpg',
@@ -212,8 +200,6 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Bowls',
     rating: 4.7,
-    etaMinMinutes: 15,
-    etaMaxMinutes: 25,
     deliveryFeeMinor: 99,
     hasDeal: false,
     heroImage: '/images/restaurants/bay-grain-bowls-hero.jpg',
@@ -267,8 +253,6 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Bánh mì',
     rating: 4.8,
-    etaMinMinutes: 15,
-    etaMaxMinutes: 25,
     deliveryFeeMinor: 10000,
     hasDeal: true,
     heroImage: '/images/restaurants/ben-thanh-banh-mi-hero.jpg',
@@ -319,8 +303,6 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Phở',
     rating: 4.7,
-    etaMinMinutes: 25,
-    etaMaxMinutes: 35,
     deliveryFeeMinor: 15000,
     hasDeal: false,
     heroImage: '/images/restaurants/saigon-pho-quan-hero.jpg',
@@ -371,8 +353,6 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Cơm',
     rating: 4.5,
-    etaMinMinutes: 20,
-    etaMaxMinutes: 30,
     deliveryFeeMinor: 12000,
     hasDeal: false,
     heroImage: '/images/restaurants/com-tam-quan-nha-hero.jpg',
@@ -423,8 +403,6 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Bún',
     rating: 4.6,
-    etaMinMinutes: 20,
-    etaMaxMinutes: 30,
     deliveryFeeMinor: 12000,
     hasDeal: false,
     heroImage: '/images/restaurants/bun-cha-co-ba-hero.jpg',

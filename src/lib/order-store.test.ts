@@ -16,6 +16,8 @@ import {
   linesForRestaurant,
   markOrderDelivered,
   minutesSinceOrder,
+  ORDER_KEY,
+  pickDeliveryMs,
   placeOrder,
   recordTrackerView,
   removeFromCart,
@@ -23,6 +25,7 @@ import {
   setItemQuantity,
   submitRating,
 } from './order-store';
+import { estimateEtaMinutes, ETA_MAX_MINUTES, ETA_MIN_MINUTES } from './eta';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -198,6 +201,36 @@ describe('placeOrder (AC1, AC9)', () => {
     expect(getOrder(window.localStorage)).toEqual(order);
   });
 
+  it('stores a per-visitor estimate (10-25 min) and a delivery time at or before half of it (AC1, AC3)', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      undefined,
+      () => 0.5,
+    );
+
+    expect(Number.isInteger(order.etaMinutes)).toBe(true);
+    expect(order.etaMinutes).toBeGreaterThanOrEqual(ETA_MIN_MINUTES);
+    expect(order.etaMinutes).toBeLessThanOrEqual(ETA_MAX_MINUTES);
+    expect(order.deliveryMs).toBeGreaterThan(0);
+    expect(order.deliveryMs).toBeLessThanOrEqual((order.etaMinutes * 60_000) / 2);
+  });
+
+  it('the same visitor and restaurant give the same estimate placeOrder stores as checkout showed', () => {
+    addToCart(window.localStorage, LINE);
+    const visitorId = getVisitorId(window.localStorage);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+
+    expect(order.etaMinutes).toBe(estimateEtaMinutes(visitorId, LINE.restaurantSlug));
+  });
+
   it('gives every order a distinct order id', () => {
     addToCart(window.localStorage, LINE);
     const first = placeOrder(window.localStorage, {
@@ -354,6 +387,42 @@ describe('clearOrder / start over (AC1)', () => {
   });
 });
 
+describe('getOrder — an order stored before #121 (no etaMinutes/deliveryMs)', () => {
+  /** Same shape `placeOrder` wrote before #121 added `etaMinutes`/`deliveryMs` — a
+   * visitor's order already in progress on the live site when this shipped. */
+  function storeLegacyOrder(): void {
+    window.localStorage.setItem(
+      ORDER_KEY,
+      JSON.stringify({
+        orderId: 'legacy-order-1',
+        placedAt: new Date().toISOString(),
+        items: [LINE],
+        itemCount: 1,
+        amountMinor: 1400,
+        currency: 'USD',
+        dropOffPreset: 'home',
+        deliveryInstructions: 'hand_to_me',
+        utensils: true,
+        appliedVoucherIds: [],
+        savedAmountMinor: 0,
+        viewCount: 0,
+        deliveredEventFired: false,
+        rating: null,
+      }),
+    );
+  }
+
+  it('fills in a finite etaMinutes and the fixed 7-minute deliveryMs rather than leaving them undefined', () => {
+    storeLegacyOrder();
+    const visitorId = getVisitorId(window.localStorage);
+
+    const order = getOrder(window.localStorage);
+
+    expect(order?.etaMinutes).toBe(estimateEtaMinutes(visitorId, LINE.restaurantSlug));
+    expect(order?.deliveryMs).toBe(7 * 60_000);
+  });
+});
+
 describe('recordTrackerView (AC3)', () => {
   it('increments the stored order’s view count on every call, starting at 1', () => {
     addToCart(window.localStorage, LINE);
@@ -423,6 +492,20 @@ describe('submitRating (contract §7’s rating_submitted invariant)', () => {
 
   it('does nothing when there is no stored order', () => {
     expect(submitRating(window.localStorage, 4, [])).toBeNull();
+  });
+});
+
+describe('pickDeliveryMs (AC3)', () => {
+  it('is always > 0 and never more than half the estimate, for any injected random in [0, 1)', () => {
+    for (const random of [0, 0.1, 0.5, 0.99]) {
+      const ms = pickDeliveryMs(20, () => random);
+      expect(ms).toBeGreaterThan(0);
+      expect(ms).toBeLessThanOrEqual((20 * 60_000) / 2);
+    }
+  });
+
+  it('is deterministic for a fixed random source', () => {
+    expect(pickDeliveryMs(20, () => 0.5)).toBe(pickDeliveryMs(20, () => 0.5));
   });
 });
 

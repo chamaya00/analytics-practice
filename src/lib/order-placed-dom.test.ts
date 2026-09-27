@@ -42,4 +42,20 @@ describe('initOrderPlacedPage (AC9)', () => {
     expect(el.querySelector('[data-testid="track-order"]')?.getAttribute('href')).toBe('/tracker/');
     expect(el.querySelector('[data-testid="order-placed-summary"]')?.textContent).toContain('One Job Pizza');
   });
+
+  it('shows the order’s own stored estimate (AC2)', () => {
+    addToCart(window.localStorage, LINE);
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+
+    const el = root();
+    initOrderPlacedPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="order-placed-eta"]')?.textContent).toBe(
+      `Arrives in about ${order.etaMinutes} min`,
+    );
+  });
 });

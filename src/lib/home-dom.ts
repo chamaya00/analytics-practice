@@ -6,7 +6,9 @@
 
 import { CITIES, CITY_CURRENCY, CITY_NAMES, formatMoneyForCity, type City } from './money';
 import { getStoredCity, setStoredCity } from './location';
-import { CUISINE_SHORTCUTS, restaurantsForCity, etaRangeLabel, type Restaurant } from './restaurants';
+import { CUISINE_SHORTCUTS, restaurantsForCity, type Restaurant } from './restaurants';
+import { getVisitorId } from './order-store';
+import { estimateEtaMinutes, etaLabel } from './eta';
 import { track } from './tracking';
 import {
   ensureFlashDraw,
@@ -37,6 +39,16 @@ function isStorageBlocked(storage: Storage): boolean {
     return false;
   } catch {
     return true;
+  }
+}
+
+/** Same in-memory fallback as the rest of this module's storage-blocked handling — the feed
+ * still functions for this page load even though the ETA it shows won't persist to a reload. */
+function safeVisitorId(storage: Storage): string {
+  try {
+    return getVisitorId(storage);
+  } catch {
+    return 'storage-blocked-visitor';
   }
 }
 
@@ -114,7 +126,7 @@ function flashFeeFor(restaurant: Restaurant, draw: FlashDraw | null, now: number
   return flashFeeForRestaurant(draw, restaurant.city, restaurant.slug, restaurant.deliveryFeeMinor, now);
 }
 
-function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, now: number): HTMLElement {
+function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, now: number, visitorId: string): HTMLElement {
   const card = document.createElement('a');
   card.className = 'restaurant-card';
   card.href = `/restaurants/${restaurant.slug}/`;
@@ -145,7 +157,8 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   const meta = document.createElement('span');
   meta.className = 'restaurant-card-meta';
   const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
-  meta.append(`★ ${restaurant.rating.toFixed(1)} · ${etaRangeLabel(restaurant)} · ${feeLabel} delivery`);
+  const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
+  meta.append(`★ ${restaurant.rating.toFixed(1)} · ${eta} · ${feeLabel} delivery`);
 
   body.append(name, tag, meta);
 
@@ -172,7 +185,7 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   return card;
 }
 
-function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): void {
+function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visitorId: string): void {
   const now = Date.now();
   const initial = ensureFlashDraw(sessionStorage, city, now);
   const { isNewDraw } = initial;
@@ -191,7 +204,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
     root.innerHTML = '';
     renderLocationPicker(root, window.localStorage, (pickedCity) => {
       root.innerHTML = '';
-      renderFeed(root, pickedCity, sessionStorage);
+      renderFeed(root, pickedCity, sessionStorage, visitorId);
     });
   });
 
@@ -241,7 +254,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
 
     list.innerHTML = '';
     for (const restaurant of matches) {
-      list.append(renderRestaurantCard(restaurant, liveDraw, Date.now()));
+      list.append(renderRestaurantCard(restaurant, liveDraw, Date.now(), visitorId));
     }
 
     if (matches.length === 0) {
@@ -302,6 +315,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
       root,
       city,
       draw,
+      visitorId,
       (path) => {
         window.location.href = path;
       },
@@ -343,16 +357,17 @@ export function initHomePage(
 ): void {
   root.innerHTML = '';
   const city = getStoredCity(storage);
+  const visitorId = safeVisitorId(storage);
 
   if (city === null) {
     renderLocationPicker(root, storage, (pickedCity) => {
       root.innerHTML = '';
-      renderFeed(root, pickedCity, sessionStorage);
+      renderFeed(root, pickedCity, sessionStorage, visitorId);
       track('home_viewed', { city: pickedCity });
     });
     return;
   }
 
-  renderFeed(root, city, sessionStorage);
+  renderFeed(root, city, sessionStorage, visitorId);
   track('home_viewed', { city });
 }
