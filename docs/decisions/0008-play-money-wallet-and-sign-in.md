@@ -161,6 +161,27 @@ Private helpers are in `private`, have no grant to `anon` or `authenticated`, an
 
 **No client-callable function accepts a caller-supplied time.** The only functions with a time argument are the two `private.drip_*` helpers, which no client role can execute. `wallet_claim_drip` and `wallet_get` pass them `now()`. #145's tests assert this from the catalog rather than by reading the SQL: any function `anon` or `authenticated` can execute must have no argument of a date or time type.
 
+### Amendment (#164): `wallet_tip`, a tip to the driver, separate from `wallet_debit`
+
+`20260928000000_wallet_tip.sql` adds one more client-callable function, additive to everything above.
+
+| Function | Arguments | Granted to | Checks, in the function itself | Returns (`jsonb`) |
+|---|---|---|---|---|
+| `public.wallet_tip(p_order_id uuid, p_amount_minor bigint)` | order id, amount | `authenticated` | `auth.uid()`; not anonymous; `p_order_id` has a `private.wallet_debits` row belonging to the caller (D14); `p_amount_minor` is one of that row's currency's presets | `status` (`tipped` / `already_tipped` / `insufficient`), `amount_minor`, `currency`, balances |
+
+**Why a tip can't reuse `wallet_debit`:**
+
+- **`private.wallet_debits` is keyed by `order_id`.** A tip on an order already debited for its total would hit that same key and return `already_debited` with nothing charged.
+- **`wallet_debit`'s floor** (`private.debit_floor_minor`: 399 cents / 20.000 ₫) **would reject most plausible tips.** #162's presets (USD `100`/`200`/`300`, VND `10000`/`20000`/`30000`) sit well under it.
+
+So tips get their own idempotency key and their own table, `private.wallet_tips` (`order_id primary key references private.wallet_debits (order_id)` — the foreign key is D14 as a database fact, not just a check in the function body), and the server enforces the exact preset rather than trusting a browser-supplied amount the way `wallet_debit` does under D8: a tip's amount is always one of six fixed values, so there is no equivalent of D8's "the amount comes from the browser" limitation here.
+
+**The currency is read from the order's own `wallet_debits` row, never from the caller.** `wallet_tip` takes no currency argument at all. This closes the D8-shaped hole a `p_currency` parameter would otherwise open: a caller could not claim VND presets against a USD order even by lying about the currency, because there is nothing to lie in.
+
+`private.is_valid_tip_amount(text, bigint)` is the preset check, `immutable`, no grant to `anon` or `authenticated` (revoked from `public` the same way every private helper in this file is), and — like every function in this ADR — has no date or time argument, so #145's catalog sweep still holds with `wallet_tip` and this helper added to it.
+
+**Owner step, once #164 merges:** apply `20260928000000_wallet_tip.sql` the same way as step 12 below — Supabase → SQL Editor → New query → paste the whole file → Run. It is additive; the three earlier migration files are not re-run.
+
 ### Drip windows
 
 - The windows are local `America/Los_Angeles` time: **[07:00, 15:00), [15:00, 23:00) and [23:00, 07:00)**, each half-open.
