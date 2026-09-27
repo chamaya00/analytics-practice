@@ -36,10 +36,12 @@ describe('shared design system: pill/rounded corners replace the parody-era squa
     expect(rule).not.toContain('letter-spacing');
   });
 
-  it('the menu/cart add and remove buttons are rounded, not square', () => {
-    const rule = css.match(/\.add-button,\.remove-button\{[^}]*\}/)?.[0] ?? '';
-    expect(rule).toContain('border-radius:10px');
-    expect(rule).not.toContain('letter-spacing');
+  it('the menu add button is rounded, not square (the cart\'s standalone Remove button is gone - swipe-to-reveal and the confirm dialog replace it)', () => {
+    const rules = css.match(/\.add-button\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected an .add-button rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    expect(rules[0]).toContain('border-radius:10px');
+    expect(rules[0]).not.toContain('letter-spacing');
+    expect(css).not.toContain('.remove-button');
   });
 
   it('the primary CTA (place-order) is rounded and carries no letter-spacing on its label', () => {
@@ -238,5 +240,100 @@ describe('flash-deal sheet renders as a fixed overlay above the feed, not page c
     expect(rule).toContain('left:0');
     expect(rule).toContain('right:0');
     expect(rule).not.toMatch(/(?<!max-)width:\d+px/);
+  });
+});
+
+describe('cart swipe-to-remove row and remove-confirm dialog fit at 375px (polish-cart)', () => {
+  // Every assertion first proves its rule exists at all, so a renamed or
+  // dropped selector fails here rather than passing on an empty string.
+  function rule(pattern: RegExp, label: string): string {
+    const rules = css.match(pattern) ?? [];
+    expect(rules.length, `expected a ${label} rule`).toBeGreaterThan(0);
+    return rules[0] ?? '';
+  }
+
+  it('the cart row clips its sliding content, and sets no fixed pixel width', () => {
+    const cartRow = rule(/\.cart-row\{[^}]*\}/g, '.cart-row');
+    expect(cartRow).toContain('overflow:hidden');
+    expect(cartRow).toContain('position:relative');
+    expect(cartRow).not.toMatch(/(?<!max-|min-)width:\d+px/);
+  });
+
+  it('the cart row bleeds only as far as main\'s own side padding (var(--space-lg)), never past the viewport', () => {
+    const cartRow = rule(/\.cart-row\{[^}]*\}/g, '.cart-row');
+    expect(cartRow).toContain('margin:0 calc(-1 * var(--space-lg))');
+    expect(cartRow).toContain('padding:0 var(--space-lg)');
+    // main's own base rule (global.css), not the phone-width padding-bottom override.
+    const mainRules = css.match(/(?:^|\})main\{[^}]*\}/g) ?? [];
+    const main = mainRules.find((candidate) => candidate.includes('max-width:40rem'));
+    expect(main, `expected main's base rule among: ${mainRules.join(' / ')}`).toBeTruthy();
+    expect(main).toContain('padding:var(--space-xl) var(--space-lg)');
+  });
+
+  it('the row content leaves vertical drags to the page scroll and sits opaque above the action', () => {
+    const content = rule(/\.cart-row>\.cart-line\{[^}]*\}/g, '.cart-row > .cart-line');
+    expect(content).toContain('touch-action:pan-y');
+    expect(content).toContain('background:var(--color-bg)');
+    expect(content).toContain('z-index:1');
+    expect(content).not.toMatch(/(?<!max-|min-)width:\d+px/);
+  });
+
+  it('an open row slides its content 88px left', () => {
+    const open = rule(/\.cart-row\.is-open>\.cart-line\{[^}]*\}/g, '.cart-row.is-open > .cart-line');
+    expect(open).toContain('transform:translate(-88px)');
+  });
+
+  it('the swipe action is a danger-coloured, rounded button pinned inside the row, narrower than the slide', () => {
+    const action = rule(/\.swipe-action\{[^}]*\}/g, '.swipe-action');
+    expect(action).toContain('position:absolute');
+    expect(action).toContain('right:var(--space-lg)');
+    expect(action).toContain('width:80px');
+    expect(action).toContain('background:var(--color-danger)');
+    expect(action).toContain('color:var(--color-bg)');
+    expect(action).toContain('border-radius:12px');
+    expect(action).not.toContain('letter-spacing');
+    expect(action).not.toContain('text-transform');
+  });
+
+  it('the confirm overlay covers the viewport as a fixed layer', () => {
+    const overlay = rule(/\.confirm-overlay\{[^}]*\}/g, '.confirm-overlay');
+    expect(overlay).toContain('position:fixed');
+    expect(overlay).toContain('inset:0');
+  });
+
+  it('the confirm dialog fills its padded column up to a max width rather than a fixed pixel width', () => {
+    const dialog = rule(/\.confirm-dialog\{[^}]*\}/g, '.confirm-dialog');
+    expect(dialog).toContain('width:100%');
+    expect(dialog).toContain('max-width:22rem');
+    expect(dialog).not.toMatch(/(?<!max-|min-)width:\d+px/);
+  });
+
+  it('the confirm buttons are pills that share the row and may shrink, with no letter-spacing', () => {
+    const button = rule(/\.confirm-button\{[^}]*\}/g, '.confirm-button');
+    expect(button).toContain('border-radius:999px');
+    expect(button).toContain('flex:1');
+    expect(button).toContain('min-width:0');
+    expect(button).toContain('min-height:44px');
+    expect(button).not.toContain('letter-spacing');
+    const danger = rule(/\.confirm-danger\{[^}]*\}/g, '.confirm-danger');
+    expect(danger).toContain('background:var(--color-danger)');
+  });
+
+  it('prefers-reduced-motion removes the row slide and the dialog entrance', () => {
+    const blocks = css.match(/@media \(prefers-reduced-motion:reduce\)\{[^@]*?\}\}/g) ?? [];
+    const block = blocks.find((candidate) => candidate.includes('.cart-row>.cart-line'));
+    expect(block, `expected a reduced-motion block covering the cart row among: ${blocks.join(' / ')}`).toBeTruthy();
+    expect(block).toContain('.confirm-dialog');
+    expect(block).toContain('transition:none');
+    expect(block).toContain('animation:none');
+  });
+
+  it('--color-danger is defined for both themes', () => {
+    const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
+    expect(rootBlock).toContain('--color-danger:#c4213a');
+    const start = css.indexOf('@media (prefers-color-scheme:dark)');
+    expect(start).toBeGreaterThan(-1);
+    const darkBlock = css.slice(start, css.indexOf('}}', start) + 2);
+    expect(darkBlock).toContain('--color-danger:#ff8a9b');
   });
 });

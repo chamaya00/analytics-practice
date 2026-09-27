@@ -3,7 +3,7 @@
 // pattern the rest of the DOM tests use (flow.test.ts), threading a real
 // cart through order-store.ts rather than stubbing it.
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderOffers } from './offers-dom';
 import { addToCart } from './order-store';
 import { setFlashDraw } from './flash-deal';
@@ -221,5 +221,68 @@ describe('renderOffers — the flash voucher (AC2, AC4)', () => {
     renderOffers(el, window.localStorage, window.sessionStorage);
 
     expect(el.querySelector('[data-testid="voucher-row-hcmc-flash"]')).toBeNull();
+  });
+});
+
+describe('renderOffers — one cart per restaurant', () => {
+  const PHO_LINE = {
+    itemId: 'saigon-pho-quan-bo',
+    restaurantSlug: 'saigon-pho-quan',
+    restaurantName: 'Saigon Phở Quán',
+    name: 'Phở bò',
+    amountMinor: 55000,
+    currency: 'VND' as const,
+  };
+
+  beforeEach(() => {
+    addToCart(window.localStorage, HCMC_LINE); // ₫250.000 at Bến Thành Bánh Mì
+    addToCart(window.localStorage, PHO_LINE); // ₫55.000 at Saigon Phở Quán
+  });
+
+  it('qualifies vouchers against the named restaurant’s own subtotal, not the whole stored cart', () => {
+    const el = root();
+    renderOffers(el, window.localStorage, window.sessionStorage, () => {}, Date.now(), 'saigon-pho-quan');
+    expect(el.querySelector('[data-testid="offers-subtotal"]')?.textContent).toBe(
+      `Your subtotal: ${formatMoney(55000, 'VND')}`,
+    );
+    expect(el.querySelector<HTMLInputElement>('[data-testid="voucher-checkbox-hcmc-discount-t2"]')?.disabled).toBe(true);
+  });
+
+  it('a selection made for one restaurant does not appear on another restaurant’s Offers screen', () => {
+    const banhMi = root();
+    renderOffers(banhMi, window.localStorage, window.sessionStorage, () => {}, Date.now(), 'ben-thanh-banh-mi');
+    banhMi.querySelector<HTMLInputElement>('[data-testid="voucher-checkbox-hcmc-discount-t1"]')?.click();
+
+    const pho = root();
+    renderOffers(pho, window.localStorage, window.sessionStorage, () => {}, Date.now(), 'saigon-pho-quan');
+    expect(pho.querySelector<HTMLInputElement>('[data-testid="voucher-checkbox-hcmc-discount-t1"]')?.checked).toBe(
+      false,
+    );
+
+    const banhMiAgain = root();
+    renderOffers(banhMiAgain, window.localStorage, window.sessionStorage, () => {}, Date.now(), 'ben-thanh-banh-mi');
+    expect(
+      banhMiAgain.querySelector<HTMLInputElement>('[data-testid="voucher-checkbox-hcmc-discount-t1"]')?.checked,
+    ).toBe(true);
+  });
+
+  it('Back and Apply return to that restaurant’s checkout', () => {
+    const navigate = vi.fn();
+    const el = root();
+    renderOffers(el, window.localStorage, window.sessionStorage, navigate, Date.now(), 'saigon-pho-quan');
+    el.querySelector<HTMLButtonElement>('[data-testid="offers-back"]')?.click();
+    el.querySelector<HTMLButtonElement>('[data-testid="offers-apply"]')?.click();
+    expect(navigate.mock.calls).toEqual([
+      ['/checkout/?restaurant=saigon-pho-quan'],
+      ['/checkout/?restaurant=saigon-pho-quan'],
+    ]);
+  });
+
+  it('with several carts and no restaurant named, sends the visitor to /cart/ to choose one', () => {
+    const redirect = vi.fn();
+    const el = root();
+    renderOffers(el, window.localStorage, window.sessionStorage, () => {}, Date.now(), null, redirect);
+    expect(redirect).toHaveBeenCalledWith('/cart/');
+    expect(el.querySelector('[data-testid="offers-apply"]')).toBeNull();
   });
 });

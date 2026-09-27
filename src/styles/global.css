@@ -52,6 +52,12 @@
      text color is this token rather than --color-text, which swaps to a
      near-white value in dark mode and would fail the same way. */
   --color-badge-ink: #241b33;
+  /* Destructive actions only — the cart row's swipe-revealed "Remove" and
+     the remove-confirm dialog's "Remove". Always a fill carrying
+     --color-bg as its text (the same pairing .place-order uses on
+     --color-accent-a), checked at 4.5:1+ in both themes in
+     contrast.test.ts. */
+  --color-danger: #c4213a;
 }
 
 /* #80's chosen direction, dark values — same token roles, same reasoning
@@ -71,6 +77,9 @@
        value above has to its surface. */
     --color-tab-active-bg: #2e2444;
     --color-badge-ink: #16101f;
+    /* Lighter here so the dark --color-bg reads on it, same as the dark
+       accent-a above. */
+    --color-danger: #ff8a9b;
   }
 }
 
