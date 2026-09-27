@@ -78,7 +78,8 @@ function renderRatingPrompt(onSubmit: (stars: number, tags: RatingTag[]) => void
   prompt.setAttribute('data-testid', 'rating-prompt');
 
   const heading = document.createElement('h2');
-  heading.textContent = 'Rate your order';
+  heading.className = 'home-section-title';
+  heading.textContent = 'How was your order?';
   prompt.append(heading);
 
   let stars = 0;

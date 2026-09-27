@@ -199,8 +199,6 @@ function renderRestaurantCart(
     lineTotal.className = 'cart-line-total';
     lineTotal.textContent = formatMoney(line.amountMinor * line.quantity, line.currency);
 
-    text.append(name, lineTotal);
-
     const stepper = document.createElement('div');
     stepper.className = 'quantity-stepper';
 
@@ -244,7 +242,11 @@ function renderRestaurantCart(
     });
 
     stepper.append(minus, count, plus);
-    content.append(text, stepper);
+    // 105-cart-single-sf.html's own column: name, then the stepper, then the
+    // line price, stacked beside the photo tile — not the stepper trailing
+    // the row on its own.
+    text.append(name, stepper, lineTotal);
+    content.append(text);
 
     const remove = document.createElement('button');
     remove.type = 'button';
@@ -264,23 +266,36 @@ function renderRestaurantCart(
     list.append(row);
   }
 
-  const subtotal = document.createElement('p');
-  subtotal.className = 'cart-subtotal';
-  subtotal.setAttribute('data-testid', 'cart-subtotal');
-  subtotal.textContent = `Subtotal: ${formatMoney(cartSubtotalMinor(lines), currency)}`;
-
   // #80's cart preview: subtotal, this restaurant's own delivery fee, and
   // one note pointing at checkout for the rest — never the full breakdown
-  // twice.
+  // twice. 105-cart-single-sf.html renders these as label/value rows, the
+  // same .breakdown-row shape as Checkout's own breakdown, not bold text
+  // lines.
+  const breakdown = document.createElement('div');
+  breakdown.className = 'cart-breakdown';
+
+  function breakdownRow(testId: string, label: string, amountMinor: number): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'breakdown-row';
+    el.setAttribute('data-testid', testId);
+    const labelEl = document.createElement('span');
+    labelEl.className = 'muted';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('span');
+    valueEl.textContent = formatMoney(amountMinor, currency);
+    el.append(labelEl, valueEl);
+    return el;
+  }
+
   const deliveryFeeMinor = getRestaurant(restaurantSlug)?.deliveryFeeMinor ?? 0;
-  const deliveryPreview = document.createElement('p');
-  deliveryPreview.className = 'cart-delivery-preview';
-  deliveryPreview.setAttribute('data-testid', 'cart-delivery-preview');
-  deliveryPreview.textContent = `Delivery fee: ${formatMoney(deliveryFeeMinor, currency)}`;
+  const subtotal = breakdownRow('cart-subtotal', 'Subtotal', cartSubtotalMinor(lines));
+  const deliveryPreview = breakdownRow('cart-delivery-preview', 'Delivery fee', deliveryFeeMinor);
 
   const feeNote = document.createElement('p');
   feeNote.className = 'cart-fee-note';
   feeNote.textContent = '+ service fee and any discount at checkout';
+
+  breakdown.append(subtotal, deliveryPreview, feeNote);
 
   const checkoutLink = document.createElement('a');
   checkoutLink.href = checkoutPath(restaurantSlug);
@@ -288,7 +303,7 @@ function renderRestaurantCart(
   checkoutLink.setAttribute('data-testid', 'go-to-checkout');
   checkoutLink.textContent = 'Go to checkout';
 
-  root.append(topBar, list, subtotal, deliveryPreview, feeNote, checkoutLink);
+  root.append(topBar, list, breakdown, checkoutLink);
 }
 
 /**

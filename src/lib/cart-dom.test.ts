@@ -145,8 +145,8 @@ describe('initCartPage — one cart per restaurant', () => {
     expect(el.querySelector(`[data-testid="cart-line-${TACO.itemId}"]`)).not.toBeNull();
     expect(el.querySelector(`[data-testid="cart-line-${LINE.itemId}"]`)).toBeNull();
     expect(el.querySelector(`[data-testid="cart-line-name-${TACO.itemId}"]`)?.textContent).toBe('Al pastor taco');
-    expect(el.querySelector('[data-testid="cart-subtotal"]')?.textContent).toBe('Subtotal: $8.50');
-    expect(el.querySelector('[data-testid="cart-delivery-preview"]')?.textContent).toBe('Delivery fee: $1.99');
+    expect(el.querySelector('[data-testid="cart-subtotal"]')?.textContent).toBe('Subtotal$8.50');
+    expect(el.querySelector('[data-testid="cart-delivery-preview"]')?.textContent).toBe('Delivery fee$1.99');
     expect(el.querySelector('[data-testid="go-to-checkout"]')?.getAttribute('href')).toBe(
       '/checkout/?restaurant=mission-taqueria',
     );
@@ -279,7 +279,7 @@ describe('removing a line: swipe-revealed Remove, or minus at quantity 1 with a 
     document.querySelector<HTMLButtonElement>('[data-testid="confirm-confirm"]')?.click();
 
     expect(el.querySelector(`[data-testid="cart-line-${LINE.itemId}"]`)).toBeNull();
-    expect(el.querySelector('[data-testid="cart-subtotal"]')?.textContent).toBe('Subtotal: $14.00');
+    expect(el.querySelector('[data-testid="cart-subtotal"]')?.textContent).toBe('Subtotal$14.00');
     expect(document.activeElement?.getAttribute('data-testid')).toBe('cart-heading');
     expect(stub).toHaveBeenCalledTimes(1);
   });

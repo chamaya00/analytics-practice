@@ -438,6 +438,10 @@ const { title } = Astro.props;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    /* Without this the column's default stretch would give the stepper
+       pill (an inline-flex item here, not a block) the row's full width
+       instead of sizing to its own content (105-cart-single-sf.html). */
+    align-items: flex-start;
     gap: 2px;
   }
 
@@ -640,12 +644,13 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  .cart-subtotal {
-    font-weight: 700;
-  }
-
-  .cart-delivery-preview {
-    color: var(--color-text-muted);
+  /* 105-cart-single-sf.html's breakdown-preview: Subtotal and Delivery fee
+     as .breakdown-row label/value lines (Checkout's own shape), not bold
+     "Subtotal: $X" text. */
+  .cart-breakdown {
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
   }
 
   .cart-fee-note {
@@ -953,6 +958,7 @@ const { title } = Astro.props;
     display: flex;
     gap: var(--space-xs);
     align-items: flex-start;
+    margin-top: var(--space-sm);
     margin-bottom: var(--space-md);
     padding: var(--space-xs) var(--space-md);
     background: var(--color-surface);
