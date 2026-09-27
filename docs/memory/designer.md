@@ -37,3 +37,6 @@ Delete any lesson that has graduated into a test, a lint rule, or a type.
   for no reason of its own rendered as visibly separated fragments, not one
   word, and shipped that way because nothing re-rendered it after the edit.
   Give such text plain inline flow instead.
+- Several generated SVGs inlined in one mock (DiceBear avatars, #147) share
+  internal mask ids, so only the first draws and the rest render as empty
+  circles. Embed each as an `<img>` (a `data:` URI in a mock), never inline.
