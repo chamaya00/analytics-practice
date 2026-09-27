@@ -42,7 +42,7 @@ const DELIVERY_INSTRUCTIONS_OPTIONS: ChoiceOption<DeliveryInstructions>[] = [
   { value: 'call_on_arrival', label: 'Call on arrival' },
 ];
 
-/** The chip/segmented button row itself, always one selected — must never render with nothing selected. Defaults to the first option. */
+/** The chip button row itself, always one selected — must never render with nothing selected. Defaults to the first option. */
 function choiceButtons<T extends string | number>(
   legend: string,
   options: ChoiceOption<T>[],
@@ -228,7 +228,7 @@ export function renderCheckout(
     const label = document.createElement('span');
     label.className = 'mini-label';
     label.textContent = labelText;
-    const { element: group, getValue } = choiceButtons(labelText, options, testIdPrefix, 'segmented');
+    const { element: group, getValue } = choiceButtons(labelText, options, testIdPrefix, 'chip-group');
     wrapper.append(label, group);
     return { element: wrapper, getValue };
   }

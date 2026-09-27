@@ -54,14 +54,24 @@ NARROW_SIZE="375,812"
 PORT="${APP_RENDER_PORT:-8765}"
 
 usage() {
-    echo "usage: $0 <route> <out-dir>" >&2
+    echo "usage: $0 <route> <out-dir> [seed-file]" >&2
     exit 2
 }
 
-[ $# -eq 2 ] || usage
+[ $# -eq 2 ] || [ $# -eq 3 ] || usage
 
 route=$1
 out_dir=$2
+# Optional third argument: a JS file run in the page's own context before any
+# of its own scripts, so a route that only shows something interesting once a
+# city is picked or a cart has items (this site persists both to
+# localStorage, with no query-string or debug hook of its own) can still be
+# photographed as it actually renders rather than at its own empty/
+# first-visit state. See scripts/render-shot.mjs for what it does with this.
+# The required two-argument form is unchanged, so every existing caller of
+# `./scripts/app-render <route> <out-dir>` still gets exactly what it did
+# before this was added.
+SEED_FILE="${3:-}"
 
 case $route in
     /*) : ;;
@@ -191,7 +201,7 @@ shoot() {
         w=${size%,*}
         h=${size#*,}
         rm -f "$target"
-        node "$script_dir/render-shot.mjs" "$browser" "http://127.0.0.1:$PORT$route" "$w" "$h" "$target" >&2 || true
+        node "$script_dir/render-shot.mjs" "$browser" "http://127.0.0.1:$PORT$route" "$w" "$h" "$target" "$SEED_FILE" >&2 || true
         if [ ! -s "$target" ]; then
             echo "app-render: render-shot.mjs produced no picture at $target" >&2
             echo "  URL: http://127.0.0.1:$PORT$route" >&2

@@ -1,7 +1,17 @@
 // Photograph one URL at an exact viewport, for scripts/app-render and
 // scripts/design-render.
 //
-//   node scripts/render-shot.mjs <browser> <url> <width> <height> <out.png>
+//   node scripts/render-shot.mjs <browser> <url> <width> <height> <out.png> [seed-file]
+//
+// <seed-file>, if given, is a path to a JS source file run in the page's own
+// context before any of the page's own scripts — via the DevTools protocol's
+// Page.addScriptToEvaluateOnNewDocument, not a post-navigation page.evaluate,
+// because this site reads localStorage/sessionStorage at first script
+// execution (which city is picked, what the cart holds) and a script wired
+// in after that point would seed state the page had already read past. This
+// is how app-render photographs a state (a chosen city, an added cart line)
+// the built site itself has no query-string or debug hook for, without
+// hand-editing a picture that isn't what the site actually produces.
 //
 // Why this exists: headless Chrome clamps --window-size to a minimum of 500px
 // wide, so the plain `--screenshot` path asked for 375 gets a 500px viewport,
@@ -14,15 +24,16 @@
 /* global process, console, setTimeout, WebSocket, Buffer -- a Node script; the repo's lint config declares no Node globals. */
 
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const [browser, url, widthArg, heightArg, out] = process.argv.slice(2);
+const [browser, url, widthArg, heightArg, out, seedFile] = process.argv.slice(2);
 if (!browser || !url || !widthArg || !heightArg || !out) {
-  console.error('usage: render-shot.mjs <browser> <url> <width> <height> <out.png>');
+  console.error('usage: render-shot.mjs <browser> <url> <width> <height> <out.png> [seed-file]');
   process.exit(2);
 }
+const seedScript = seedFile ? readFileSync(seedFile, 'utf8') : null;
 const width = Number(widthArg);
 const height = Number(heightArg);
 // A plain viewport of exactly this width, not full phone emulation: with
@@ -114,6 +125,9 @@ try {
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
   await send('Page.enable', {}, sessionId);
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile }, sessionId);
+  if (seedScript) {
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: seedScript }, sessionId);
+  }
   const loaded = nextEvent('Page.loadEventFired', sessionId);
   await send('Page.navigate', { url }, sessionId);
   await loaded;
