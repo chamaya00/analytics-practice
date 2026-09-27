@@ -1298,46 +1298,128 @@ const { title } = Astro.props;
     border-radius: 12px 12px 0 0;
     box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
     overflow: hidden;
+    /* Snap back to rest after a short drag (#126 AC1) — removed while
+       dragging (`.is-dragging`, flash-sheet-dom.ts's attachSheetDragTrigger)
+       so the sheet follows the finger with no lag, and removed altogether
+       under reduced motion below. */
+    transition: transform 200ms ease-out;
   }
 
+  .flash-sheet-overlay .sheet.is-dragging {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flash-sheet-overlay .sheet {
+      transition: none;
+    }
+  }
+
+  /* Full-width, 44px-tall hit area (#126 AC1) around a visibly larger
+     40×5px bar — the hit area used to be the bar itself, at 40×4px, which
+     is why a swipe landing anywhere else on it did nothing. */
   .flash-sheet-overlay .drag-handle {
     flex: none;
-    display: block;
-    width: 40px;
-    height: 4px;
-    padding: 0;
-    border: none;
-    border-radius: 999px;
-    background: var(--color-border);
-    margin: var(--space-sm) auto;
-  }
-
-  .flash-sheet-overlay .sheet-close {
-    position: absolute;
-    top: var(--space-sm);
-    right: var(--space-lg);
-    width: 24px;
-    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
     padding: 0;
     border: none;
     background: none;
-    color: var(--color-text-muted);
+    touch-action: none;
+  }
+
+  .flash-sheet-overlay .drag-handle-bar {
+    width: 40px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-border);
+  }
+
+  /* A 36px circle on a 44px hit area, inside the header's own corner
+     rather than straddling its seam (#126 AC2). `.sheet-close-fill` is a
+     separate layer so its opacity doesn't also fade the icon on top of
+     it — both read `currentColor` from `.sheet-close`, which inherits the
+     header's own text colour below. */
+  .flash-sheet-overlay .sheet-close {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: inherit;
+  }
+
+  .flash-sheet-overlay .sheet-close-fill {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.16;
+  }
+
+  .flash-sheet-overlay .sheet-close svg {
+    position: relative;
+    width: 20px;
+    height: 20px;
+  }
+
+  .flash-sheet-overlay .sheet-close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
 
   /* Full-bleed, no side inset — a colour block spanning the sheet's whole
-     width, not the old inset card-style header (#119). */
+     width, not the old inset card-style header (#119). Text colour is
+     --color-bg rather than a fixed white: contrastRatio(--color-bg,
+     --color-accent-a) already clears 4.5:1 in both themes (contrast.test.ts,
+     "the accent ... clears 4.5:1 against both bg and surface"), and this is
+     the same pairing .place-order uses on the same fill. Fixed white failed
+     in dark mode, where --color-accent-a turns light lavender (#126 AC3). */
   .flash-sheet-overlay .sheet-header {
+    position: relative;
     flex: none;
     background: var(--color-accent-a);
-    color: #fff;
-    padding: var(--space-md) var(--space-lg) var(--space-lg);
+    color: var(--color-bg);
+    padding: var(--space-md) var(--space-xxl) var(--space-lg) var(--space-lg);
+    touch-action: none;
   }
 
   .flash-sheet-overlay .sheet-header h1 {
-    margin: 0 0 var(--space-md);
+    margin: 0 0 4px;
     font-size: 1.375rem;
     font-weight: 800;
     letter-spacing: -0.01em;
+    color: inherit;
+  }
+
+  .flash-sheet-overlay .sheet-subtitle {
+    margin: 0 0 var(--space-md);
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: inherit;
+  }
+
+  .flash-sheet-overlay .countdown-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .flash-sheet-overlay .countdown-label {
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: inherit;
   }
 
   .flash-sheet-overlay .countdown {
@@ -1345,8 +1427,15 @@ const { title } = Astro.props;
     gap: var(--space-sm);
   }
 
+  /* Always a dark tile with light digits, in both themes (#126 AC3) — not
+     --color-text, which flips light in dark mode and made both digits and
+     tile nearly invisible against each other. --color-flash-tile-bg
+     (global.css) is deliberately not redeclared in the dark-mode block for
+     this reason; contrastRatio('#ffffff', that fixed value) is checked in
+     contrast.test.ts once, not per-theme, since the pairing never changes
+     with the theme. */
   .flash-sheet-overlay .countdown .tile {
-    background: var(--color-text);
+    background: var(--color-flash-tile-bg);
     color: #ffffff;
     border-radius: 10px;
     min-width: 44px;
@@ -1358,24 +1447,16 @@ const { title } = Astro.props;
   }
 
   .flash-sheet-overlay .countdown .tile-sep {
-    color: #fff;
+    color: inherit;
     font-weight: 800;
     font-size: 1.25rem;
     align-self: center;
   }
 
-  .flash-sheet-overlay .min-spend-line {
-    flex: none;
-    text-align: center;
-    font-size: var(--font-size-muted);
-    color: var(--color-text-muted);
-    padding: var(--space-md) var(--space-lg);
-  }
-
-  /* The only region that scrolls — the header and min-spend line above it
-     are flex siblings that never move (#119's "fixed header, scrolling
-     list" split). Its own class, not home-dom.ts's `.restaurant-list`,
-     whose global margin/gap rule (line ~253) would otherwise leak in. */
+  /* The only region that scrolls — the header above it is a flex sibling
+     that never moves (#119's "fixed header, scrolling list" split). Its
+     own class, not home-dom.ts's `.restaurant-list`, whose global
+     margin/gap rule (line ~253) would otherwise leak in. */
   .flash-sheet-overlay .deal-list {
     flex: 1;
     overflow-y: auto;
@@ -1489,7 +1570,9 @@ const { title } = Astro.props;
     justify-content: space-between;
     gap: var(--space-md);
     background: var(--color-accent-a);
-    color: #fff;
+    /* --color-bg, not a fixed white — the same dark-mode contrast fix as
+       the open sheet's own header (#126 AC3); see that rule's comment. */
+    color: var(--color-bg);
     border: none;
     border-radius: 12px 12px 0 0;
     padding: var(--space-md) var(--space-lg);
@@ -1502,6 +1585,7 @@ const { title } = Astro.props;
     font-weight: 800;
     font-size: var(--font-size-body);
     text-align: left;
+    color: inherit;
   }
 
   .reopen-bar .right {
@@ -1515,6 +1599,13 @@ const { title } = Astro.props;
     width: 18px;
     height: 18px;
     flex: none;
+    color: inherit;
+  }
+
+  .reopen-bar .countdown-label {
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: inherit;
   }
 
   .reopen-bar .countdown {
@@ -1522,8 +1613,10 @@ const { title } = Astro.props;
     gap: 4px;
   }
 
+  /* Always a dark tile with light digits, in both themes — the same fixed
+     token as the open sheet's own countdown tile (#126 AC3). */
   .reopen-bar .tile {
-    background: var(--color-text);
+    background: var(--color-flash-tile-bg);
     color: #fff;
     border-radius: 10px;
     min-width: 30px;
@@ -1535,7 +1628,7 @@ const { title } = Astro.props;
   }
 
   .reopen-bar .tile-sep {
-    color: #fff;
+    color: inherit;
     font-weight: 800;
     font-size: 0.8125rem;
   }
