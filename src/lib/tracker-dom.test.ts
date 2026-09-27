@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
-import { addToCart, getOrder, ORDER_KEY, placeOrder } from './order-store';
+import { addToCart, getLatestOrder, ORDER_KEY, placeOrder } from './order-store';
 import { resetTrack, setTrack } from './tracking';
 import { setStoredCity } from './location';
 
@@ -318,7 +318,7 @@ describe('AC3: the tracker completes with no error when the sender is unconfigur
       el.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]')?.click();
     }).not.toThrow();
 
-    expect(getOrder(window.localStorage)?.rating).toEqual({ stars: 5, tags: [] });
+    expect(getLatestOrder(window.localStorage)?.rating).toEqual({ stars: 5, tags: [] });
   });
 });
 

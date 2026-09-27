@@ -14,24 +14,30 @@
 // same order twice) from sending the email, or firing `order_delivered`,
 // more than once. No email or server code is added by this issue.
 
-import { getOrder, markOrderDelivered, minutesSinceOrder } from './order-store';
+import { getLatestOrder, getOrders, markOrderDelivered, minutesSinceOrder } from './order-store';
 import { isDelivered } from './tracker-state';
 import { track } from './tracking';
 
 /**
- * Checks the stored order against `now`, marking and firing `order_delivered`
- * exactly once (guarded by `deliveredEventFired`) the first time this or any
- * other caller observes it past its own delivery time. Returns whether the
- * order is delivered right now — `false` with no stored order.
+ * Checks *every* stored order against `now` (#144 §3 — not only the one the
+ * tracker is showing), marking and firing `order_delivered` exactly once per
+ * order (guarded by `deliveredEventFired`) the first time this or any other
+ * caller observes it past its own delivery time. An order replaced before
+ * delivery used to never fire this; now every order gets its own firing,
+ * whether or not the tracker ever shows it again. Returns whether the most
+ * recently placed order is delivered right now — `false` with no stored
+ * order.
  */
 export function checkDelivery(storage: Storage, now: number = Date.now()): boolean {
-  const order = getOrder(storage);
-  if (!order) return false;
+  const orders = getOrders(storage);
 
-  const delivered = isDelivered(order, now);
-  if (delivered && !order.deliveredEventFired) {
-    markOrderDelivered(storage);
-    track('order_delivered', { order_id: order.orderId, minutes_since_order: minutesSinceOrder(order, now) });
+  for (const order of orders) {
+    if (isDelivered(order, now) && !order.deliveredEventFired) {
+      markOrderDelivered(storage, order.orderId);
+      track('order_delivered', { order_id: order.orderId, minutes_since_order: minutesSinceOrder(order, now) });
+    }
   }
-  return delivered;
+
+  const latest = getLatestOrder(storage);
+  return latest !== null && isDelivered(latest, now);
 }

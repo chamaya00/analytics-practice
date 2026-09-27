@@ -5,14 +5,22 @@
 // refresh), the same pattern ADR 0004 established for the swipe poll.
 
 import type { DeliveryInstructions, DropOffPreset, RatingTag } from './tracking';
-import type { Currency } from './money';
+import type { City, Currency } from './money';
 import { SERVICE_FEE_MINOR } from './money';
 import { estimateEtaMinutes } from './eta';
+import { getRestaurant } from './restaurants';
+import { pickDriver, type Driver } from './drivers';
+import { isDelivered } from './tracker-state';
 
 export const VISITOR_ID_KEY = 'parody.visitorId';
 export const SESSION_ID_KEY = 'parody.sessionId';
 export const CART_KEY = 'parody.cart';
+/** Superseded by `ORDERS_KEY` (#144) — read once, on migration, then removed. Kept exported so a test can seed the pre-migration shape directly. */
 export const ORDER_KEY = 'parody.order';
+/** Every stored order (#144), oldest first. Replaces the single-order `ORDER_KEY` — see ADR 0008. */
+export const ORDERS_KEY = 'parody.orders';
+/** The most orders kept on one device — see ADR 0008 for why this number. An order still live, or delivered with `order_delivered` not yet fired, is never dropped even past this cap (§5). */
+export const ORDER_HISTORY_CAP = 20;
 
 export interface CartLine {
   itemId: string;
@@ -40,7 +48,11 @@ export interface PlacedOrder {
   itemCount: number;
   /** The subtotal — §2's `amount_minor`, not the total the breakdown shows. */
   amountMinor: number;
+  /** The checkout breakdown's `totalMinor` (subtotal + fees − discount) at the moment this order was placed — `null` only for an order migrated from before this field existed, since nothing recorded its total (#144 §5). */
+  totalMinor: number | null;
   currency: Currency;
+  /** Drawn once, at placeOrder, from the order's own restaurant's city pool (drivers.ts) — never the city picker (#129/#130's precedent). Stable for the life of the order. */
+  driver: Driver;
   dropOffPreset: DropOffPreset;
   deliveryInstructions: DeliveryInstructions;
   utensils: boolean;
@@ -306,36 +318,94 @@ export function clearRestaurantCart(storage: Storage, restaurantSlug: string): C
 const LEGACY_DELIVERY_MS = 7 * 60_000;
 
 /**
- * Fills in `etaMinutes`/`deliveryMs` for an order stored before #121 added
- * them (a visitor's order already in progress on the live site when this
- * shipped). Without this, `isDelivered`'s `elapsedMs >= order.deliveryMs`
- * compares against `undefined` and is never true, so the order never reaches
+ * Fills in whatever a pre-#144 record is missing: `etaMinutes`/`deliveryMs`
+ * (pre-#121), and now `totalMinor`/`driver` (#144) — a visitor's order
+ * already in progress on the live site when either shipped. Without the
+ * first pair, `isDelivered`'s `elapsedMs >= order.deliveryMs` compares
+ * against `undefined` and is never true, so the order never reaches
  * Delivered and the countdown reads NaN. `deliveryMs` falls back to the fixed
  * 7 minutes every order used to take; `etaMinutes` is re-derived the same
- * deterministic way a current order's is, from this visitor and the order's
- * own restaurant.
+ * deterministic way a current order's is. `totalMinor` has nothing to fall
+ * back to (the total was never stored), so it stays `null` (§5) rather than
+ * guessing. `driver` is drawn once, from the order's own restaurant's city
+ * pool, and persisted by the caller so it never redraws on a later read.
  */
-function withLegacyDefaults(order: PlacedOrder, storage: Storage): PlacedOrder {
-  if (order.etaMinutes !== undefined && order.deliveryMs !== undefined) return order;
+function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => number): PlacedOrder {
+  const restaurantSlug = order.items[0]?.restaurantSlug ?? '';
+  const city: City = getRestaurant(restaurantSlug)?.city ?? 'sf';
   return {
     ...order,
-    etaMinutes: order.etaMinutes ?? estimateEtaMinutes(getVisitorId(storage), order.items[0]?.restaurantSlug ?? ''),
+    etaMinutes: order.etaMinutes ?? estimateEtaMinutes(getVisitorId(storage), restaurantSlug),
     deliveryMs: order.deliveryMs ?? LEGACY_DELIVERY_MS,
+    totalMinor: order.totalMinor ?? null,
+    driver: order.driver ?? pickDriver(city, random),
   };
 }
 
-export function getOrder(storage: Storage): PlacedOrder | null {
-  const raw = storage.getItem(ORDER_KEY);
-  if (!raw) return null;
+/** Drops the oldest droppable order first once `orders` (oldest-first) exceeds `ORDER_HISTORY_CAP` — an order that's still live, or delivered but not yet fired, is never droppable (§5), so a cap breached entirely by protected orders is left over-cap rather than losing one of them. */
+function capOrders(orders: PlacedOrder[], now: number): PlacedOrder[] {
+  const overflow = orders.length - ORDER_HISTORY_CAP;
+  if (overflow <= 0) return orders;
+  const droppable = (order: PlacedOrder): boolean => isDelivered(order, now) && order.deliveredEventFired;
+  const result = [...orders];
+  let toDrop = overflow;
+  for (let i = 0; i < result.length && toDrop > 0; ) {
+    if (droppable(result[i])) {
+      result.splice(i, 1);
+      toDrop -= 1;
+    } else {
+      i += 1;
+    }
+  }
+  return result;
+}
+
+function setOrders(storage: Storage, orders: PlacedOrder[]): void {
+  storage.setItem(ORDERS_KEY, JSON.stringify(orders));
+}
+
+/**
+ * Every stored order, oldest first, migrating the legacy single-order key
+ * exactly once. Once `ORDERS_KEY` exists (even as `[]`), the legacy key is
+ * never consulted again, which is what makes a second read a no-op rather
+ * than a second migration — and the legacy key is removed the same time it's
+ * migrated, since nothing reads it after that point (#144 §2 — the pull
+ * request explains why removing rather than leaving it behind).
+ * `random` is only ever consumed here to draw a migrated legacy order's
+ * driver; it is otherwise unused.
+ */
+export function getOrders(storage: Storage, random: () => number = Math.random): PlacedOrder[] {
+  const raw = storage.getItem(ORDERS_KEY);
+  if (raw !== null) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as PlacedOrder[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  const legacyRaw = storage.getItem(ORDER_KEY);
+  if (!legacyRaw) return [];
   try {
-    return withLegacyDefaults(JSON.parse(raw) as PlacedOrder, storage);
+    const migrated = withLegacyDefaults(JSON.parse(legacyRaw) as PlacedOrder, storage, random);
+    setOrders(storage, [migrated]);
+    storage.removeItem(ORDER_KEY);
+    return [migrated];
   } catch {
-    return null;
+    return [];
   }
 }
 
-function setOrder(storage: Storage, order: PlacedOrder): void {
-  storage.setItem(ORDER_KEY, JSON.stringify(order));
+/** The most recently placed order — what `/order-placed/` and `/tracker/` show (§1). `null` with nothing stored. */
+export function getLatestOrder(storage: Storage): PlacedOrder | null {
+  const orders = getOrders(storage);
+  return orders.length > 0 ? orders[orders.length - 1] : null;
+}
+
+/** One specific order by id, wherever it sits in storage — never assumed to be the latest (§3). `null` if no stored order carries this id. */
+export function findOrder(storage: Storage, orderId: string): PlacedOrder | null {
+  return getOrders(storage).find((order) => order.orderId === orderId) ?? null;
 }
 
 export interface PlaceOrderFields {
@@ -346,6 +416,8 @@ export interface PlaceOrderFields {
   appliedVoucherIds?: string[];
   /** Defaults to 0 — must be 0 whenever `appliedVoucherIds` is `[]` (contract §7's invariant). */
   savedAmountMinor?: number;
+  /** The checkout breakdown's `totalMinor` (§5) — defaults to the subtotal for a caller with no breakdown to hand in (mostly tests unconcerned with the total). Every real caller (checkout-dom.ts) always has a breakdown and passes its `totalMinor`. */
+  totalMinor?: number;
 }
 
 /**
@@ -370,12 +442,18 @@ export function pickDeliveryMs(etaMinutes: number, random: () => number = Math.r
  * event; the caller fires `order_placed` once, guarded against a double-tap
  * (see checkout-dom.ts).
  *
- * The restaurant's per-visitor estimate (eta.ts) and its delivery time
- * (`pickDeliveryMs`) are derived here, once, from the visitor id already
- * stored under this same `storage` and the restaurant every ordered line
- * shares — not passed in by the caller, so it can never drift from what
- * checkout showed for the same visitor/restaurant pair. `random` is
- * injectable for the same reason `pickDeliveryMs` takes it.
+ * The restaurant's per-visitor estimate (eta.ts), its delivery time
+ * (`pickDeliveryMs`) and its driver (`pickDriver`, drivers.ts) are derived
+ * here, once, from the visitor id already stored under this same `storage`
+ * and the restaurant every ordered line shares — not passed in by the
+ * caller, so neither can ever drift from what checkout showed for the same
+ * visitor/restaurant pair. `random` is injectable for the same reason
+ * `pickDeliveryMs` takes it — consumed first for `deliveryMs`, then once
+ * more for the driver draw, so a seeded sequence source predicts both.
+ *
+ * Every existing order is kept (#144: placing a second order no longer
+ * replaces the first), appended after the new one, and the list is trimmed
+ * to `ORDER_HISTORY_CAP` from its oldest droppable end.
  */
 export function placeOrder(
   storage: Storage,
@@ -387,6 +465,8 @@ export function placeOrder(
   const items = restaurantSlug === undefined ? all : linesForRestaurant(all, restaurantSlug);
   const slug = restaurantSlug ?? items[0]?.restaurantSlug ?? '';
   const etaMinutes = estimateEtaMinutes(getVisitorId(storage), slug);
+  const amountMinor = cartSubtotalMinor(items);
+  const city: City = getRestaurant(slug)?.city ?? 'sf';
   const order: PlacedOrder = {
     orderId: generateId(),
     placedAt: new Date().toISOString(),
@@ -394,8 +474,10 @@ export function placeOrder(
     deliveryMs: pickDeliveryMs(etaMinutes, random),
     items,
     itemCount: cartItemCount(items),
-    amountMinor: cartSubtotalMinor(items),
+    amountMinor,
+    totalMinor: fields.totalMinor ?? amountMinor,
     currency: cartCurrency(items) ?? 'USD',
+    driver: pickDriver(city, random),
     dropOffPreset: fields.dropOffPreset,
     deliveryInstructions: fields.deliveryInstructions,
     utensils: fields.utensils,
@@ -405,40 +487,46 @@ export function placeOrder(
     deliveredEventFired: false,
     rating: null,
   };
-  setOrder(storage, order);
+  const orders = getOrders(storage, random);
+  orders.push(order);
+  setOrders(storage, capOrders(orders, Date.now()));
   if (restaurantSlug === undefined) clearCart(storage);
   else clearRestaurantCart(storage, restaurantSlug);
   return order;
 }
 
-/** Clears the stored order only, matching ADR 0004's explicit-action pattern (never on a plain refresh). `visitor_id` is never cleared by it (docs/measurement/66-parody-event-contract.md §2). Not currently wired to any control — the tracker's old "give up" state this served (65's 7d) is retired now that the tracker always resolves (docs/design/80-two-city-brand-and-flow.md, "Tracker"; contract §6). */
+/** Clears every stored order, matching ADR 0004's explicit-action pattern (never on a plain refresh). `visitor_id` is never cleared by it (docs/measurement/66-parody-event-contract.md §2). Not currently wired to any control — the tracker's old "give up" state this served (65's 7d) is retired now that the tracker always resolves (docs/design/80-two-city-brand-and-flow.md, "Tracker"; contract §6). */
 export function clearOrder(storage: Storage): void {
+  storage.removeItem(ORDERS_KEY);
   storage.removeItem(ORDER_KEY);
 }
 
-/** Increments and persists the view count for the stored order, returning the new value — becomes `tracker_viewed.view_number`. */
-export function recordTrackerView(storage: Storage): number {
-  const order = getOrder(storage);
+/** Increments and persists the view count for the named order, returning the new value — becomes `tracker_viewed.view_number`. Takes an explicit `orderId` (§3) rather than assuming "whichever is latest," since that could shift under it between the read that named the order and this write. */
+export function recordTrackerView(storage: Storage, orderId: string): number {
+  const orders = getOrders(storage);
+  const order = orders.find((candidate) => candidate.orderId === orderId);
   if (!order) return 0;
   order.viewCount += 1;
-  setOrder(storage, order);
+  setOrders(storage, orders);
   return order.viewCount;
 }
 
-/** Marks `order_delivered` as already fired for the stored order — tracker-dom.ts's own guard against firing it twice for one `order_id`, since the store enforces no such constraint (contract §10). No-op with no stored order. */
-export function markOrderDelivered(storage: Storage): void {
-  const order = getOrder(storage);
+/** Marks `order_delivered` as already fired for the named order — delivery.ts's own guard against firing it twice for one `order_id`, since the store enforces no such constraint (contract §10). No-op if that id isn't stored. */
+export function markOrderDelivered(storage: Storage, orderId: string): void {
+  const orders = getOrders(storage);
+  const order = orders.find((candidate) => candidate.orderId === orderId);
   if (!order || order.deliveredEventFired) return;
   order.deliveredEventFired = true;
-  setOrder(storage, order);
+  setOrders(storage, orders);
 }
 
-/** Records the rating for the stored order, the one write the tracker's Delivered state makes beyond reading it — `null` (a no-op) with no stored order or one already rated, which is what makes a second "Submit" impossible (contract §7's `rating_submitted` invariant). */
-export function submitRating(storage: Storage, stars: number, tags: RatingTag[]): PlacedOrder | null {
-  const order = getOrder(storage);
+/** Records the rating for the named order, the one write the tracker's Delivered state makes beyond reading it — `null` (a no-op) if that id isn't stored or is already rated, which is what makes a second "Submit" impossible (contract §7's `rating_submitted` invariant). */
+export function submitRating(storage: Storage, orderId: string, stars: number, tags: RatingTag[]): PlacedOrder | null {
+  const orders = getOrders(storage);
+  const order = orders.find((candidate) => candidate.orderId === orderId);
   if (!order || order.rating) return null;
   order.rating = { stars, tags };
-  setOrder(storage, order);
+  setOrders(storage, orders);
   return order;
 }
 

@@ -370,6 +370,7 @@ export function renderCheckout(
         utensils: utensilsField.getValue() === 'yes',
         appliedVoucherIds: appliedVoucherIds(sync.state),
         savedAmountMinor: breakdown.savedAmountMinor,
+        totalMinor: breakdown.totalMinor,
       },
       restaurantSlug,
     );
