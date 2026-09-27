@@ -16,6 +16,7 @@ import {
   linesForRestaurant,
   markOrderDelivered,
   minutesSinceOrder,
+  pickDeliveryMs,
   placeOrder,
   recordTrackerView,
   removeFromCart,
@@ -23,6 +24,7 @@ import {
   setItemQuantity,
   submitRating,
 } from './order-store';
+import { estimateEtaMinutes, ETA_MAX_MINUTES, ETA_MIN_MINUTES } from './eta';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -196,6 +198,36 @@ describe('placeOrder (AC1, AC9)', () => {
     expect(order.items).toHaveLength(1);
     expect(getCart(window.localStorage)).toEqual([]);
     expect(getOrder(window.localStorage)).toEqual(order);
+  });
+
+  it('stores a per-visitor estimate (10-25 min) and a delivery time at or before half of it (AC1, AC3)', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      undefined,
+      () => 0.5,
+    );
+
+    expect(Number.isInteger(order.etaMinutes)).toBe(true);
+    expect(order.etaMinutes).toBeGreaterThanOrEqual(ETA_MIN_MINUTES);
+    expect(order.etaMinutes).toBeLessThanOrEqual(ETA_MAX_MINUTES);
+    expect(order.deliveryMs).toBeGreaterThan(0);
+    expect(order.deliveryMs).toBeLessThanOrEqual((order.etaMinutes * 60_000) / 2);
+  });
+
+  it('the same visitor and restaurant give the same estimate placeOrder stores as checkout showed', () => {
+    addToCart(window.localStorage, LINE);
+    const visitorId = getVisitorId(window.localStorage);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+
+    expect(order.etaMinutes).toBe(estimateEtaMinutes(visitorId, LINE.restaurantSlug));
   });
 
   it('gives every order a distinct order id', () => {
@@ -423,6 +455,20 @@ describe('submitRating (contract §7’s rating_submitted invariant)', () => {
 
   it('does nothing when there is no stored order', () => {
     expect(submitRating(window.localStorage, 4, [])).toBeNull();
+  });
+});
+
+describe('pickDeliveryMs (AC3)', () => {
+  it('is always > 0 and never more than half the estimate, for any injected random in [0, 1)', () => {
+    for (const random of [0, 0.1, 0.5, 0.99]) {
+      const ms = pickDeliveryMs(20, () => random);
+      expect(ms).toBeGreaterThan(0);
+      expect(ms).toBeLessThanOrEqual((20 * 60_000) / 2);
+    }
+  });
+
+  it('is deterministic for a fixed random source', () => {
+    expect(pickDeliveryMs(20, () => 0.5)).toBe(pickDeliveryMs(20, () => 0.5));
   });
 });
 

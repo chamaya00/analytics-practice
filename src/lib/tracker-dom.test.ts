@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
 import { addToCart, getOrder, placeOrder } from './order-store';
-import { DELIVERED_MS, ON_THE_WAY_MS } from './tracker-state';
 import { resetTrack, setTrack } from './tracking';
 
 const LINE = {
@@ -29,13 +28,21 @@ function root(): HTMLElement {
   return el;
 }
 
+/** A fixed random source (`0.5`) makes `deliveryMs` an exact, computable
+ * fraction of the estimate rather than a fresh draw every run — the same
+ * "inject the random source" pattern flash-deal.test.ts already uses. */
 function placeAnOrder() {
   addToCart(window.localStorage, LINE);
-  return placeOrder(window.localStorage, {
-    dropOffPreset: 'home',
-    deliveryInstructions: 'hand_to_me',
-    utensils: true,
-  });
+  return placeOrder(
+    window.localStorage,
+    {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    },
+    undefined,
+    () => 0.5,
+  );
 }
 
 describe('initTrackerPage — no active order (AC1, contract §4)', () => {
@@ -52,7 +59,7 @@ describe('initTrackerPage — no active order (AC1, contract §4)', () => {
   });
 });
 
-describe('initTrackerPage — active order (AC1, AC2)', () => {
+describe('initTrackerPage — active order (AC1, AC2, AC4)', () => {
   it('fires tracker_viewed once per load, view_number starting at 1 and incrementing on the next load', () => {
     const order = placeAnOrder();
     const stub = vi.fn();
@@ -71,9 +78,28 @@ describe('initTrackerPage — active order (AC1, AC2)', () => {
     );
   });
 
+  it('shows a live countdown toward the estimate, ticking down every second', () => {
+    const order = placeAnOrder();
+    const el = root();
+
+    initTrackerPage(el, window.localStorage);
+    const first = el.querySelector('[data-testid="tracker-countdown"]')?.textContent;
+    expect(first).toContain('Arrives in about');
+
+    vi.advanceTimersByTime(2000);
+    const second = el.querySelector('[data-testid="tracker-countdown"]')?.textContent;
+    expect(second).not.toBe(first);
+    // The order's own deliveryMs (half the estimate, by the fixed 0.5 random
+    // source above) is well short of the estimate itself, so the countdown
+    // is still ticking down toward the estimate rather than gone yet.
+    expect(order.deliveryMs).toBeLessThan(order.etaMinutes * 60_000);
+  });
+
   it('moves through the realistic stages as elapsed time grows, stopping short of Delivered', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + ON_THE_WAY_MS);
+    const order = placeAnOrder();
+    // Comfortably inside the "On the way" bucket (between 4/7 and 1 of
+    // deliveryMs), clear of either boundary regardless of rounding.
+    vi.setSystemTime(Date.now() + Math.round(order.deliveryMs * 0.8));
     const el = root();
 
     initTrackerPage(el, window.localStorage);
@@ -87,8 +113,8 @@ describe('initTrackerPage — active order (AC1, AC2)', () => {
   });
 
   it('reopening the tracker after a refresh reads the same order and never resets to step one', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + ON_THE_WAY_MS);
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + Math.round(order.deliveryMs * 0.8));
 
     const first = root();
     initTrackerPage(first, window.localStorage);
@@ -101,10 +127,10 @@ describe('initTrackerPage — active order (AC1, AC2)', () => {
   });
 });
 
-describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
-  it('ends at Delivered with the demo disclosure and an interactive rating prompt', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
+  it('ends at Delivered with the demo disclosure and an interactive rating prompt, no countdown shown', () => {
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     const el = root();
 
     initTrackerPage(el, window.localStorage);
@@ -112,6 +138,7 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
     expect(el.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
       'Delivered',
     );
+    expect(el.querySelector('[data-testid="tracker-countdown"]')).toBeNull();
     const disclosure = el.querySelector('[data-testid="demo-disclosure"]');
     const ratingPrompt = el.querySelector('[data-testid="rating-prompt"]');
     expect(disclosure).not.toBeNull();
@@ -123,9 +150,9 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
     expect(children.indexOf(disclosure as Element) + 1).toBe(children.indexOf(ratingPrompt as Element));
   });
 
-  it('fires exactly one order_delivered, even across repeated renders/refreshes for the same order', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+  it('fires exactly one order_delivered, even across repeated renders/refreshes for the same order, with minutes_since_order reflecting the early-delivery distribution (AC5)', () => {
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     const stub = vi.fn();
     setTrack(stub);
 
@@ -134,12 +161,30 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
 
     const delivered = stub.mock.calls.filter(([name]) => name === 'order_delivered');
     expect(delivered).toHaveLength(1);
-    expect(delivered[0][1]).toMatchObject({ minutes_since_order: expect.any(Number) });
+    expect(delivered[0][1]).toMatchObject({ order_id: order.orderId, minutes_since_order: expect.any(Number) });
+    const minutesSinceOrder = (delivered[0][1] as { minutes_since_order: number }).minutes_since_order;
+    expect(minutesSinceOrder).toBeCloseTo(order.deliveryMs / 60_000, 1);
+  });
+
+  it('reaching Delivered is detected even if the tracker was never mounted at the moment it happened (AC5)', () => {
+    const order = placeAnOrder();
+    // Advance well past the stored delivery time with nothing mounted at all.
+    vi.setSystemTime(Date.now() + order.deliveryMs + 5 * 60_000);
+    const stub = vi.fn();
+    setTrack(stub);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    expect(el.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
+      'Delivered',
+    );
+    expect(stub.mock.calls.filter(([name]) => name === 'order_delivered')).toHaveLength(1);
   });
 
   it('never fires the retired order_abandoned event', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     const stub = vi.fn();
     setTrack(stub);
 
@@ -150,7 +195,7 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
 
   it('Submit is disabled until a star is picked, then fires rating_submitted with the chosen stars and tags', () => {
     const order = placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
@@ -169,8 +214,8 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
   });
 
   it('after submitting, re-renders as already-rated with no interactive controls', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     const el = root();
 
     initTrackerPage(el, window.localStorage);
@@ -184,8 +229,8 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4)', () => {
 
 describe('initTrackerPage — already rated, return visit (AC1)', () => {
   it('shows the static thanks line, filled stars, and no inputs — a second Submit is impossible', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     const stub = vi.fn();
     setTrack(stub);
 
@@ -208,8 +253,8 @@ describe('initTrackerPage — already rated, return visit (AC1)', () => {
 
 describe('AC3: the tracker completes with no error when the sender is unconfigured', () => {
   it('walks through opening the tracker, reaching Delivered, and submitting a rating with track left at its no-op default', () => {
-    placeAnOrder();
-    vi.setSystemTime(Date.now() + DELIVERED_MS);
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
     resetTrack();
 
     expect(() => {

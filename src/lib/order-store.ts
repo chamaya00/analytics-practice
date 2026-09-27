@@ -7,6 +7,7 @@
 import type { DeliveryInstructions, DropOffPreset, RatingTag } from './tracking';
 import type { Currency } from './money';
 import { SERVICE_FEE_MINOR } from './money';
+import { estimateEtaMinutes } from './eta';
 
 export const VISITOR_ID_KEY = 'parody.visitorId';
 export const SESSION_ID_KEY = 'parody.sessionId';
@@ -27,6 +28,14 @@ export interface CartLine {
 export interface PlacedOrder {
   orderId: string;
   placedAt: string;
+  /** This visitor's estimate for this restaurant (eta.ts, 10–25 minutes), taken at the moment the
+   * order was placed — the same number checkout showed, so a later screen never has to re-derive it. */
+  etaMinutes: number;
+  /** Milliseconds after `placedAt` at which this order reaches Delivered — picked once, at random, at
+   * or before half `etaMinutes` (#121: a delivery app under-promising and arriving early). The one
+   * fact that makes reaching Delivered detectable from the stored order alone (tracker-state.ts,
+   * delivery.ts). */
+  deliveryMs: number;
   items: CartLine[];
   itemCount: number;
   /** The subtotal — §2's `amount_minor`, not the total the breakdown shows. */
@@ -317,6 +326,19 @@ export interface PlaceOrderFields {
 }
 
 /**
+ * The delivery time picked at `placeOrder`, in milliseconds after `placedAt`
+ * — at or before half `etaMinutes` (#121: the order arrives early), and
+ * always at least 1ms so "has this order been delivered" is never true at
+ * the instant it's placed. `random` is injectable so a test can assert the
+ * exact value rather than only its bounds, the same pattern flash-deal.ts's
+ * `drawFlashDeal` uses.
+ */
+export function pickDeliveryMs(etaMinutes: number, random: () => number = Math.random): number {
+  const halfEtaMs = (etaMinutes * 60_000) / 2;
+  return Math.max(1, Math.round(halfEtaMs * random()));
+}
+
+/**
  * Writes the placed-order record from one restaurant's cart and clears only
  * that restaurant's lines — "the cart clears when an order is placed" (issue
  * #67, AC9), now per restaurant, so any other restaurant's cart survives the
@@ -324,13 +346,29 @@ export interface PlaceOrderFields {
  * single-cart behaviour this had before carts were split. Does not fire any
  * event; the caller fires `order_placed` once, guarded against a double-tap
  * (see checkout-dom.ts).
+ *
+ * The restaurant's per-visitor estimate (eta.ts) and its delivery time
+ * (`pickDeliveryMs`) are derived here, once, from the visitor id already
+ * stored under this same `storage` and the restaurant every ordered line
+ * shares — not passed in by the caller, so it can never drift from what
+ * checkout showed for the same visitor/restaurant pair. `random` is
+ * injectable for the same reason `pickDeliveryMs` takes it.
  */
-export function placeOrder(storage: Storage, fields: PlaceOrderFields, restaurantSlug?: string): PlacedOrder {
+export function placeOrder(
+  storage: Storage,
+  fields: PlaceOrderFields,
+  restaurantSlug?: string,
+  random: () => number = Math.random,
+): PlacedOrder {
   const all = getCart(storage);
   const items = restaurantSlug === undefined ? all : linesForRestaurant(all, restaurantSlug);
+  const slug = restaurantSlug ?? items[0]?.restaurantSlug ?? '';
+  const etaMinutes = estimateEtaMinutes(getVisitorId(storage), slug);
   const order: PlacedOrder = {
     orderId: generateId(),
     placedAt: new Date().toISOString(),
+    etaMinutes,
+    deliveryMs: pickDeliveryMs(etaMinutes, random),
     items,
     itemCount: cartItemCount(items),
     amountMinor: cartSubtotalMinor(items),

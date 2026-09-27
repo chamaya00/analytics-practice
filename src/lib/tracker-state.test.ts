@@ -1,21 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import {
-  computeTrackerView,
-  DELIVERED_MS,
-  ON_THE_WAY_MS,
-  PICKED_UP_MS,
-  PREPARING_MS,
-} from './tracker-state';
+import { computeTrackerView, isDelivered } from './tracker-state';
 import type { PlacedOrder } from './order-store';
 
 // One fixed "now" for both the order's timestamp and the view computed from it.
 // Reading Date.now() twice let a slow tick cross the 1ms boundary cases below.
 const NOW = Date.parse('2026-09-27T12:00:00.000Z');
 
-function orderPlacedAt(msAgo: number, rating: PlacedOrder['rating'] = null): PlacedOrder {
+// A 20-minute estimate with a 6-minute (360_000ms) delivery time — comfortably
+// at or under half the estimate (10 min), and round enough to make the
+// proportional thresholds below easy to state exactly.
+const ETA_MINUTES = 20;
+const DELIVERY_MS = 6 * 60_000;
+const PREPARING_MS = DELIVERY_MS / 14; // ~25.7s
+const PICKED_UP_MS = (DELIVERY_MS * 2) / 7; // ~102.9s
+const ON_THE_WAY_MS = (DELIVERY_MS * 4) / 7; // ~205.7s
+
+function orderPlacedAt(
+  msAgo: number,
+  rating: PlacedOrder['rating'] = null,
+  etaMinutes = ETA_MINUTES,
+  deliveryMs = DELIVERY_MS,
+): PlacedOrder {
   return {
     orderId: 'order-1',
     placedAt: new Date(NOW - msAgo).toISOString(),
+    etaMinutes,
+    deliveryMs,
     items: [],
     itemCount: 1,
     amountMinor: 1000,
@@ -31,64 +41,94 @@ function orderPlacedAt(msAgo: number, rating: PlacedOrder['rating'] = null): Pla
   };
 }
 
-describe('computeTrackerView (AC1)', () => {
+describe('isDelivered', () => {
+  it('is false before the stored delivery time and true at or after it', () => {
+    expect(isDelivered(orderPlacedAt(DELIVERY_MS - 1), NOW)).toBe(false);
+    expect(isDelivered(orderPlacedAt(DELIVERY_MS), NOW)).toBe(true);
+    expect(isDelivered(orderPlacedAt(DELIVERY_MS + 60_000), NOW)).toBe(true);
+  });
+});
+
+describe('computeTrackerView (AC4)', () => {
   it('is empty with no order', () => {
     expect(computeTrackerView(null)).toEqual({ kind: 'empty' });
   });
 
-  it('is at "Placed" (step 0) just after placing', () => {
+  it('is at "Placed" (step 0) just after placing, counting down toward the full estimate', () => {
     const view = computeTrackerView(orderPlacedAt(0), NOW);
-    expect(view).toEqual({ kind: 'active', currentStepIndex: 0 });
+    expect(view).toEqual({ kind: 'active', currentStepIndex: 0, remainingMs: ETA_MINUTES * 60_000 });
   });
 
-  it('advances to "Preparing" (step 1) at the preparing threshold', () => {
+  it('advances to "Preparing" (step 1) at this order’s own preparing threshold', () => {
     const view = computeTrackerView(orderPlacedAt(PREPARING_MS), NOW);
-    expect(view).toEqual({ kind: 'active', currentStepIndex: 1 });
+    expect(view.kind).toBe('active');
+    expect(view.kind === 'active' && view.currentStepIndex).toBe(1);
   });
 
   it('is still on "Placed" one millisecond short of the preparing threshold', () => {
     const view = computeTrackerView(orderPlacedAt(PREPARING_MS - 1), NOW);
-    expect(view).toEqual({ kind: 'active', currentStepIndex: 0 });
+    expect(view.kind === 'active' && view.currentStepIndex).toBe(0);
   });
 
-  it('advances to "Picked up" (step 2) at the picked-up threshold', () => {
+  it('advances to "Picked up" (step 2) at this order’s own picked-up threshold', () => {
     const view = computeTrackerView(orderPlacedAt(PICKED_UP_MS), NOW);
-    expect(view).toEqual({ kind: 'active', currentStepIndex: 2 });
+    expect(view.kind === 'active' && view.currentStepIndex).toBe(2);
   });
 
-  it('advances to "On the way" (step 3) at the on-the-way threshold', () => {
+  it('advances to "On the way" (step 3) at this order’s own on-the-way threshold', () => {
     const view = computeTrackerView(orderPlacedAt(ON_THE_WAY_MS), NOW);
-    expect(view).toEqual({ kind: 'active', currentStepIndex: 3 });
+    expect(view.kind === 'active' && view.currentStepIndex).toBe(3);
   });
 
-  it('is still on "On the way", not yet delivered, one millisecond short of the delivered threshold', () => {
-    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS - 1), NOW);
-    expect(view).toEqual({ kind: 'active', currentStepIndex: 3 });
+  it('is still on "On the way", not yet delivered, one millisecond short of its own delivery time', () => {
+    const view = computeTrackerView(orderPlacedAt(DELIVERY_MS - 1), NOW);
+    expect(view.kind === 'active' && view.currentStepIndex).toBe(3);
   });
 
-  it('reaches Delivered, unrated, at the delivered threshold', () => {
-    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS), NOW);
+  it('reaches Delivered, unrated, exactly at its own stored delivery time — which is at or before half the estimate, i.e. early', () => {
+    const view = computeTrackerView(orderPlacedAt(DELIVERY_MS), NOW);
     expect(view).toEqual({ kind: 'delivered', rated: false });
+    expect(DELIVERY_MS).toBeLessThanOrEqual((ETA_MINUTES * 60_000) / 2);
   });
 
   it('stays Delivered arbitrarily long after the threshold — the tracker never stalls or resets', () => {
-    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS + 24 * 60 * 60 * 1000), NOW);
+    const view = computeTrackerView(orderPlacedAt(DELIVERY_MS + 24 * 60 * 60 * 1000), NOW);
     expect(view).toEqual({ kind: 'delivered', rated: false });
   });
 
   it('reports the stored rating once one has been submitted', () => {
-    const view = computeTrackerView(orderPlacedAt(DELIVERED_MS, { stars: 4, tags: ['fast'] }), NOW);
+    const view = computeTrackerView(orderPlacedAt(DELIVERY_MS, { stars: 4, tags: ['fast'] }), NOW);
     expect(view).toEqual({ kind: 'delivered', rated: true, stars: 4, tags: ['fast'] });
   });
 
-  it('reading the same stored order twice in a row never resets — elapsed time only ever counts up (AC1, "refresh never resets")', () => {
+  it('reading the same stored order twice in a row never resets — elapsed time only ever counts up (AC4, "refresh never resets")', () => {
     const order = orderPlacedAt(ON_THE_WAY_MS);
     const first = computeTrackerView(order, NOW);
     const second = computeTrackerView(order, NOW + 5000);
-    expect(first).toEqual({ kind: 'active', currentStepIndex: 3 });
+    expect(first.kind).toBe('active');
     expect(second.kind).toBe('active');
     if (first.kind === 'active' && second.kind === 'active') {
       expect(second.currentStepIndex).toBeGreaterThanOrEqual(first.currentStepIndex);
+      expect(second.remainingMs).toBeLessThanOrEqual(first.remainingMs);
     }
+  });
+
+  it('the intermediate steps scale with each order’s own delivery time, not a fixed total (AC4)', () => {
+    // The same one-minute elapsed time is already past the short order's own
+    // preparing threshold (~26s) but well short of a much longer order's
+    // (~171s) — each order's steps are paced off its own deliveryMs.
+    const oneMinute = 60_000;
+    const shortView = computeTrackerView(orderPlacedAt(oneMinute), NOW);
+    const longDeliveryMs = 40 * 60_000;
+    const longView = computeTrackerView(orderPlacedAt(oneMinute, null, 90, longDeliveryMs), NOW);
+    expect(shortView.kind === 'active' && shortView.currentStepIndex).toBe(1);
+    expect(longView.kind === 'active' && longView.currentStepIndex).toBe(0);
+  });
+
+  it('remainingMs never goes negative once elapsed time exceeds the estimate but delivery hasn’t yet triggered', () => {
+    // Pathological but possible if the estimate and delivery time were ever
+    // inconsistent: remainingMs still floors at 0 rather than going negative.
+    const view = computeTrackerView(orderPlacedAt(ETA_MINUTES * 60_000 + 1, null, ETA_MINUTES, ETA_MINUTES * 60_000 + 60_000), NOW);
+    expect(view.kind === 'active' && view.remainingMs).toBe(0);
   });
 });
