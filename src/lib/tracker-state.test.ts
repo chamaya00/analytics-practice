@@ -21,6 +21,8 @@ function orderPlacedAt(
   etaMinutes = ETA_MINUTES,
   deliveryMs = DELIVERY_MS,
   orderId = 'order-1',
+  driverRating: PlacedOrder['driverRating'] = null,
+  ratingPromptedAt: PlacedOrder['ratingPromptedAt'] = null,
 ): PlacedOrder {
   return {
     orderId,
@@ -41,6 +43,8 @@ function orderPlacedAt(
     viewCount: 0,
     deliveredEventFired: false,
     rating,
+    driverRating,
+    ratingPromptedAt,
   };
 }
 

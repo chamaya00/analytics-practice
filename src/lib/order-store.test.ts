@@ -626,6 +626,8 @@ describe('order history cap (AC5)', () => {
       viewCount: 0,
       deliveredEventFired: false,
       rating: null,
+      driverRating: null,
+      ratingPromptedAt: null,
       ...overrides,
     };
   }
