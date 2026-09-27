@@ -5,11 +5,21 @@
 // the same session boundary the event contract's `session_id` uses — holding
 // only what a pure function needs to recompute state (no personal data),
 // matching order-store.ts's existing storage pattern.
+//
+// #119/#120: the draw grew from a fixed 2 restaurants to 5–6, to match the
+// Grab-sized sheet's scrolling list. `flash_sheet_shown`'s own contract
+// still requires exactly 2 slugs (docs/design/119-flash-sheet-tall-and-
+// collapsed-bar.md's own scope line, and CLAUDE.md's "event tracking comes
+// last") — unchanged deliberately, so a 5–6 draw's event goes quiet rather
+// than firing a truncated or widened shape (see home-dom.ts and tracking.ts).
 
 import type { City } from './money';
 import { restaurantsForCity } from './restaurants';
 
 export const FLASH_WINDOW_MS = 15 * 60 * 1000;
+
+export const FLASH_DRAW_SIZE_MIN = 5;
+export const FLASH_DRAW_SIZE_MAX = 6;
 
 const AMOUNT_STEPS_MINOR: Record<City, number[]> = {
   hcmc: [10000, 15000, 20000, 25000, 30000],
@@ -28,7 +38,12 @@ export interface FlashRestaurantDraw {
 export interface FlashDraw {
   drawnAt: number;
   amountMinor: number;
-  restaurants: [FlashRestaurantDraw, FlashRestaurantDraw];
+  /** 5–6 distinct restaurants (#119/#120) — a fixed pair, previously. */
+  restaurants: FlashRestaurantDraw[];
+  /** True once the sheet has been dismissed into the collapsed reopen bar — persisted alongside the draw so the bar survives a reload of the home page while the window is still live (#120 AC2). Absent/false means the sheet, if ever shown, hasn't been collapsed (or the draw predates this field). */
+  collapsed?: boolean;
+  /** True once `flash_sheet_closed` has fired for this draw — checked before firing again so reopening the collapsed bar and dismissing a second time never double-fires the once-per-draw event (#120 AC7). */
+  closedEventFired?: boolean;
 }
 
 function flashKey(city: City): string {
@@ -39,23 +54,24 @@ function pickIndex(length: number, random: () => number): number {
   return Math.min(length - 1, Math.floor(random() * length));
 }
 
-/** Draws the session's flash deal for a city — a random amount at that city's own step, and two distinct restaurants from its catalogue, each independently drawn a fee mode. `random` is injectable so a test can seed the exact draw rather than asserting only "it's in range." */
+/** Draws the session's flash deal for a city — a random amount at that city's own step, and 5–6 distinct restaurants from its catalogue, each independently drawn a fee mode. `random` is injectable so a test can seed the exact draw rather than asserting only "it's in range." */
 export function drawFlashDeal(city: City, now: number, random: () => number = Math.random): FlashDraw {
   const amountMinor = AMOUNT_STEPS_MINOR[city][pickIndex(AMOUNT_STEPS_MINOR[city].length, random)];
 
-  const pool = [...restaurantsForCity(city)];
-  const first = pool.splice(pickIndex(pool.length, random), 1)[0];
-  const second = pool.splice(pickIndex(pool.length, random), 1)[0];
-
+  const size = FLASH_DRAW_SIZE_MIN + pickIndex(FLASH_DRAW_SIZE_MAX - FLASH_DRAW_SIZE_MIN + 1, random);
   const drawFeeMode = (): FlashFeeMode => (random() < 0.5 ? 'free' : 'reduced');
+
+  const pool = [...restaurantsForCity(city)];
+  const restaurants: FlashRestaurantDraw[] = [];
+  for (let i = 0; i < size && pool.length > 0; i++) {
+    const picked = pool.splice(pickIndex(pool.length, random), 1)[0];
+    restaurants.push({ slug: picked.slug, feeMode: drawFeeMode() });
+  }
 
   return {
     drawnAt: now,
     amountMinor,
-    restaurants: [
-      { slug: first.slug, feeMode: drawFeeMode() },
-      { slug: second.slug, feeMode: drawFeeMode() },
-    ],
+    restaurants,
   };
 }
 
@@ -68,6 +84,7 @@ function isFlashRestaurantDraw(value: unknown): value is FlashRestaurantDraw {
   );
 }
 
+/** A stored draw from before #119/#120 (exactly 2 restaurants) fails this check on purpose — it doesn't match the current 5–6 shape, so `getFlashDraw` reports it absent and the caller redraws fresh rather than trying to reconcile the old shape (AC5). */
 function isFlashDraw(value: unknown): value is FlashDraw {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as FlashDraw;
@@ -75,8 +92,11 @@ function isFlashDraw(value: unknown): value is FlashDraw {
     typeof candidate.drawnAt === 'number' &&
     typeof candidate.amountMinor === 'number' &&
     Array.isArray(candidate.restaurants) &&
-    candidate.restaurants.length === 2 &&
-    candidate.restaurants.every(isFlashRestaurantDraw)
+    candidate.restaurants.length >= FLASH_DRAW_SIZE_MIN &&
+    candidate.restaurants.length <= FLASH_DRAW_SIZE_MAX &&
+    candidate.restaurants.every(isFlashRestaurantDraw) &&
+    (candidate.collapsed === undefined || typeof candidate.collapsed === 'boolean') &&
+    (candidate.closedEventFired === undefined || typeof candidate.closedEventFired === 'boolean')
   );
 }
 
@@ -105,6 +125,18 @@ export function setFlashDraw(storage: Storage, city: City, draw: FlashDraw): voi
     // page load in memory, same fallback home-dom.ts already uses for the
     // location pick.
   }
+}
+
+/** Patches and re-persists `collapsed`/`closedEventFired` on an already-drawn draw, returning the updated value for the caller to keep using in memory — the same read-patch-write shape `setFlashDraw` itself uses, so the collapsed bar's state survives a reload the same way the draw itself does (#120 AC2, AC7). */
+export function setFlashDrawState(
+  storage: Storage,
+  city: City,
+  draw: FlashDraw,
+  patch: Partial<Pick<FlashDraw, 'collapsed' | 'closedEventFired'>>,
+): FlashDraw {
+  const updated: FlashDraw = { ...draw, ...patch };
+  setFlashDraw(storage, city, updated);
+  return updated;
 }
 
 export interface EnsureFlashDealResult {

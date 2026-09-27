@@ -155,6 +155,38 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
     ).toBe(false);
   });
 
+  it('rejects a 5-6 restaurant_slugs payload from #120\'s grown draw — the contract stays at exactly 2, so the event goes quiet rather than being widened or truncated (AC6)', () => {
+    expect(
+      isValidEventProps('flash_sheet_shown', {
+        city: 'hcmc',
+        amount_minor: 15000,
+        currency: 'VND',
+        restaurant_slugs: [
+          'ben-thanh-banh-mi',
+          'saigon-pho-quan',
+          'com-tam-quan-nha',
+          'bun-cha-co-ba',
+          'hu-tieu-nam-vang-hoa-phat',
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isValidEventProps('flash_sheet_shown', {
+        city: 'hcmc',
+        amount_minor: 15000,
+        currency: 'VND',
+        restaurant_slugs: [
+          'ben-thanh-banh-mi',
+          'saigon-pho-quan',
+          'com-tam-quan-nha',
+          'bun-cha-co-ba',
+          'hu-tieu-nam-vang-hoa-phat',
+          'goi-cuon-co-hai-cho-cu',
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it('accepts flash_sheet_closed for each outcome, with restaurant_slug carrying the fixed literal "none" except restaurant_tapped', () => {
     expect(
       isValidEventProps('flash_sheet_closed', {

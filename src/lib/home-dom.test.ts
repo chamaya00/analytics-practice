@@ -171,16 +171,19 @@ describe('home feed contents (AC2)', () => {
 });
 
 describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
-  it('the first load this session draws, stores under flashDeal:<city>, and fires flash_sheet_shown once', () => {
+  it('the first load this session draws and stores under flashDeal:<city>; flash_sheet_shown goes quiet for a 5-6 restaurant draw (AC6)', () => {
     window.localStorage.setItem('parody.city', 'sf');
     const stub = vi.fn();
     setTrack(stub);
 
     initHomePage(root(), window.localStorage, window.sessionStorage);
 
+    // #120: the draw is now 5-6 restaurants, but flash_sheet_shown's own
+    // contract (isValidRestaurantSlugs in tracking.ts) still requires
+    // exactly 2 slugs, unchanged - so the event is dropped by that
+    // validation rather than firing with a truncated or widened shape.
     const shown = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown');
-    expect(shown).toHaveLength(1);
-    expect(shown[0][1].city).toBe('sf');
+    expect(shown).toHaveLength(0);
     expect(window.sessionStorage.getItem('flashDeal:sf')).not.toBeNull();
   });
 
@@ -204,23 +207,20 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
 
     expect(window.sessionStorage.getItem('flashDeal:sf')).toBe(firstDraw);
     expect(second.querySelector('[data-testid="flash-sheet"]')).toBeNull();
-    expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown')).toHaveLength(1);
+    expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown')).toHaveLength(0);
   });
 
   it('the first visit to the other city this session makes its own independent draw and shows its own sheet', () => {
     window.localStorage.setItem('parody.city', 'sf');
-    const stub = vi.fn();
-    setTrack(stub);
     const el = root();
 
     initHomePage(el, window.localStorage, window.sessionStorage);
     el.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
     el.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
 
-    const shown = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown');
-    expect(shown).toHaveLength(2);
-    expect(shown[1][1].city).toBe('hcmc');
+    expect(window.sessionStorage.getItem('flashDeal:sf')).not.toBeNull();
     expect(window.sessionStorage.getItem('flashDeal:hcmc')).not.toBeNull();
+    expect(window.sessionStorage.getItem('flashDeal:sf')).not.toBe(window.sessionStorage.getItem('flashDeal:hcmc'));
   });
 
   it('a flash-active restaurant shows the Flash marker as a small badge beside the meta line, not a full-width bar underneath it (#104)', () => {
@@ -229,7 +229,7 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
 
     initHomePage(el, window.localStorage, window.sessionStorage);
 
-    const draw = JSON.parse(window.sessionStorage.getItem('flashDeal:sf')!) as { restaurants: [{ slug: string }, { slug: string }] };
+    const draw = JSON.parse(window.sessionStorage.getItem('flashDeal:sf')!) as { restaurants: { slug: string }[] };
     const flashSlug = draw.restaurants[0].slug;
     const badge = el.querySelector(`[data-testid="flash-badge-${flashSlug}"]`);
 
@@ -237,5 +237,70 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
     // Beside the meta line: a child of .restaurant-card-meta, not a sibling
     // block rendered on its own row underneath the card body.
     expect(badge?.parentElement).toBe(el.querySelector(`[data-testid="restaurant-card-${flashSlug}"] .restaurant-card-meta`));
+  });
+
+  it('every one of the drawn 5-6 restaurants gets the Flash badge, not just the first (#120 AC4)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+
+    initHomePage(el, window.localStorage, window.sessionStorage);
+
+    const draw = JSON.parse(window.sessionStorage.getItem('flashDeal:sf')!) as { restaurants: { slug: string }[] };
+    expect(draw.restaurants.length).toBeGreaterThanOrEqual(5);
+    expect(draw.restaurants.length).toBeLessThanOrEqual(6);
+    for (const restaurant of draw.restaurants) {
+      expect(el.querySelector(`[data-testid="flash-badge-${restaurant.slug}"]`)).not.toBeNull();
+    }
+  });
+});
+
+describe('the collapsed reopen bar (AC2, AC3)', () => {
+  it('dismissing the sheet collapses it into a reopen bar, persisted so a reload of the feed still shows it', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, window.localStorage, window.sessionStorage);
+
+    el.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click();
+
+    expect(el.querySelector('[data-testid="flash-sheet"]')).toBeNull();
+    expect(el.querySelector('[data-testid="flash-reopen-bar"]')).not.toBeNull();
+
+    const stored = JSON.parse(window.sessionStorage.getItem('flashDeal:sf')!) as { collapsed?: boolean };
+    expect(stored.collapsed).toBe(true);
+
+    // A reload of the home page (a fresh initHomePage call, same session):
+    // the bar reappears because the collapsed state was stored alongside
+    // the draw, not merely held in memory (AC2).
+    const reloaded = root();
+    initHomePage(reloaded, window.localStorage, window.sessionStorage);
+    expect(reloaded.querySelector('[data-testid="flash-reopen-bar"]')).not.toBeNull();
+    expect(reloaded.querySelector('[data-testid="flash-sheet"]')).toBeNull();
+  });
+
+  it('tapping the reopen bar reopens the sheet and removes the bar', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, window.localStorage, window.sessionStorage);
+
+    el.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click();
+    el.querySelector<HTMLElement>('[data-testid="flash-reopen-bar"]')?.click();
+
+    expect(el.querySelector('[data-testid="flash-sheet"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="flash-reopen-bar"]')).toBeNull();
+  });
+
+  it('closing the sheet again after reopening from the bar fires no further flash_sheet_closed (AC7)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initHomePage(el, window.localStorage, window.sessionStorage);
+
+    el.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click(); // dismiss: fires once, collapses
+    el.querySelector<HTMLElement>('[data-testid="flash-reopen-bar"]')?.click(); // reopen
+    el.querySelector<HTMLElement>('[data-testid="flash-sheet-scrim"]')?.click(); // dismiss again: no further event
+
+    expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_closed')).toHaveLength(1);
+    expect(el.querySelector('[data-testid="flash-reopen-bar"]')).not.toBeNull();
   });
 });
