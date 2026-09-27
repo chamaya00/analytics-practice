@@ -40,6 +40,60 @@ export function isDelivered(order: PlacedOrder, now: number): boolean {
   return elapsedMs >= order.deliveryMs;
 }
 
+/** The moment an order is expected to arrive — `placedAt` plus the estimate
+ * shown at checkout. Fixed per order (never reshuffles while ticking), so
+ * it's the sort key both the order stack (#148) and the row switcher use. */
+export function estimatedArrivalMs(order: PlacedOrder): number {
+  return new Date(order.placedAt).getTime() + order.etaMinutes * 60_000;
+}
+
+export interface OrderStack {
+  /** Every order not yet Delivered, plus the open order if it reached
+   * Delivered while being watched (#148, "Order stack rules" — it stays open,
+   * rating prompt included, until the page is left). Ascending estimated
+   * arrival, so the stack never reshuffles while ticking. */
+  live: PlacedOrder[];
+  /** Every order not in `live`, newest `placedAt` first. Never overlaps
+   * `live` — an order appears in exactly one of the two lists. */
+  past: PlacedOrder[];
+}
+
+/**
+ * Splits every stored order into "Live now" and "Past orders" (#148). An
+ * order past its own `deliveryMs` still counts as live when it's the one
+ * open on screen — that's the one exception the design doc names — which is
+ * why this takes `openOrderId` rather than deriving live/past from
+ * `isDelivered` alone.
+ */
+export function computeOrderStack(
+  orders: PlacedOrder[],
+  openOrderId: string | null,
+  now: number = Date.now(),
+): OrderStack {
+  const live = orders.filter((order) => !isDelivered(order, now) || order.orderId === openOrderId);
+  const liveIds = new Set(live.map((order) => order.orderId));
+  const past = orders.filter((order) => !liveIds.has(order.orderId));
+  live.sort((a, b) => estimatedArrivalMs(a) - estimatedArrivalMs(b));
+  past.sort((a, b) => new Date(b.placedAt).getTime() - new Date(a.placedAt).getTime());
+  return { live, past };
+}
+
+/**
+ * Which order the tracker opens by default (#148, "Order stack rules"): the
+ * live order arriving soonest, because that's the one a person has to act on
+ * first — or, when nothing is live, the most recently placed order in
+ * whatever state it's in (today's exact single-order screen). `null` only
+ * when nothing is stored at all.
+ */
+export function defaultOpenOrderId(orders: PlacedOrder[], now: number = Date.now()): string | null {
+  if (orders.length === 0) return null;
+  const liveOrders = orders.filter((order) => !isDelivered(order, now));
+  if (liveOrders.length === 0) return orders[orders.length - 1].orderId;
+  return liveOrders.reduce((soonest, order) =>
+    estimatedArrivalMs(order) < estimatedArrivalMs(soonest) ? order : soonest,
+  ).orderId;
+}
+
 /**
  * A pure function of the stored order and the current time — a refresh or a
  * later return visit calls this again with the same `placedAt` and gets the

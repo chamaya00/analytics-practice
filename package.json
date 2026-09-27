@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "generate-photo-manifest": "node scripts/generate-photo-manifest.mjs",
-    "rewrite-photo-credits": "node scripts/rewrite-photo-credits.mjs"
+    "rewrite-photo-credits": "node scripts/rewrite-photo-credits.mjs",
+    "generate-driver-avatars": "node scripts/generate-driver-avatars.mjs"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@dicebear/avataaars": "9.4.2",
+    "@dicebear/core": "9.4.3",
     "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "^10.0.1",
     "astro-eslint-parser": "^1.4.0",

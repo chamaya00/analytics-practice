@@ -6,10 +6,20 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { restaurantsForCity } from './restaurants';
 import { MAX_BYTES as FETCH_MAX_BYTES } from '../../scripts/fetch-photos.mjs';
+import { DRIVERS_BY_CITY } from './drivers';
 
 const ROOT = process.cwd();
 const IMAGES_DIR = path.join(ROOT, 'public', 'images');
 const CREDITS_FILE = path.join(ROOT, 'docs', 'design', '80-photo-credits.md');
+// #148, docs/decisions/0010-driver-avatars.md: the 50 vendored driver
+// avatars, measured once against the DiceBear option set drivers.ts and
+// generate-driver-avatars.mjs actually produce (the largest observed,
+// hcmc-driver-12's long-hair-plus-beard combination, is ~14.2KB; the 50
+// together total ~258KB) — both caps leave headroom rather than sitting
+// exactly on the observed numbers.
+const AVATARS_DIR = path.join(ROOT, 'public', 'avatars', 'drivers');
+const AVATAR_PER_FILE_MAX_BYTES = 16 * 1024;
+const AVATAR_TOTAL_MAX_BYTES = 300 * 1024;
 // #82's design budget (40KB) fit a placeholder SVG with room to spare. A
 // real downloaded JPEG only has to clear scripts/fetch-photos.mjs's own
 // per-file refusal — importing that constant keeps the two from drifting
@@ -85,6 +95,30 @@ describe('photo credits file (AC3, #82; rewritten from the lock file by #106)', 
     for (const row of rows) {
       expect(row, row).toContain('Unsplash License');
     }
+  });
+});
+
+describe('driver avatars — weight budget (#148 AC4)', () => {
+  it('every driver id in drivers.ts has its own committed avatar file, and only those 50', () => {
+    const expectedIds = Object.values(DRIVERS_BY_CITY)
+      .flat()
+      .map((driver) => driver.id)
+      .sort();
+    const actualIds = readdirSync(AVATARS_DIR)
+      .map((name) => name.replace(/\.svg$/, ''))
+      .sort();
+    expect(actualIds).toEqual(expectedIds);
+  });
+
+  it('every avatar is at most the per-file cap, and all 50 together are at most the total cap', () => {
+    const files = readdirSync(AVATARS_DIR).map((name) => path.join(AVATARS_DIR, name));
+    let total = 0;
+    for (const file of files) {
+      const size = statSync(file).size;
+      total += size;
+      expect(size, `${path.basename(file)} is ${size} bytes`).toBeLessThanOrEqual(AVATAR_PER_FILE_MAX_BYTES);
+    }
+    expect(total, `all avatars total ${total} bytes`).toBeLessThanOrEqual(AVATAR_TOTAL_MAX_BYTES);
   });
 });
 

@@ -29,9 +29,9 @@ describe('initOrderPlacedPage (AC9)', () => {
     expect(navigate).toHaveBeenCalledWith('/restaurants/');
   });
 
-  it('renders a confirmation with a link to /tracker/ once an order exists', () => {
+  it('renders a confirmation with a link to the order just placed (#147 "Order stack rules")', () => {
     addToCart(window.localStorage, LINE);
-    placeOrder(window.localStorage, {
+    const order = placeOrder(window.localStorage, {
       dropOffPreset: 'home',
       deliveryInstructions: 'hand_to_me',
       utensils: true,
@@ -40,7 +40,9 @@ describe('initOrderPlacedPage (AC9)', () => {
     const el = root();
     initOrderPlacedPage(el, window.localStorage, vi.fn());
 
-    expect(el.querySelector('[data-testid="track-order"]')?.getAttribute('href')).toBe('/tracker/');
+    expect(el.querySelector('[data-testid="track-order"]')?.getAttribute('href')).toBe(
+      `/tracker/#order-${order.orderId}`,
+    );
     expect(el.querySelector('[data-testid="order-placed-summary"]')?.textContent).toContain('One Job Pizza');
   });
 

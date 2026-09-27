@@ -1,28 +1,44 @@
-// Tracker screen (docs/design/80-two-city-brand-and-flow.md, "Tracker") — a
-// five-stage stepper ending in Delivered, which reveals a rating prompt in
-// the same screen. Renders from computeTrackerView, re-rendering on an
-// interval so the stepper advances without a reload; fires tracker_viewed
-// once per page load (not per re-render), order_delivered exactly once per
-// order the first time the computation observes Delivered, and
-// rating_submitted once when "Submit" is tapped — matching
-// docs/measurement/81-two-city-event-contract.md §7 exactly.
+// Tracker screen (docs/design/80-two-city-brand-and-flow.md, "Tracker";
+// extended by #148/docs/design/147-tracker-multi-order-driver-history.md to
+// several live orders, a driver card, and history below) — renders from
+// every stored order's own computeTrackerView, re-rendering on an interval so
+// each order's stepper advances without a reload; fires tracker_viewed once
+// per page load (not per re-render, and not again when a row is opened), for
+// the order open by default (chamaya00, #148 driver notes, D11); fires
+// order_delivered once per order via delivery.ts's own sweep of every
+// stored order (#144 §3), whether or not that order is the one on screen;
+// and fires rating_submitted once, against the order currently open, when
+// "Submit" is tapped.
 
-import { getLatestOrder, minutesSinceOrder, recordTrackerView, submitRating } from './order-store';
-import { computeTrackerView, STEPS, type TrackerView } from './tracker-state';
+import { findOrder, getOrders, minutesSinceOrder, recordTrackerView, submitRating, type PlacedOrder } from './order-store';
+import {
+  computeOrderStack,
+  computeTrackerView,
+  defaultOpenOrderId,
+  STEPS,
+  type TrackerView,
+} from './tracker-state';
 import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
-import { getRestaurant } from './restaurants';
+import { formatMoney } from './money';
+import { getRestaurant, type Restaurant } from './restaurants';
+import { formatReviewCount } from './reviews';
 import { createVehicleIcon } from './vehicle-icon';
+import { formatHistoryDate } from './history-date';
 
 const STAR_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
 
 // 105-tracker.html's own rail dot: a checkmark once a step is reached
-// (current or done), nothing inside it while still ahead.
+// (current or done), nothing inside it while still ahead. Reused for the
+// history row's "Delivered" state (#148) — same mark, a muted colour there.
 const CHECK_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const CHEVRON_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 
 const TAG_LABELS: Record<RatingTag, string> = {
   fast: 'Fast',
@@ -171,22 +187,271 @@ function renderRatedPrompt(stars: number): HTMLElement {
   return prompt;
 }
 
-export interface TrackerOrderSummary {
-  restaurantName: string;
-  /** Drives the countdown's vehicle icon — the order's own restaurant's city, not the current city picker (#130 AC5). */
-  restaurantSlug: string;
-  itemCount: number;
+/** A restaurant photo, or a plain placeholder square when the order's own
+ * restaurant slug no longer resolves (#147, "Partial / error" state) — never
+ * a broken image. */
+function renderThumb(className: string, restaurant: Restaurant | undefined): HTMLElement {
+  if (restaurant) {
+    const img = document.createElement('img');
+    img.className = className;
+    img.src = restaurant.heroImage;
+    img.alt = '';
+    return img;
+  }
+  const placeholder = document.createElement('div');
+  placeholder.className = `${className} tracker-thumb-placeholder`;
+  return placeholder;
+}
+
+/** A driver's headshot — falls back to a plain initial disc rather than a
+ * broken image if the id has no avatar file (#147, "Partial / error" state;
+ * shouldn't happen, since scripts/generate-driver-avatars.mjs covers every
+ * id in drivers.ts, but the fallback costs nothing). */
+function renderDriverAvatar(className: string, driver: PlacedOrder['driver']): HTMLElement {
+  const img = document.createElement('img');
+  img.className = className;
+  img.src = `/avatars/drivers/${driver.id}.svg`;
+  img.alt = '';
+  img.addEventListener('error', () => {
+    const fallback = document.createElement('span');
+    fallback.className = `${className} tracker-avatar-fallback`;
+    fallback.textContent = driver.name.charAt(0);
+    img.replaceWith(fallback);
+  });
+  return img;
+}
+
+/** The driver slot (#147, "Driver slot") — a fixed-height area holding
+ * either the pending-driver placeholder (before Picked up) or the driver
+ * card (Picked up onward), so nothing below it jumps when a driver appears. */
+function renderDriverSlot(order: PlacedOrder, view: TrackerView, city: Restaurant['city']): HTMLElement {
+  const slot = document.createElement('div');
+  slot.setAttribute('data-testid', 'tracker-driver-slot');
+
+  const beforePickup = view.kind === 'active' && view.currentStepIndex < 2;
+  if (beforePickup) {
+    slot.className = 'tracker-driver tracker-driver-pending';
+    const placeholder = document.createElement('span');
+    placeholder.className = 'tracker-driver-placeholder';
+    placeholder.append(createVehicleIcon(city));
+    const who = document.createElement('div');
+    who.className = 'tracker-driver-who';
+    const name = document.createElement('div');
+    name.className = 'tracker-driver-name';
+    name.textContent = 'Finding your driver';
+    const kicker = document.createElement('div');
+    kicker.className = 'tracker-driver-kicker';
+    kicker.textContent = 'Assigned when your order is picked up';
+    who.append(name, kicker);
+    slot.append(placeholder, who);
+    return slot;
+  }
+
+  slot.className = 'tracker-driver';
+  slot.setAttribute('data-testid', 'tracker-driver-card');
+  slot.setAttribute('data-driver-id', order.driver.id);
+
+  const avatar = renderDriverAvatar('tracker-driver-avatar', order.driver);
+  const who = document.createElement('div');
+  who.className = 'tracker-driver-who';
+  const kicker = document.createElement('div');
+  kicker.className = 'tracker-driver-kicker';
+  kicker.textContent = view.kind === 'delivered' ? 'Delivered by' : 'Your driver';
+  const name = document.createElement('div');
+  name.className = 'tracker-driver-name';
+  name.textContent = order.driver.name;
+  const rating = document.createElement('div');
+  rating.className = 'tracker-rating';
+  rating.setAttribute('data-testid', 'tracker-driver-rating');
+  rating.append(`★ ${order.driver.rating.toFixed(1)} `);
+  const count = document.createElement('span');
+  count.className = 'tracker-rating-count';
+  count.textContent = `(${formatReviewCount(order.driver.ratingCount)})`;
+  rating.append(count);
+  who.append(kicker, name, rating);
+
+  const vehicleTag = document.createElement('span');
+  vehicleTag.className = 'tracker-driver-vehicle';
+  vehicleTag.append(createVehicleIcon(city));
+
+  slot.append(avatar, who, vehicleTag);
+  return slot;
+}
+
+/** The open order card (#147, "Open order card") — everything about the one
+ * order currently on screen: restaurant, countdown/Delivered line, stepper,
+ * driver slot, and (once Delivered) the demo disclosure and rating prompt. */
+function renderOpenCard(
+  order: PlacedOrder,
+  view: TrackerView,
+  onSubmitRating: (stars: number, tags: RatingTag[]) => void,
+): HTMLElement {
+  const card = document.createElement('section');
+  card.className = 'tracker-order-card';
+  card.setAttribute('data-testid', 'tracker-open-card');
+
+  const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
+  const city = restaurant?.city ?? 'sf';
+
+  const head = document.createElement('div');
+  head.className = 'tracker-card-head';
+  head.append(renderThumb('tracker-thumb', restaurant));
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.className = 'tracker-card-name';
+  name.textContent = order.items[0]?.restaurantName ?? '';
+  const meta = document.createElement('div');
+  meta.className = 'tracker-meta';
+  meta.setAttribute('data-testid', 'tracker-order-summary');
+  const itemsText = order.itemCount === 1 ? '1 item' : `${order.itemCount} items`;
+  meta.textContent = `${itemsText} · ${formatMoney(order.totalMinor ?? order.amountMinor, order.currency)}`;
+  info.append(name, meta);
+  head.append(info);
+  card.append(head);
+
+  if (view.kind === 'active') {
+    const countdown = document.createElement('p');
+    countdown.className = 'tracker-countdown';
+    countdown.setAttribute('data-testid', 'tracker-countdown');
+    countdown.append(createVehicleIcon(city));
+    const big = document.createElement('span');
+    big.className = 'tracker-countdown-big';
+    big.textContent = formatCountdown(Math.ceil(view.remainingMs / 1000));
+    countdown.append(big, ' until estimated arrival');
+    card.append(countdown);
+  } else {
+    const deliveredMinutesAgo = Math.max(
+      0,
+      Math.floor((Date.now() - (new Date(order.placedAt).getTime() + order.deliveryMs)) / 60_000),
+    );
+    const delivered = document.createElement('p');
+    delivered.className = 'tracker-delivered-line';
+    delivered.setAttribute('data-testid', 'tracker-delivered-line');
+    delivered.textContent = `Delivered ${deliveredMinutesAgo} min ago`;
+    card.append(delivered);
+  }
+
+  const currentIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
+  card.append(renderStepper(currentIndex));
+  card.append(renderDriverSlot(order, view, city));
+
+  if (view.kind === 'delivered') {
+    card.append(renderDemoDisclosure());
+    card.append(view.rated ? renderRatedPrompt(view.stars) : renderRatingPrompt(onSubmitRating));
+  }
+
+  return card;
+}
+
+/** A collapsed live order — the switcher (#147, "Order row"). Always an
+ * order still active (never the open one, and rows are excluded from
+ * `computeOrderStack`'s live set only by being the currently open order, so
+ * a row's own view is always `active`). */
+function renderOrderRow(order: PlacedOrder, view: TrackerView, onSelect: (orderId: string) => void): HTMLElement {
+  const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'tracker-order-row';
+  button.setAttribute('data-testid', 'tracker-order-row');
+  button.setAttribute('data-order-id', order.orderId);
+  button.setAttribute('aria-expanded', 'false');
+  button.addEventListener('click', () => onSelect(order.orderId));
+
+  button.append(renderThumb('tracker-row-thumb', restaurant));
+
+  const mid = document.createElement('span');
+  mid.className = 'tracker-row-mid';
+  const name = document.createElement('span');
+  name.className = 'tracker-row-name';
+  name.textContent = order.items[0]?.restaurantName ?? '';
+  const status = document.createElement('span');
+  status.className = 'tracker-row-status';
+  const stepIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
+  if (stepIndex >= 2) {
+    status.append(renderDriverAvatar('tracker-row-driver-avatar', order.driver));
+    status.append(`${STEPS[stepIndex]} · `);
+    const driverName = document.createElement('b');
+    driverName.textContent = order.driver.name;
+    status.append(driverName);
+  } else {
+    status.textContent = 'Preparing · Finding your driver';
+  }
+  mid.append(name, status);
+
+  const eta = document.createElement('span');
+  eta.className = 'tracker-row-eta';
+  const minutes = view.kind === 'active' ? Math.max(0, Math.round(view.remainingMs / 60_000)) : 0;
+  eta.append(String(minutes));
+  const unit = document.createElement('span');
+  unit.className = 'tracker-row-eta-unit';
+  unit.textContent = 'min';
+  eta.append(unit);
+
+  const chevron = document.createElement('span');
+  chevron.className = 'tracker-row-chev';
+  chevron.innerHTML = CHEVRON_ICON;
+
+  button.append(mid, eta, chevron);
+  return button;
+}
+
+/** A past order — read-only, no rating/tipping/reorder control (#147, "History row"). */
+function renderHistoryRow(order: PlacedOrder): HTMLElement {
+  const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
+  const li = document.createElement('li');
+  li.className = 'tracker-history-row';
+  li.setAttribute('data-testid', 'tracker-history-row');
+  li.append(renderThumb('tracker-history-thumb', restaurant));
+
+  const mid = document.createElement('div');
+  mid.className = 'tracker-history-mid';
+  const name = document.createElement('div');
+  name.className = 'tracker-history-name';
+  name.textContent = order.items[0]?.restaurantName ?? '';
+  const meta = document.createElement('div');
+  meta.className = 'tracker-history-meta';
+  meta.textContent = `${formatHistoryDate(order.placedAt, restaurant?.city ?? 'sf')} · ${order.itemCount} item${order.itemCount === 1 ? '' : 's'}`;
+  const by = document.createElement('div');
+  by.className = 'tracker-history-by';
+  by.append(renderDriverAvatar('tracker-history-driver-avatar', order.driver), order.driver.name);
+  mid.append(name, meta, by);
+
+  const right = document.createElement('div');
+  right.className = 'tracker-history-right';
+  const total = document.createElement('div');
+  total.className = 'tracker-history-total';
+  total.setAttribute('data-testid', 'tracker-history-total');
+  if (order.totalMinor !== null) {
+    total.textContent = formatMoney(order.totalMinor, order.currency);
+  } else {
+    total.append(formatMoney(order.amountMinor, order.currency));
+    const sub = document.createElement('span');
+    sub.className = 'tracker-history-sub';
+    sub.setAttribute('data-testid', 'tracker-history-subtotal-label');
+    sub.textContent = 'subtotal';
+    total.append(sub);
+  }
+  const state = document.createElement('span');
+  state.className = 'tracker-history-state';
+  state.innerHTML = CHECK_ICON;
+  state.append('Delivered');
+  right.append(total, state);
+
+  li.append(mid, right);
+  return li;
 }
 
 export function renderTrackerView(
   root: HTMLElement,
-  view: TrackerView,
+  orders: PlacedOrder[],
+  openOrderId: string | null,
   onSubmitRating: (stars: number, tags: RatingTag[]) => void,
-  orderSummary: TrackerOrderSummary | null = null,
+  onSelectOrder: (orderId: string) => void,
+  now: number = Date.now(),
 ): void {
   root.innerHTML = '';
 
-  if (view.kind === 'empty') {
+  if (orders.length === 0 || openOrderId === null) {
     const empty = document.createElement('div');
     empty.setAttribute('data-testid', 'tracker-empty');
     const message = document.createElement('p');
@@ -200,53 +465,91 @@ export function renderTrackerView(
     return;
   }
 
-  if (orderSummary) {
-    const summary = document.createElement('p');
-    summary.className = 'tracker-summary';
-    summary.setAttribute('data-testid', 'tracker-order-summary');
-    summary.textContent = `${orderSummary.restaurantName} · ${orderSummary.itemCount} item${orderSummary.itemCount === 1 ? '' : 's'}`;
-    root.append(summary);
+  const stack = computeOrderStack(orders, openOrderId, now);
+  const openOrder = stack.live.find((order) => order.orderId === openOrderId) ?? null;
+  if (!openOrder) {
+    // Shouldn't happen given computeOrderStack's own guarantee that the open
+    // order is always in `live` — defensive rather than reachable.
+    root.append(document.createElement('div'));
+    return;
   }
 
-  if (view.kind === 'active') {
-    // Counts down toward the *estimate* shown at checkout — reaching
-    // Delivered (below, at the order's own earlier deliveryMs) is what ends
-    // this, not the countdown itself running out (#121 AC4).
-    const countdown = document.createElement('p');
-    countdown.className = 'tracker-countdown';
-    countdown.setAttribute('data-testid', 'tracker-countdown');
-    const orderRestaurant = orderSummary ? getRestaurant(orderSummary.restaurantSlug) : undefined;
-    if (orderRestaurant) countdown.append(createVehicleIcon(orderRestaurant.city));
-    countdown.append(`${formatCountdown(Math.ceil(view.remainingMs / 1000))} until estimated arrival`);
-    root.append(countdown);
+  const cols = document.createElement('div');
+  cols.className = 'tracker-cols';
+
+  const live = document.createElement('div');
+  live.className = 'tracker-live';
+
+  if (stack.live.length > 1) {
+    const label = document.createElement('h2');
+    label.className = 'tracker-section-label';
+    const count = document.createElement('span');
+    count.className = 'tracker-section-count';
+    count.textContent = `· ${stack.live.length}`;
+    label.append('Live now ', count);
+    live.append(label);
   }
 
-  const currentIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
-  root.append(renderStepper(currentIndex));
-
-  if (view.kind === 'delivered') {
-    root.append(renderDemoDisclosure());
-    root.append(view.rated ? renderRatedPrompt(view.stars) : renderRatingPrompt(onSubmitRating));
+  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onSubmitRating));
+  for (const order of stack.live) {
+    if (order.orderId === openOrderId) continue;
+    live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder));
   }
+  cols.append(live);
+
+  if (stack.past.length > 0) {
+    const past = document.createElement('section');
+    past.className = 'tracker-past';
+    past.setAttribute('aria-labelledby', 'tracker-past-label');
+    const label = document.createElement('h2');
+    label.className = 'tracker-section-label';
+    label.id = 'tracker-past-label';
+    label.textContent = 'Past orders';
+    const list = document.createElement('ul');
+    list.className = 'tracker-history';
+    list.setAttribute('data-testid', 'tracker-history');
+    for (const order of stack.past) {
+      list.append(renderHistoryRow(order));
+    }
+    const note = document.createElement('p');
+    note.className = 'tracker-device-note';
+    note.textContent = 'Kept on this device only.';
+    past.append(label, list, note);
+    cols.append(past);
+  }
+
+  root.append(cols);
 }
 
 export function initTrackerPage(root: HTMLElement, storage: Storage = window.localStorage): () => void {
-  const order = getLatestOrder(storage);
+  // Arriving from Order placed opens the order just placed (#147, "Order
+  // stack rules"; order-placed-dom.ts's track link is `/tracker/#order-
+  // <orderId>`). Read once, on load — the open choice afterward is page
+  // state only, so a reload returns to the default (chamaya00, #148 driver
+  // notes, D11).
+  const hashMatch = /^#order-(.+)$/.exec(window.location.hash);
+  const hashOrderId = hashMatch ? hashMatch[1] : null;
+  const initialOrders = getOrders(storage);
+  let openOrderId =
+    hashOrderId && initialOrders.some((order) => order.orderId === hashOrderId)
+      ? hashOrderId
+      : defaultOpenOrderId(initialOrders, Date.now());
 
-  if (order) {
-    const viewNumber = recordTrackerView(storage, order.orderId);
-    track('tracker_viewed', {
-      order_id: order.orderId,
-      minutes_since_order: minutesSinceOrder(order),
-      view_number: viewNumber,
-    });
+  if (openOrderId) {
+    const opened = findOrder(storage, openOrderId);
+    if (opened) {
+      const viewNumber = recordTrackerView(storage, opened.orderId);
+      track('tracker_viewed', {
+        order_id: opened.orderId,
+        minutes_since_order: minutesSinceOrder(opened),
+        view_number: viewNumber,
+      });
+    }
   }
 
   function onSubmitRating(stars: number, tags: RatingTag[]): void {
-    // Re-reads the latest order rather than reusing `order` above — the same
-    // order `render()` below is about to display, so the rating always lands
-    // on the order actually named by this write (#144 §3).
-    const current = getLatestOrder(storage);
+    if (!openOrderId) return;
+    const current = findOrder(storage, openOrderId);
     if (!current) return;
     const updated = submitRating(storage, current.orderId, stars, tags);
     if (!updated) return;
@@ -254,19 +557,15 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
     render();
   }
 
+  function onSelectOrder(orderId: string): void {
+    openOrderId = orderId;
+    render();
+  }
+
   function render(): void {
     checkDelivery(storage);
-    const latest = getLatestOrder(storage);
-    const view = computeTrackerView(latest);
-
-    const orderSummary = latest
-      ? {
-          restaurantName: latest.items[0]?.restaurantName ?? '',
-          restaurantSlug: latest.items[0]?.restaurantSlug ?? '',
-          itemCount: latest.itemCount,
-        }
-      : null;
-    renderTrackerView(root, view, onSubmitRating, orderSummary);
+    const orders = getOrders(storage);
+    renderTrackerView(root, orders, openOrderId, onSubmitRating, onSelectOrder);
   }
 
   render();
