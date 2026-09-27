@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dontdropthatpromo: #162 directions compared, A stamp and sheet vs B full-screen takeover (light)</title>
+<!-- #162 mock. A drawing made of markup: nothing imports it and it never ships.
+     Two directions for the Delivered moment and the rating, drawn as two phones side by side.
+     Palette hard-coded (light). Photos and avatars load by relative path as <img>. -->
+<style>
+  :root { --bg:#fbf7ff; --surface:#f7f1ff; --text:#241b33; --muted:#6b5d85; --border:#e3d6fa; --accent:#6c3ce0; --accent-b:#ff7a45; --tint:#ede1ff; --on-accent:#fbf7ff; --gold:#f3d27a;
+    --font: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
+  body { margin: 0; font-family: var(--font); color: var(--text); background: #efe8fa; font-size: 15px; line-height: 1.4; }
+  h1 { font-size: 1rem; margin: 0.75rem 1rem 0.25rem; }
+  .intro { font-size: 0.75rem; color: var(--muted); margin: 0 1rem 0.75rem; }
+  .row { display: flex; gap: 12px; padding: 0 1rem; justify-content: center; }
+  .col { flex: none; width: 375px; }
+  .label { font-size: 0.8125rem; font-weight: 800; margin: 0 0 0.375rem; }
+  .label span { font-weight: 400; color: var(--muted); }
+  .phone { position: relative; width: 375px; height: 700px; background: var(--bg); border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(36,27,51,0.15); }
+  .ph-head { padding: 12px 20px 4px; font-weight: 500; }
+  .ph-head b { font-weight: 800; }
+  .card { margin: 8px 16px; background: var(--surface); border-radius: 16px; padding: 14px; }
+  .head { display: flex; gap: 10px; align-items: center; }
+  .thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; display: block; }
+  .meta { font-size: 12px; color: var(--muted); }
+  .hero { display: flex; gap: 12px; align-items: center; margin-top: 14px; }
+  .big { font-size: 36px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+  .scrim { position: absolute; inset: 0; background: rgba(36,27,51,0.48); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 22px 22px 0 0; padding: 24px 20px 20px; text-align: center; }
+  .sheet img { width: 104px; height: 104px; margin: -78px auto 0; display: block; }
+  .sheet h2 { font-size: 26px; letter-spacing: -0.03em; margin: 8px 0 4px; }
+  .stars { font-size: 34px; color: var(--accent); letter-spacing: 6px; margin: 6px 0; }
+  .btn { display: block; min-height: 48px; line-height: 48px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 800; margin-top: 10px; }
+  .flood { position: absolute; inset: 0; background: var(--accent); color: var(--on-accent); padding: 60px 24px 24px; text-align: center; }
+  .flood .big { font-size: 56px; }
+  .flood p { margin: 8px 0; }
+  .flood .rate { background: rgba(251,247,255,0.14); border-radius: 16px; padding: 14px; margin-top: 40px; }
+  .flood .stars { color: var(--on-accent); }
+  .flood .btn { background: var(--on-accent); color: var(--accent); }
+  .conf i { position: absolute; display: block; width: 8px; height: 4px; }
+  .verdict { font-size: 0.75rem; margin: 0.5rem 0 0; }
+  @media (max-width: 480px) {
+    .row { gap: 6px; padding: 0 6px; }
+    .col { width: 178px; }
+    .phone { transform: scale(0.4747); transform-origin: top left; margin-bottom: -368px; }
+    .verdict { font-size: 0.6875rem; }
+  }
+</style>
+</head>
+<body>
+<h1>#162: two directions for the Delivered moment</h1>
+<p class="intro">Same order, same second (1.5 s after it lands). The structural difference is what the celebration takes over.</p>
+<div class="row">
+  <div class="col">
+    <p class="label">A · Stamp and sheet <span>(recommended)</span></p>
+    <div class="phone">
+      <div class="ph-head"><b>dont</b>dropthatpromo</div>
+      <div class="card">
+        <div class="head"><img class="thumb" src="../../public/images/restaurants/ben-thanh-banh-mi-hero.jpg" alt=""><div><b>Bến Thành Bánh Mì</b><div class="meta">8 items · 160.000 ₫</div></div></div>
+        <div class="hero"><svg width="72" height="72" viewBox="0 0 100 100" style="transform:rotate(-8deg)"><circle cx="50" cy="50" r="47" fill="#6c3ce0"/><path d="M31 51l12 12 26-27" fill="none" stroke="#fbf7ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="big">Delivered</div><b>Arrived 7 min early</b></div></div>
+      </div>
+      <div class="card" style="height:120px"><div class="meta">Live now · Sài Gòn Phở Quán, 12 min</div></div>
+      <div class="scrim"></div>
+      <div class="sheet"><img src="../../public/avatars/drivers/hcmc-driver-01.svg" alt=""><div class="meta">1 of 2 · Driver</div><h2>How was Minh T.?</h2><div class="stars">★★★★☆</div><div class="btn">Next</div></div>
+    </div>
+    <p class="verdict"><b>Keeps:</b> the order card, the other live order behind the scrim, the tab bar's page. The win lives in the sheet, then the sheet goes.</p>
+  </div>
+  <div class="col">
+    <p class="label">B · Full-screen takeover</p>
+    <div class="phone">
+      <div class="flood">
+        <div class="conf"><i style="left:12%;top:8%;background:#ff7a45;transform:rotate(20deg)"></i><i style="left:30%;top:14%;background:#f3d27a"></i><i style="left:70%;top:6%;background:#fbf7ff;transform:rotate(60deg)"></i><i style="left:84%;top:18%;background:#ff7a45"></i><i style="left:52%;top:22%;background:#f3d27a;transform:rotate(-30deg)"></i><i style="left:20%;top:30%;background:#fbf7ff"></i><i style="left:88%;top:34%;background:#f3d27a;transform:rotate(45deg)"></i></div>
+        <div class="big">Delivered!</div>
+        <p>Bến Thành Bánh Mì is at your door.</p>
+        <div class="rate"><b>How was Minh T.?</b><div class="stars">★★★★☆</div><b>How was Bến Thành Bánh Mì?</b><div class="stars">★★★★★</div><div class="btn">Submit both</div></div>
+      </div>
+    </div>
+    <p class="verdict"><b>Hides:</b> every other live order, the tab bar, and the rest of the page. Rating becomes a page mode, so "one modal at a time" turns into "one screen at a time".</p>
+  </div>
+</div>
+</body>
+</html>
