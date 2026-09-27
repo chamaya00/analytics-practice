@@ -101,6 +101,11 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).toContain("it isn't stored in the same place as the events above and can't be joined back to them");
   });
 
+  it('credits the driver avatars (#148, ADR 0010)', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain('Driver avatars: Avataaars by Pablo Stanley, via DiceBear (MIT).');
+  });
+
   it('contains none of the retired parody strings', () => {
     const text = readAbout().body.textContent ?? '';
     for (const parodyString of RETIRED_PARODY_STRINGS) {

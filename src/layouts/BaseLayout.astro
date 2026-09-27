@@ -2058,15 +2058,32 @@ const { title } = Astro.props;
     color: var(--color-text);
   }
 
-  .tracker-summary {
-    font-size: var(--font-size-muted);
-    color: var(--color-text-muted);
-    margin: 0 0 var(--space-lg);
+  .tracker-countdown {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 700;
+    margin: var(--space-md) 0 2px;
   }
 
-  .tracker-countdown {
-    font-weight: 700;
-    margin: 0 0 var(--space-md);
+  .tracker-countdown .vehicle-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .tracker-countdown-big {
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tracker-delivered-line {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: var(--space-md) 0 var(--space-sm);
   }
 
   .flavor-text {
@@ -2078,6 +2095,376 @@ const { title } = Astro.props;
   [data-testid='tracker-empty'] {
     text-align: center;
     padding: var(--space-xl) 0;
+  }
+
+  /* ---- #148: multi-order Tracker — order stack, driver card, history
+     (docs/design/147-tracker-multi-order-driver-history.md). Every class
+     here is its own, prefixed `tracker-`, since tracker-dom.ts is a
+     *-dom.ts module and BaseLayout's stylesheet has no scoping between
+     modules (docs/memory/engineer.md). ---- */
+
+  .tracker-cols {
+    display: block;
+  }
+
+  .tracker-section-label {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-sm);
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .tracker-section-count {
+    letter-spacing: 0;
+  }
+
+  .tracker-order-card {
+    background: var(--color-surface);
+    border-radius: 16px;
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+
+  .tracker-card-head {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .tracker-thumb {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .tracker-thumb-placeholder {
+    background: var(--color-border);
+  }
+
+  .tracker-card-name {
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .tracker-meta {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  /* ---- driver slot: same height whether a driver is assigned or not ---- */
+
+  .tracker-driver {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--color-tab-active-bg);
+    border-radius: 12px;
+    padding: 0 var(--space-sm) 0 var(--space-xs);
+    min-height: 60px;
+    margin-top: var(--space-lg);
+  }
+
+  .tracker-driver-avatar,
+  .tracker-avatar-fallback {
+    flex: none;
+    width: 68px;
+    height: 68px;
+    margin-top: -20px;
+    align-self: flex-end;
+    border-radius: 999px;
+  }
+
+  .tracker-avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-tab-active-bg);
+    border: 2px solid var(--color-surface);
+    color: var(--color-text-muted);
+    font-weight: 700;
+  }
+
+  .tracker-driver-who {
+    padding: var(--space-sm) 0;
+    min-width: 0;
+  }
+
+  .tracker-driver-kicker {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .tracker-driver-name {
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .tracker-rating {
+    font-size: var(--font-size-muted);
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  .tracker-rating-count {
+    color: var(--color-text-muted);
+    font-weight: 400;
+  }
+
+  .tracker-driver-vehicle {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    display: flex;
+  }
+
+  .tracker-driver-vehicle svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tracker-driver-pending .tracker-driver-placeholder {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    margin: 6px 10px 6px 6px;
+    border-radius: 999px;
+    border: 2px dashed var(--color-text-muted);
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tracker-driver-pending .tracker-driver-placeholder svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tracker-driver-pending .tracker-driver-name {
+    font-weight: 700;
+    font-size: 0.9375rem;
+  }
+
+  /* ---- a collapsed live order: the switcher ---- */
+
+  .tracker-order-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--color-surface);
+    border: none;
+    border-radius: 14px;
+    padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+    margin-bottom: var(--space-sm);
+    min-height: 60px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tracker-order-row:focus-visible {
+    outline: 2px solid var(--color-accent-a);
+    outline-offset: 2px;
+  }
+
+  .tracker-row-thumb {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .tracker-row-mid {
+    flex: 1;
+    min-width: 0;
+    display: block;
+  }
+
+  .tracker-row-name {
+    display: block;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tracker-row-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .tracker-row-status b {
+    color: var(--color-text);
+  }
+
+  .tracker-row-driver-avatar,
+  .tracker-row-status .tracker-avatar-fallback {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    margin-top: 0;
+  }
+
+  .tracker-row-eta {
+    flex: none;
+    text-align: right;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tracker-row-eta-unit {
+    display: block;
+    font-size: var(--font-size-muted);
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .tracker-row-chev {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-muted);
+  }
+
+  .tracker-row-chev svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---- history ---- */
+
+  .tracker-past {
+    margin-top: var(--space-xl);
+  }
+
+  .tracker-history {
+    list-style: none;
+    margin: 0;
+    padding: 0 var(--space-sm);
+    background: var(--color-surface);
+    border-radius: 16px;
+  }
+
+  .tracker-history-row {
+    display: flex;
+    gap: var(--space-sm);
+    padding: var(--space-md) 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .tracker-history-row:first-child {
+    border-top: none;
+  }
+
+  .tracker-history-thumb {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .tracker-history-mid {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tracker-history-name {
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tracker-history-meta {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .tracker-history-by {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin-top: 2px;
+  }
+
+  .tracker-history-driver-avatar,
+  .tracker-history-by .tracker-avatar-fallback {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    margin-top: 0;
+  }
+
+  .tracker-history-right {
+    flex: none;
+    text-align: right;
+  }
+
+  .tracker-history-total {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tracker-history-sub {
+    display: block;
+    font-size: var(--font-size-muted);
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .tracker-history-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  .tracker-history-state svg {
+    width: 12px;
+    height: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .tracker-device-note {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin: var(--space-sm) var(--space-xs) 0;
+  }
+
+  @media (min-width: 481px) {
+    .tracker-cols {
+      display: grid;
+      grid-template-columns: minmax(0, 25rem) minmax(0, 1fr);
+      gap: var(--space-xxl);
+      align-items: start;
+    }
+
+    .tracker-past {
+      margin-top: 0;
+    }
   }
 
   /* ---- rating prompt (#80's tracker, Delivered state) ---- */
