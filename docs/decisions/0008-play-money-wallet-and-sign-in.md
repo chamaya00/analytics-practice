@@ -12,7 +12,7 @@ Research: `docs/research/142-sign-in-and-wallet.md` (#142). Objective: #136.
 Objective #136 gives visitors a play-money wallet in USD and VND:
 
 - sign-in with Google or Apple, asked for only at **Place order**;
-- a one-time preload of $20.00 and 600.000 ₫;
+- a one-time preload of $30.00 and 750.000 ₫ (owner, 2026-09-27, on #136 and #140 — amended from this ADR's original $20.00 / 600.000 ₫ by #145);
 - a drip of $5.00 and 100.000 ₫, once per window, in three daily windows on Los Angeles time;
 - orders that spend the wallet exactly once.
 
@@ -128,7 +128,7 @@ Each one checks these itself:
 
 - `auth.uid()` is not null, otherwise it raises `not_authenticated`.
 - The caller is not an anonymous-auth user: `coalesce((current_setting('request.jwt.claims', true)::jsonb ->> 'is_anonymous')::boolean, false)` is false. Anonymous sign-ins stay disabled in the dashboard; this is the belt to that brace.
-- It first calls `private.ensure_wallet(uid)`, which does `insert ... values (uid, 2000, 600000) on conflict (user_id) do nothing`. **The preload happens exactly once per account, on whichever wallet call comes first.** There is no trigger on `auth.users`.
+- It first calls `private.ensure_wallet(uid)`, which does `insert ... values (uid, 3000, 750000) on conflict (user_id) do nothing`. **The preload happens exactly once per account, on whichever wallet call comes first.** There is no trigger on `auth.users`.
 
 | Function | Arguments | Granted to | Checks, in the function itself | Returns (`jsonb`) |
 |---|---|---|---|---|
