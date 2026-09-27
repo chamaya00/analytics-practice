@@ -61,7 +61,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 
 | File | Search | Status |
 |---|---|---|
-| `public/images/dishes/mission-taqueria-al-pastor.svg` | "pork pineapple tacos plate cilantro" | Placeholder — not yet downloaded |
+| `public/images/dishes/mission-taqueria-al-pastor.svg` | "pork tacos corn tortillas lime" | Placeholder — not yet downloaded |
 | `public/images/dishes/mission-taqueria-carne-asada.svg` | "carne asada steak tacos" | Placeholder — not yet downloaded |
 | `public/images/dishes/mission-taqueria-chips-guac.svg` | "tortilla chips and guacamole" | Placeholder — not yet downloaded |
 | `public/images/dishes/mission-taqueria-horchata.svg` | "cinnamon rice milk drink" | Placeholder — not yet downloaded |
@@ -108,7 +108,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/inner-richmond-sushi-bar-salmon-avocado-roll.svg` | "salmon avocado roll" | Placeholder — not yet downloaded |
 | `public/images/dishes/inner-richmond-sushi-bar-chirashi-bowl.svg` | "chirashi sashimi bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/inner-richmond-sushi-bar-nigiri-set.svg` | "nigiri sushi set" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.svg` | "tofu seaweed soup bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.svg` | "japanese soup bowl chopsticks" | Placeholder — not yet downloaded |
 | `public/images/dishes/inner-richmond-sushi-bar-seaweed-salad.svg` | "seaweed salad" | Placeholder — not yet downloaded |
 | `public/images/dishes/valencia-street-tandoor-chicken-tikka-masala.svg` | "chicken tikka masala" | Placeholder — not yet downloaded |
 | `public/images/dishes/valencia-street-tandoor-saag-paneer.svg` | "saag paneer" | Placeholder — not yet downloaded |
@@ -171,7 +171,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/quan-che-di-sau-che-chuoi-nuong.svg` | "grilled banana coconut dessert" | Placeholder — not yet downloaded |
 | `public/images/dishes/quan-che-di-sau-suong-sa-hat-luu.svg` | "red ruby water chestnut dessert" | Placeholder — not yet downloaded |
 | `public/images/dishes/quan-che-di-sau-sua-dau-nanh.svg` | "soy milk glass soybeans" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-rau-ma-dau-xanh.svg` | "green pennywort juice glass" | Placeholder — not yet downloaded |
+| `public/images/dishes/quan-che-di-sau-rau-ma-dau-xanh.svg` | "green herbal juice glass" | Placeholder — not yet downloaded |
 | `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-xoi-mo.svg` | "crispy fried chicken rice" | Placeholder — not yet downloaded |
 | `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-hai-nam.svg` | "chicken rice plate cucumber" | Placeholder — not yet downloaded |
 | `public/images/dishes/com-ga-ba-sau-phu-nhuan-goi-ga-bap-cai.svg` | "vietnamese chicken cabbage salad" | Placeholder — not yet downloaded |
@@ -180,11 +180,11 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/hai-san-kenh-te-quan-7-tom-nuong-muoi-ot.svg` | "grilled prawns chili salt" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-muc-xao-sa-te.svg` | "stir fried squid chili" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.svg` | "steamed clams lemongrass bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "sea snails coconut sauce" | Placeholder — not yet downloaded |
+| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "stir fried snails bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-com-chien-hai-san.svg` | "seafood fried rice" | Placeholder — not yet downloaded |
 | `public/images/dishes/hai-san-kenh-te-quan-7-nuoc-dua-tuoi.svg` | "fresh coconut drink" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-tom-thit.svg` | "banh xeo pancake" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.svg` | "crispy vietnamese pancake mushrooms" | Placeholder — not yet downloaded |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.svg` | "yellow crepe bean sprouts" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-khot.svg` | "banh khot mini pancakes" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-nuoc-mia-tac.svg` | "sugarcane juice glass" | Placeholder — not yet downloaded |
 | `public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.svg` | "iced kumquat lime tea glass" | Placeholder — not yet downloaded |
