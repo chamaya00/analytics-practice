@@ -68,6 +68,11 @@ export interface PlacedOrder {
   rating: { stars: number; tags: RatingTag[] } | null;
 }
 
+/** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
+export function createOrderId(): string {
+  return generateId();
+}
+
 function generateId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   // Fallback for a test environment without a full Web Crypto shim — still

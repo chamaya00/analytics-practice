@@ -31,6 +31,7 @@ function fakeAuth(overrides: Partial<SupabaseAuthLike> = {}): SupabaseAuthLike {
     getSession: vi.fn().mockResolvedValue({ data: { session: RAW_SESSION } }),
     exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { session: RAW_SESSION }, error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
+    signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: 'https://abcdefgh.supabase.co/auth/v1/authorize?provider=google' }, error: null }),
     ...overrides,
   };
 }
