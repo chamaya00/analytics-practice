@@ -18,11 +18,10 @@ import type { City } from './money';
 // window/roofline cut into the body, not a single unbroken silhouette.
 export const VEHICLE_ICON_PATHS: Record<City, string> = {
   hcmc:
-    '<circle cx="5.5" cy="18" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/>' +
-    '<path d="M7.5 17h7.5" stroke-linecap="round"/>' +
-    '<path d="M8.5 17v-2.5h2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-    '<path d="M15 17v-4.5" stroke-linecap="round"/>' +
-    '<path d="M13.3 12.5h3.4" stroke-linecap="round"/>',
+    '<circle cx="6" cy="18" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/>' +
+    '<path d="M6.5 17h3.5v-2.3h2.5v2.3h4.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M16.5 17v-4" stroke-linecap="round"/>' +
+    '<path d="M15 13h3" stroke-linecap="round"/>',
   sf:
     '<path d="M5 16v-2.5l1.6-3.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.8 1l1.6 3.5V16" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<path d="M5 16h14" stroke-linecap="round"/>' +
