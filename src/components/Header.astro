@@ -4,6 +4,7 @@ interface Props {
 }
 
 const { currentPath } = Astro.props;
+const isHome = currentPath === '/';
 
 const links = [
   { href: '/', label: 'Home' },
@@ -23,7 +24,7 @@ const TAB_ICON_PATHS: Record<string, string> = {
 ---
 
 <header class="site-header">
-  <div class="brand-group">
+  <div class="brand-group" class:list={{ 'brand-group--home': isHome }}>
     <p class="site-name">
       <span class="wordmark"
         ><span class="wordmark-strong">dont</span><wbr /><span class="wordmark-light">drop</span><wbr /><span
@@ -31,6 +32,14 @@ const TAB_ICON_PATHS: Record<string, string> = {
         ><wbr /><span class="wordmark-light">prom<span class="wordmark-tail">o</span></span></span
       >
     </p>
+    {
+      isHome && (
+        <>
+          <div class="city-pill-slot" data-testid="city-pill-slot" />
+          <div class="balance-slot" data-testid="balance-slot" aria-hidden="true" />
+        </>
+      )
+    }
   </div>
   <nav aria-label="Primary" class="site-nav">
     {
@@ -84,6 +93,15 @@ const TAB_ICON_PATHS: Record<string, string> = {
     align-items: center;
     gap: var(--space-sm);
     flex: none;
+  }
+
+  /* Home-only city pill and wallet-balance placeholder (docs/design/
+     137-carousel-header-tiles.md, "Header row"): reserved but not shown
+     outside the phone-width composition the mocks and arithmetic below
+     were built for — desktop keeps today's wordmark-and-nav row unchanged. */
+  .city-pill-slot,
+  .balance-slot {
+    display: none;
   }
 
   .site-name {
@@ -193,6 +211,41 @@ const TAB_ICON_PATHS: Record<string, string> = {
        so "am I here" is never shown in two places at once. */
     .site-header .site-nav {
       display: none;
+    }
+
+    /* Home only (docs/design/137-carousel-header-tiles.md, "Header row"):
+       a three-column grid, not a two-item flex row, so the pill sits on the
+       row's true centre line regardless of how the wordmark's or the
+       balance placeholder's own widths compare — the two equal 1fr side
+       columns are what buy that, not the wordmark and placeholder
+       happening to match widths. */
+    .brand-group--home {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      column-gap: var(--space-sm);
+    }
+
+    .brand-group--home .city-pill-slot,
+    .brand-group--home .balance-slot {
+      display: flex;
+      align-items: center;
+      min-height: 32px;
+    }
+
+    .brand-group--home .city-pill-slot {
+      justify-content: center;
+    }
+
+    /* Dashed border: this repository's own convention for "reference only,
+       not this issue's to build" (#136 owns the real wallet balance). */
+    .brand-group--home .balance-slot {
+      justify-self: end;
+      padding: 0 var(--space-sm);
+      border: 1px dashed var(--color-border);
+      border-radius: 999px;
+      min-width: 44px;
     }
 
     .tab-bar {

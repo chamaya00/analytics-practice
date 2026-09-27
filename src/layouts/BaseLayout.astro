@@ -101,21 +101,6 @@ const { title } = Astro.props;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* The mock's phone-width header puts the city chip directly under the
-     wordmark, gap var(--space-xs) (docs/design/80-home-sf.html's own
-     .site-header/.brand-group), because there the chip lives inside the
-     header itself. Header.astro renders only the wordmark — the chip is
-     home-dom.ts's own first element, sitting in main below it — so closing
-     the same gap here means trimming main's own top padding for this one
-     screen rather than moving the chip's markup into the shared header,
-     which every other page also renders (driver review, #104 round 1,
-     item 2). */
-  @media (max-width: 480px) {
-    main:has(.home-feed) {
-      padding-top: var(--space-xs);
-    }
-  }
-
   .home-search {
     display: block;
     width: 100%;
@@ -134,30 +119,126 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  .promo-banner {
+  /* ---- promo carousel (docs/design/137-carousel-header-tiles.md,
+     "Promo carousel") — replaces the single .promo-banner slot, same
+     position in the flow (between search and the cuisine chips). ---- */
+
+  .carousel {
     margin-top: var(--space-md);
-    padding: var(--space-md);
-    /* Column: the mock's own two lines, claim then sub, stacked rather than
-       side by side (docs/design/80-home-sf.html's .promo-banner) — no image
-       in this slot (driver review, #104 round 1, item 1: it had no Unsplash
-       search named for it in #80 and was left showing a permanent
-       "Placeholder"). */
+  }
+
+  .carousel-slide-media {
+    position: relative;
+    height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .carousel-slide-link {
+    position: absolute;
+    inset: 0;
+    display: block;
+    z-index: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .carousel-slide-photo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Fixed dark scrim, deliberately not retheming (same reasoning as
+     --color-flash-tile-bg below): it sits over unpredictable photo content,
+     not the page's own background — contrast checked in the design doc
+     (./scripts/contrast '#ffffff' '#1a1224' 4.5, 18.17:1). */
+  .carousel-ad-label {
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .carousel-pause {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .carousel-pause svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .carousel-caption {
     display: flex;
     flex-direction: column;
-    background: var(--color-surface);
-    border: 1px solid var(--color-accent-a);
-    border-radius: 12px;
+    gap: 2px;
+    padding: var(--space-sm) 0;
   }
 
-  .promo-banner-claim {
+  .carousel-claim {
     font-weight: 800;
     font-size: var(--font-size-body);
-    color: var(--color-accent-a);
+    color: var(--color-text);
   }
 
-  .promo-banner-sub {
+  .carousel-sub {
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
+  }
+
+  .carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-xs);
+  }
+
+  .carousel-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .carousel-dot-mark {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-border);
+  }
+
+  .carousel-dot.is-current .carousel-dot-mark {
+    width: 8px;
+    height: 8px;
+    background: var(--color-accent-a);
   }
 
   .cuisine-chips {
@@ -248,15 +329,22 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  /* ---- restaurant list ---- */
+  /* ---- "Near you": 2-column tile grid (docs/design/137-carousel-header-tiles.md,
+     "Two-column tile grid") — replaces the old vertical .restaurant-list. ---- */
 
-  .restaurant-list {
-    display: flex;
-    flex-direction: column;
+  .tile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-md);
     margin: var(--space-md) 0 0;
     padding: 0;
   }
+
+  /* ---- restaurant card: cart list (cart-dom.ts) and the flash sheet
+     (flash-sheet-dom.ts) both still reuse this shape unchanged — the tile
+     grid above gets its own .tile-card class below rather than restyling
+     this one in place, which would silently restyle both (#137's own "For
+     the engineer" note). ---- */
 
   .restaurant-card {
     position: relative;
@@ -306,6 +394,56 @@ const { title } = Astro.props;
 
   .restaurant-card-tag,
   .restaurant-card-meta {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+  }
+
+  /* ---- tile card: the "Near you" grid's own card, a new class rather
+     than a restyle of .restaurant-card above (see that block's own note). ---- */
+
+  .tile-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: transform 100ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+
+  .tile-card:active {
+    transform: scale(0.98);
+  }
+
+  .tile-card-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .tile-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-sm);
+    min-width: 0;
+  }
+
+  .tile-card-name {
+    font-weight: 800;
+  }
+
+  .tile-card-rating,
+  .tile-card-meta {
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
   }
