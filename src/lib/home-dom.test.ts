@@ -150,16 +150,23 @@ describe('home feed contents (AC2)', () => {
     window.localStorage.setItem('parody.city', 'sf');
     const sf = root();
     initHomePage(sf, window.localStorage);
-    expect(sf.querySelector('[data-testid="promo-banner-text"]')?.textContent).toBe(
-      '$2 off your first order · Applied automatically at checkout',
-    );
+    expect(sf.querySelector('[data-testid="promo-banner-claim"]')?.textContent).toBe('$2 off your first order');
+    expect(sf.querySelector('[data-testid="promo-banner-sub"]')?.textContent).toBe('Applied automatically at checkout');
 
     window.localStorage.setItem('parody.city', 'hcmc');
     const hcmc = root();
     initHomePage(hcmc, window.localStorage);
-    expect(hcmc.querySelector('[data-testid="promo-banner-text"]')?.textContent).toBe(
-      '10.000 ₫ off your first order · Applied automatically at checkout',
+    expect(hcmc.querySelector('[data-testid="promo-banner-claim"]')?.textContent).toBe('10.000 ₫ off your first order');
+    expect(hcmc.querySelector('[data-testid="promo-banner-sub"]')?.textContent).toBe(
+      'Applied automatically at checkout',
     );
+  });
+
+  it('the promo banner has no image (#104 round 1, item 1: no Unsplash search was ever named for this slot)', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, window.localStorage);
+    expect(el.querySelector('[data-testid="promo-banner"] img')).toBeNull();
   });
 });
 

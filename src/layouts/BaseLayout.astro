@@ -101,6 +101,21 @@ const { title } = Astro.props;
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* The mock's phone-width header puts the city chip directly under the
+     wordmark, gap var(--space-xs) (docs/design/80-home-sf.html's own
+     .site-header/.brand-group), because there the chip lives inside the
+     header itself. Header.astro renders only the wordmark — the chip is
+     home-dom.ts's own first element, sitting in main below it — so closing
+     the same gap here means trimming main's own top padding for this one
+     screen rather than moving the chip's markup into the shared header,
+     which every other page also renders (driver review, #104 round 1,
+     item 2). */
+  @media (max-width: 480px) {
+    main:has(.home-feed) {
+      padding-top: var(--space-xs);
+    }
+  }
+
   .home-search {
     display: block;
     width: 100%;
@@ -122,36 +137,27 @@ const { title } = Astro.props;
   .promo-banner {
     margin-top: var(--space-md);
     padding: var(--space-md);
+    /* Column: the mock's own two lines, claim then sub, stacked rather than
+       side by side (docs/design/80-home-sf.html's .promo-banner) — no image
+       in this slot (driver review, #104 round 1, item 1: it had no Unsplash
+       search named for it in #80 and was left showing a permanent
+       "Placeholder"). */
     display: flex;
-    /* Column, not the row this started as (#82 review round 2, item 1): a
-       row with a fixed-size image had no room left for the text at 375px
-       and pushed it off the right edge, widening the whole page. Stacking
-       keeps the image inside the box at any width and puts the heading
-       directly beneath it, one of the two placements the mock allows. */
     flex-direction: column;
-    gap: var(--space-sm);
     background: var(--color-surface);
     border: 1px solid var(--color-accent-a);
     border-radius: 12px;
   }
 
-  .promo-banner img {
-    /* Scales to the box's own width instead of the SVG's intrinsic 343px,
-       which is what overflowed a 375px viewport once the border/padding
-       above were subtracted from it. Height follows from the img's own
-       width/height attributes (343x96), so no separate aspect-ratio rule
-       is needed here. */
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    object-fit: cover;
-  }
-
-  .promo-banner span {
+  .promo-banner-claim {
     font-weight: 800;
     font-size: var(--font-size-body);
     color: var(--color-accent-a);
+  }
+
+  .promo-banner-sub {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
   }
 
   .cuisine-chips {

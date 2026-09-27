@@ -36,16 +36,13 @@ describe('committed placeholder images — weight budget (AC3)', () => {
     }
   });
 
-  it("the home feed's first paint (one promo banner plus up to six restaurant thumbnails, phone width) totals at most 900KB", () => {
-    const bannerSize = statSync(path.join(ROOT, 'public', 'images', 'promo-banner.svg')).size;
+  it("the home feed's first paint (up to six restaurant thumbnails, phone width; the promo banner is text-only, #104 round 1) totals at most 900KB", () => {
     for (const city of ['sf', 'hcmc'] as const) {
       const restaurants = restaurantsForCity(city).slice(0, 6);
-      const total =
-        bannerSize +
-        restaurants.reduce(
-          (sum, restaurant) => sum + statSync(path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''))).size,
-          0,
-        );
+      const total = restaurants.reduce(
+        (sum, restaurant) => sum + statSync(path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''))).size,
+        0,
+      );
       expect(total, `${city} first paint totals ${total} bytes`).toBeLessThanOrEqual(HOME_FEED_FIRST_PAINT_MAX_BYTES);
     }
   });

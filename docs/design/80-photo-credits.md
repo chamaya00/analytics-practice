@@ -21,12 +21,6 @@ nothing importing these paths needs to change.
 | `public/images/cities/sf.svg` | "san francisco street golden gate" | Placeholder — not yet downloaded |
 | `public/images/cities/hcmc.svg` | "ho chi minh city street motorbikes" | Placeholder — not yet downloaded |
 
-## Home feed
-
-| File | Intended source | Status |
-|---|---|---|
-| `public/images/promo-banner.svg` | Not a licensed photo — UI banner artwork (no Unsplash search named in #80 for this slot) | Placeholder |
-
 ## Restaurant hero images
 
 | File | Cuisine | Intended Unsplash search | Status |
@@ -84,7 +78,8 @@ Every item below shares its restaurant's cuisine-level search from #80's
 
 Every placeholder above is a small text-on-solid-color SVG, each under 1KB —
 `src/lib/image-budget.test.ts` asserts this against the committed files
-directly, both per-thumbnail and for the feed's first-paint set (one banner
-plus up to six restaurant hero thumbnails). Replacing a placeholder with a
-real compressed WebP/AVIF download will need re-checking against the same
-budget; the test is what re-proves it, not this table.
+directly, both per-thumbnail and for the feed's first-paint set (up to six
+restaurant hero thumbnails; the promo banner is text-only, #104 round 1, item
+1). Replacing a placeholder with a real compressed WebP/AVIF download will
+need re-checking against the same budget; the test is what re-proves it, not
+this table.

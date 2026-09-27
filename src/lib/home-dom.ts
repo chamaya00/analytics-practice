@@ -195,15 +195,15 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage): voi
   const banner = document.createElement('div');
   banner.className = 'promo-banner';
   banner.setAttribute('data-testid', 'promo-banner');
-  const bannerImg = document.createElement('img');
-  bannerImg.src = '/images/promo-banner.svg';
-  bannerImg.alt = '';
-  bannerImg.width = 343;
-  bannerImg.height = 96;
-  const bannerText = document.createElement('span');
-  bannerText.setAttribute('data-testid', 'promo-banner-text');
-  bannerText.textContent = `${PROMO_BANNER_CLAIM[city]} · Applied automatically at checkout`;
-  banner.append(bannerImg, bannerText);
+  const bannerClaim = document.createElement('span');
+  bannerClaim.className = 'promo-banner-claim';
+  bannerClaim.setAttribute('data-testid', 'promo-banner-claim');
+  bannerClaim.textContent = PROMO_BANNER_CLAIM[city];
+  const bannerSub = document.createElement('span');
+  bannerSub.className = 'promo-banner-sub';
+  bannerSub.setAttribute('data-testid', 'promo-banner-sub');
+  bannerSub.textContent = 'Applied automatically at checkout';
+  banner.append(bannerClaim, bannerSub);
 
   const chipRow = document.createElement('div');
   chipRow.className = 'cuisine-chips';
