@@ -84,3 +84,31 @@ describe('danger fill (--color-danger) carries --color-bg text: the cart’s swi
     expect(contrastRatio(DARK_BG, DARK_DANGER)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('flash sheet header and collapsed reopen bar carry --color-bg text on the --color-accent-a fill, in both themes (#126 AC3)', () => {
+  // The header/bar used a fixed white, which read fine against the light
+  // theme's dark violet accent but nearly disappeared in dark mode, where
+  // --color-accent-a turns light lavender. --color-bg text tracks the fill
+  // through both themes instead — the same pairing .place-order already
+  // uses on this fill, checked here again under the flash sheet's own name
+  // so a future token change can't regress it without this failing too.
+  it('clears 4.5:1 in the light theme', () => {
+    expect(contrastRatio(LIGHT_BG, LIGHT_ACCENT_A)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('clears 4.5:1 in the dark theme', () => {
+    expect(contrastRatio(DARK_BG, DARK_ACCENT_A)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('flash sheet / reopen bar countdown tile: a fixed dark tile with light digits, independent of theme (#126 AC3)', () => {
+  // --color-flash-tile-bg (global.css) is deliberately the same value in
+  // both theme blocks (not redeclared in the dark one), so one check
+  // against white covers both — unlike every other token pair above,
+  // which needs a light and a dark case because the token itself flips.
+  const FLASH_TILE_BG = '#241b33';
+
+  it('white digits clear 4.5:1 against the fixed dark tile fill', () => {
+    expect(contrastRatio('#ffffff', FLASH_TILE_BG)).toBeGreaterThanOrEqual(4.5);
+  });
+});

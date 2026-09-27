@@ -18,6 +18,7 @@ import {
   setFlashDrawState,
   type FlashDraw,
 } from './flash-deal';
+import type { City } from './money';
 
 /** Returns 0, then the next value, ... cycling — lets a test predict exactly which array index `pickIndex`/the fee-mode coin flip lands on. */
 function seededRandom(sequence: number[]): () => number {
@@ -213,5 +214,31 @@ describe('flashFeeForRestaurant — the effective delivery fee ordering (AC4)', 
   it('returns null once the window has ended, or for a restaurant not in the draw', () => {
     expect(flashFeeForRestaurant(draw, 'hcmc', 'free-one', 15000, FLASH_WINDOW_MS)).toBeNull();
     expect(flashFeeForRestaurant(draw, 'hcmc', 'someone-else', 15000, 0)).toBeNull();
+  });
+
+  it('returns null for a restaurant whose normal fee is already 0, in either fee mode — there is nothing to waive or reduce, so no struck-through ₫0 (#126 AC4)', () => {
+    expect(flashFeeForRestaurant(draw, 'hcmc', 'free-one', 0, 0)).toBeNull();
+    expect(flashFeeForRestaurant(draw, 'hcmc', 'reduced-one', 0, 0)).toBeNull();
+  });
+});
+
+describe('drawFlashDeal never draws an already-free restaurant at all (#126 AC4, review round 1)', () => {
+  const ZERO_FEE_SLUGS: Record<City, string[]> = {
+    hcmc: ['ca-phe-nha-go-18', 'banh-xeo-co-nam-tan-dinh'],
+    sf: ['valencia-street-tandoor', 'noe-valley-morning-kitchen'],
+  };
+
+  it.each(['hcmc', 'sf'] as City[])('%s: no zero-delivery-fee restaurant is ever drawn, across many seeded draws', (city) => {
+    for (let seed = 0; seed < 50; seed++) {
+      // A long, varied sequence so the amount step, the size pick, every
+      // pool-index pick, and every fee-mode coin flip all land somewhere
+      // different across the 50 runs, rather than retracing one path.
+      const sequence = Array.from({ length: 20 }, (_, i) => ((seed + 1) * (i + 1) * 0.037) % 1);
+      const draw = drawFlashDeal(city, 0, seededRandom(sequence));
+      const slugs = draw.restaurants.map((restaurant) => restaurant.slug);
+      for (const zeroFeeSlug of ZERO_FEE_SLUGS[city]) {
+        expect(slugs).not.toContain(zeroFeeSlug);
+      }
+    }
   });
 });

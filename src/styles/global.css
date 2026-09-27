@@ -58,6 +58,14 @@
      --color-accent-a), checked at 4.5:1+ in both themes in
      contrast.test.ts. */
   --color-danger: #c4213a;
+  /* The flash sheet's own countdown tile (both the open sheet and the
+     collapsed bar): always a dark tile with light digits, in both themes
+     (#126 AC3) — deliberately *not* redeclared in the dark-mode block
+     below, unlike every other --color-* token here. Reusing --color-text
+     for this, as before, meant the tile went light in dark mode (light
+     digits on a light tile), which is the bug this fixes. Checked against
+     white in contrast.test.ts, once, since the pairing never changes. */
+  --color-flash-tile-bg: #241b33;
 }
 
 /* #80's chosen direction, dark values — same token roles, same reasoning
