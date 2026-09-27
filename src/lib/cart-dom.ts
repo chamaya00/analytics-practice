@@ -21,7 +21,7 @@ import {
   type CartSelection,
   type RestaurantCart,
 } from './order-store';
-import { getRestaurant } from './restaurants';
+import { getMenuItem, getRestaurant } from './restaurants';
 import { formatMoney, currencyForCity } from './money';
 import { getStoredCity } from './location';
 import { initCartBadge } from './header-dom';
@@ -29,6 +29,14 @@ import { track } from './tracking';
 import { ALL_CARTS_PATH, cartPath, checkoutPath, restaurantSlugFromSearch } from './cart-routes';
 import { attachSwipeRow } from './swipe-row';
 import { openConfirmDialog } from './confirm-dialog-dom';
+
+// 105-cart-single-sf.html's own icon: "Remove" reads from this plus its bold
+// weight, not the danger fill alone.
+const TRASH_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const CHEVRON_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5 16 12 9 19" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function heading(text: string): HTMLElement {
   const h1 = document.createElement('h1');
@@ -111,7 +119,11 @@ function renderCartList(root: HTMLElement, carts: RestaurantCart[]): void {
     subtotal.setAttribute('data-testid', `cart-card-subtotal-${cart.restaurantSlug}`);
     subtotal.textContent = formatMoney(cart.subtotalMinor, cart.currency);
 
-    card.append(body, subtotal);
+    const chevron = document.createElement('span');
+    chevron.className = 'cart-card-chevron';
+    chevron.innerHTML = CHEVRON_ICON;
+
+    card.append(body, subtotal, chevron);
     item.append(card);
     list.append(item);
   }
@@ -158,6 +170,22 @@ function renderRestaurantCart(
     const content = document.createElement('div');
     content.className = 'cart-line';
     content.setAttribute('data-testid', `cart-line-content-${line.itemId}`);
+
+    // Same photo-tile treatment as the menu row this line was added from
+    // (105-cart-single-sf.html) — looked up from the catalogue by itemId,
+    // since a CartLine itself carries no image (a presentation lookup, not
+    // a cart-shape change).
+    const itemImage = getMenuItem(line.itemId)?.item.image;
+    if (itemImage) {
+      const photo = document.createElement('img');
+      photo.className = 'menu-item-photo';
+      photo.src = itemImage;
+      photo.alt = '';
+      photo.loading = 'lazy';
+      photo.width = 84;
+      photo.height = 84;
+      content.append(photo);
+    }
 
     const text = document.createElement('div');
     text.className = 'cart-line-text';
@@ -223,7 +251,8 @@ function renderRestaurantCart(
     remove.className = 'swipe-action';
     remove.setAttribute('data-testid', `swipe-remove-${line.itemId}`);
     remove.setAttribute('aria-label', `Remove ${line.name}`);
-    remove.textContent = 'Remove';
+    remove.innerHTML = TRASH_ICON;
+    remove.append(document.createTextNode('Remove'));
     remove.addEventListener('click', () => {
       removeFromCart(storage, line.itemId);
       rerender();
