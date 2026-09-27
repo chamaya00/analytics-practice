@@ -1,6 +1,7 @@
-// Photograph one URL at an exact viewport, for scripts/app-render.
+// Photograph one URL at an exact viewport, for scripts/app-render and
+// scripts/design-render.
 //
-//   node scripts/app-render-shot.mjs <browser> <url> <width> <height> <out.png>
+//   node scripts/render-shot.mjs <browser> <url> <width> <height> <out.png>
 //
 // Why this exists: headless Chrome clamps --window-size to a minimum of 500px
 // wide, so the plain `--screenshot` path asked for 375 gets a 500px viewport,
@@ -19,18 +20,22 @@ import { join } from 'node:path';
 
 const [browser, url, widthArg, heightArg, out] = process.argv.slice(2);
 if (!browser || !url || !widthArg || !heightArg || !out) {
-  console.error('usage: app-render-shot.mjs <browser> <url> <width> <height> <out.png>');
+  console.error('usage: render-shot.mjs <browser> <url> <width> <height> <out.png>');
   process.exit(2);
 }
 const width = Number(widthArg);
 const height = Number(heightArg);
-// Below the site's 480px breakpoint is a phone: emulate it as one.
-const mobile = width <= 480;
+// A plain viewport of exactly this width, not full phone emulation: with
+// `mobile: true`, a page without `<meta name="viewport">` (every self-contained
+// mock in docs/design/) is laid out 980px wide and shrunk to fit, so a 375 mock
+// renders as a zoomed-out desktop page. The built site declares
+// width=device-width, so it lays out identically either way.
+const mobile = false;
 // Same settle time as the CLI path's --virtual-time-budget, so timers,
 // transitions and webfonts land before the shutter.
 const SETTLE_MS = 3000;
 
-const profile = mkdtempSync(join(tmpdir(), 'app-render-'));
+const profile = mkdtempSync(join(tmpdir(), 'render-shot-'));
 const child = spawn(
   browser,
   [
@@ -46,7 +51,7 @@ const child = spawn(
 );
 
 function finish(code, message) {
-  if (message) console.error(`app-render-shot: ${message}`);
+  if (message) console.error(`render-shot: ${message}`);
   child.kill();
   try {
     rmSync(profile, { recursive: true, force: true });
