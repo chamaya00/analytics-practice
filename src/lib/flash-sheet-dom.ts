@@ -8,10 +8,14 @@
 // one per flash_sheet_shown"), tracked via `options.eventAlreadyFired` so a
 // sheet reopened from the collapsed bar (below) never fires it twice.
 //
-// Dismissal (scrim/×/drag handle, not a restaurant tap or expiry) collapses
-// the sheet into `renderFlashReopenBar`'s pinned bar rather than discarding
-// it outright — #120 AC2/AC3. The caller (home-dom.ts) owns persisting that
-// collapsed state alongside the draw so it survives a reload.
+// Dismissal (scrim/×/drag handle/swipe-down, not a restaurant tap or
+// expiry) collapses the sheet into `renderFlashReopenBar`'s pinned bar
+// rather than discarding it outright — #120 AC2/AC3. The caller
+// (home-dom.ts) owns persisting that collapsed state alongside the draw so
+// it survives a reload.
+//
+// #126: swipe-to-dismiss on the handle or header, a real close button, and
+// the copy/contrast/no-non-deal fixes below it in this file's diff.
 
 import { formatMoneyForCity, type City } from './money';
 import { getRestaurant } from './restaurants';
@@ -21,6 +25,144 @@ import { flashFeeForRestaurant, flashSecondsRemaining, type FlashDraw } from './
 import { FLASH_MINIMUM_SPEND_MINOR, formatCountdown } from './vouchers';
 
 export type FlashCloseOutcome = 'restaurant_tapped' | 'dismissed' | 'expired';
+
+// Swipe-to-dismiss on the handle or the header (#126 AC1) — the same
+// "decisions are pure functions, unit-tested on their own" split
+// swipe-row.ts uses for the cart's reveal gesture, just vertical and
+// one-directional (down only; an upward or horizontal drag does nothing).
+/** Movement below this on both axes is still a tap, not a gesture. */
+export const SHEET_DRAG_SLOP_PX = 8;
+/** A release past this many px of downward drag dismisses the sheet. */
+export const SHEET_DISMISS_THRESHOLD_PX = 96;
+/** A downward release faster than this (px/ms) dismisses the sheet regardless of distance — a flick. */
+export const SHEET_DISMISS_VELOCITY_PX_MS = 0.5;
+
+export type SheetDragDirection = 'pending' | 'down' | 'ignored';
+
+/** Which way a drag is going: undecided inside the slop, `down` only once it is both net-downward and more vertical than horizontal, `ignored` (upward or mostly horizontal) otherwise — those do nothing (AC1). */
+export function sheetDragDirection(dx: number, dy: number, slop: number = SHEET_DRAG_SLOP_PX): SheetDragDirection {
+  if (Math.abs(dx) < slop && Math.abs(dy) < slop) return 'pending';
+  return dy > 0 && dy > Math.abs(dx) ? 'down' : 'ignored';
+}
+
+/** The sheet's translateY while dragging, in CSS px — following the finger downward only; an upward `dy` clamps to 0 rather than lifting the sheet above its resting position. */
+export function sheetDragOffset(dy: number): number {
+  return Math.max(0, dy);
+}
+
+/** Whether a released downward drag dismisses the sheet: past the distance threshold, or a flick faster than the velocity threshold — either is enough. */
+export function shouldDismissSheet(
+  dy: number,
+  velocityPxPerMs: number,
+  thresholdPx: number = SHEET_DISMISS_THRESHOLD_PX,
+  velocityThreshold: number = SHEET_DISMISS_VELOCITY_PX_MS,
+): boolean {
+  return dy >= thresholdPx || velocityPxPerMs >= velocityThreshold;
+}
+
+interface SheetDragGesture {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  lastY: number;
+  lastT: number;
+  /** px/ms, downward positive — updated on every pointermove from the previous sample, so it reflects the final flick speed rather than the whole gesture's average. */
+  velocity: number;
+  direction: SheetDragDirection;
+}
+
+/**
+ * Wires vertical swipe-to-dismiss onto one trigger element (the handle or
+ * the header), moving `panel`'s own transform while dragging. `now` is the
+ * same injected clock `renderFlashSheet` already takes, so a test controls
+ * the flick velocity with `vi.advanceTimersByTime` rather than depending on
+ * real elapsed wall-clock time between synthetic events (#126 AC1).
+ */
+function attachSheetDragTrigger(trigger: HTMLElement, panel: HTMLElement, onDismiss: () => void, now: () => number): void {
+  let gesture: SheetDragGesture | null = null;
+  // A drag that snaps back is followed by a click the browser synthesises
+  // on release; on the drag handle that click would otherwise dismiss the
+  // sheet a second, unwanted way (its own click listener already dismisses
+  // on a tap) — the same swallow-until pattern swipe-row.ts uses for the
+  // cart's row drag.
+  let swallowClickUntil = 0;
+
+  trigger.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    gesture = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastY: event.clientY,
+      lastT: now(),
+      velocity: 0,
+      direction: 'pending',
+    };
+  });
+
+  trigger.addEventListener('pointermove', (event) => {
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    const dx = event.clientX - gesture.startX;
+    const dy = event.clientY - gesture.startY;
+
+    if (gesture.direction === 'pending') {
+      const direction = sheetDragDirection(dx, dy);
+      if (direction === 'pending') return;
+      if (direction === 'ignored') {
+        gesture = null;
+        return;
+      }
+      gesture.direction = direction;
+      panel.classList.add('is-dragging');
+      try {
+        trigger.setPointerCapture(event.pointerId);
+      } catch {
+        // Not every environment supports capture; the drag still tracks
+        // while the pointer stays over the trigger.
+      }
+    }
+
+    event.preventDefault();
+    const t = now();
+    const elapsed = Math.max(1, t - gesture.lastT);
+    gesture.velocity = (event.clientY - gesture.lastY) / elapsed;
+    gesture.lastY = event.clientY;
+    gesture.lastT = t;
+    panel.style.transform = `translateY(${sheetDragOffset(dy)}px)`;
+  });
+
+  function finish(event: PointerEvent, cancelled: boolean): void {
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    const ended = gesture;
+    gesture = null;
+    if (ended.direction !== 'down') return; // a tap, or never left the slop — nothing to settle
+
+    panel.classList.remove('is-dragging');
+    swallowClickUntil = now() + 400;
+    const dy = event.clientY - ended.startY;
+
+    if (!cancelled && shouldDismissSheet(dy, ended.velocity)) {
+      onDismiss();
+      return;
+    }
+    panel.style.transform = '';
+  }
+
+  trigger.addEventListener('pointerup', (event) => finish(event, false));
+  trigger.addEventListener('pointercancel', (event) => finish(event, true));
+
+  trigger.addEventListener(
+    'click',
+    (event) => {
+      if (now() < swallowClickUntil) {
+        swallowClickUntil = 0;
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    true,
+  );
+}
 
 export interface FlashSheetHandle {
   /** Closes the sheet as if the countdown had reached zero — used by the home feed once it independently learns the window has ended. */
@@ -56,32 +198,54 @@ export function renderFlashSheet(
   const panel = document.createElement('div');
   panel.className = 'sheet';
 
+  // A 36px circle inside the header's own corner (not straddling the seam
+  // between the sheet and the header), on a 44px hit area, in the header's
+  // own text colour — #126 AC2. The circle is a separate layer
+  // (`.sheet-close-fill`, styled via `background: currentColor` at partial
+  // opacity) so the icon's stroke stays at full opacity while the fill
+  // reads as translucent.
   const closeButton = document.createElement('button');
   closeButton.type = 'button';
   closeButton.className = 'sheet-close';
   closeButton.setAttribute('data-testid', 'flash-sheet-close');
-  closeButton.setAttribute('aria-label', 'Close');
-  closeButton.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>';
+  closeButton.setAttribute('aria-label', 'Close flash deals');
+  const closeButtonFill = document.createElement('span');
+  closeButtonFill.className = 'sheet-close-fill';
+  closeButtonFill.setAttribute('aria-hidden', 'true');
+  closeButton.append(closeButtonFill);
+  closeButton.insertAdjacentHTML(
+    'beforeend',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>',
+  );
 
+  // Full-width, 44px-tall hit area (AC1) around a visibly larger 40×5px bar.
   const dragHandle = document.createElement('button');
   dragHandle.type = 'button';
   dragHandle.className = 'drag-handle';
   dragHandle.setAttribute('data-testid', 'flash-sheet-drag-handle');
   dragHandle.setAttribute('aria-label', 'Dismiss');
+  const dragHandleBar = document.createElement('span');
+  dragHandleBar.className = 'drag-handle-bar';
+  dragHandleBar.setAttribute('aria-hidden', 'true');
+  dragHandle.append(dragHandleBar);
 
   const header = document.createElement('div');
   header.className = 'sheet-header';
   const heading = document.createElement('h1');
-  heading.textContent = `${formatMoneyForCity(draw.amountMinor, city)} off flash deals`;
+  heading.textContent = 'Flash deals';
+  const subtitle = document.createElement('p');
+  subtitle.className = 'sheet-subtitle';
+  subtitle.textContent = `${formatMoneyForCity(draw.amountMinor, city)} off orders over ${formatMoneyForCity(FLASH_MINIMUM_SPEND_MINOR[city], city)}`;
+  const countdownRow = document.createElement('div');
+  countdownRow.className = 'countdown-row';
+  const countdownLabel = document.createElement('span');
+  countdownLabel.className = 'countdown-label';
+  countdownLabel.textContent = 'Ends in';
   const countdown = document.createElement('div');
   countdown.className = 'countdown';
   countdown.setAttribute('data-testid', 'flash-sheet-countdown');
-  header.append(heading, countdown);
-
-  const minSpendLine = document.createElement('p');
-  minSpendLine.className = 'min-spend-line';
-  minSpendLine.textContent = `Order now with min. spend ${formatMoneyForCity(FLASH_MINIMUM_SPEND_MINOR[city], city)}`;
+  countdownRow.append(countdownLabel, countdown);
+  header.append(heading, subtitle, countdownRow, closeButton);
 
   // Its own class, not home-dom.ts's `.restaurant-list` — that global rule
   // sets a margin/gap meant for the home feed's card list, which leaked
@@ -112,6 +276,8 @@ export function renderFlashSheet(
   scrim.addEventListener('click', () => close('dismissed'));
   closeButton.addEventListener('click', () => close('dismissed'));
   dragHandle.addEventListener('click', () => close('dismissed'));
+  attachSheetDragTrigger(dragHandle, panel, () => close('dismissed'), now);
+  attachSheetDragTrigger(header, panel, () => close('dismissed'), now);
 
   for (const drawn of draw.restaurants) {
     const restaurant = getRestaurant(drawn.slug);
@@ -149,13 +315,18 @@ export function renderFlashSheet(
 
     const fee = document.createElement('p');
     fee.className = 'restaurant-fee';
-    const displayFeeMinor =
-      flashFeeForRestaurant(draw, city, restaurant.slug, restaurant.deliveryFeeMinor, now()) ?? restaurant.deliveryFeeMinor;
-    fee.textContent = displayFeeMinor === 0 ? 'Free' : formatMoneyForCity(displayFeeMinor, city);
-    const original = document.createElement('span');
-    original.className = 'original';
-    original.textContent = formatMoneyForCity(restaurant.deliveryFeeMinor, city);
-    fee.append(original);
+    const flashFeeMinor = flashFeeForRestaurant(draw, city, restaurant.slug, restaurant.deliveryFeeMinor, now());
+    const displayFeeMinor = flashFeeMinor ?? restaurant.deliveryFeeMinor;
+    fee.textContent = displayFeeMinor === 0 ? 'Free delivery' : `${formatMoneyForCity(displayFeeMinor, city)} delivery`;
+    // Only when the flash deal actually changed something — a restaurant
+    // whose normal fee is already 0 has nothing to strike through (#126
+    // AC4: no row ever shows a struck-through ₫0).
+    if (flashFeeMinor !== null) {
+      const original = document.createElement('span');
+      original.className = 'original';
+      original.textContent = formatMoneyForCity(restaurant.deliveryFeeMinor, city);
+      fee.append(original);
+    }
 
     main.append(name, meta, fee);
     row.append(photo, main);
@@ -185,7 +356,7 @@ export function renderFlashSheet(
   renderCountdown();
   if (!closed) intervalId = setInterval(renderCountdown, 1000);
 
-  panel.append(dragHandle, closeButton, header, minSpendLine, list);
+  panel.append(dragHandle, header, list);
   overlay.append(scrim, panel);
   root.append(overlay);
 
@@ -218,11 +389,11 @@ export function renderFlashReopenBar(
   bar.type = 'button';
   bar.className = 'reopen-bar';
   bar.setAttribute('data-testid', 'flash-reopen-bar');
-  bar.setAttribute('aria-label', `Reopen ${formatMoneyForCity(draw.amountMinor, city)} off flash deals`);
+  bar.setAttribute('aria-label', `Reopen flash deals, ${formatMoneyForCity(draw.amountMinor, city)} off`);
 
   const label = document.createElement('span');
   label.className = 'label';
-  label.textContent = `${formatMoneyForCity(draw.amountMinor, city)} off flash deals`;
+  label.textContent = `Flash deals · ${formatMoneyForCity(draw.amountMinor, city)} off`;
 
   const right = document.createElement('span');
   right.className = 'right';
@@ -232,6 +403,10 @@ export function renderFlashReopenBar(
   lightning.setAttribute('fill', 'currentColor');
   lightning.setAttribute('aria-hidden', 'true');
   lightning.innerHTML = '<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/>';
+
+  const countdownLabel = document.createElement('span');
+  countdownLabel.className = 'countdown-label';
+  countdownLabel.textContent = 'Ends in';
 
   const countdown = document.createElement('span');
   countdown.className = 'countdown';
@@ -245,7 +420,7 @@ export function renderFlashReopenBar(
   secondsTile.className = 'tile';
   countdown.append(minutesTile, separator, secondsTile);
 
-  right.append(lightning, countdown);
+  right.append(lightning, countdownLabel, countdown);
   bar.append(label, right);
 
   let intervalId: ReturnType<typeof setInterval> | undefined;
