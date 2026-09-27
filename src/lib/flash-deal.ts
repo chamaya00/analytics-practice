@@ -59,13 +59,19 @@ export function drawFlashDeal(city: City, now: number, random: () => number = Ma
   const amountMinor = AMOUNT_STEPS_MINOR[city][pickIndex(AMOUNT_STEPS_MINOR[city].length, random)];
 
   const size = FLASH_DRAW_SIZE_MIN + pickIndex(FLASH_DRAW_SIZE_MAX - FLASH_DRAW_SIZE_MIN + 1, random);
-  const drawFeeMode = (): FlashFeeMode => (random() < 0.5 ? 'free' : 'reduced');
+  // A restaurant whose delivery is already free has nothing for "free" to
+  // waive — drawing it into that mode is what produced the struck-through
+  // ₫0 the owner saw (#126). It can still be drawn at all, just never
+  // labelled "free"; `flashFeeForRestaurant` below makes the reduced label
+  // a no-op for it too, since there's nothing to reduce either.
+  const drawFeeMode = (normalFeeMinor: number): FlashFeeMode =>
+    normalFeeMinor > 0 && random() < 0.5 ? 'free' : 'reduced';
 
   const pool = [...restaurantsForCity(city)];
   const restaurants: FlashRestaurantDraw[] = [];
   for (let i = 0; i < size && pool.length > 0; i++) {
     const picked = pool.splice(pickIndex(pool.length, random), 1)[0];
-    restaurants.push({ slug: picked.slug, feeMode: drawFeeMode() });
+    restaurants.push({ slug: picked.slug, feeMode: drawFeeMode(picked.deliveryFeeMinor) });
   }
 
   return {
@@ -168,9 +174,13 @@ export function flashSecondsRemaining(draw: FlashDraw, now: number): number {
 
 /**
  * The restaurant-level flash fee, in minor units, or `null` when the window
- * has ended or this restaurant wasn't drawn — #87's "effective delivery fee"
- * ordering (rule 2): a flat reduction off the restaurant's own normal fee,
- * or a full waiver, never a third random number.
+ * has ended, this restaurant wasn't drawn, or its normal fee is already 0 —
+ * #87's "effective delivery fee" ordering (rule 2): a flat reduction off the
+ * restaurant's own normal fee, or a full waiver, never a third random
+ * number. A restaurant with no delivery fee to begin with has nothing for
+ * either mode to change, so this returns `null` rather than 0 — the same
+ * "no effective flash price here" signal as an ended window, which is what
+ * lets the caller skip the struck-through-₫0 line entirely (#126).
  */
 export function flashFeeForRestaurant(
   draw: FlashDraw,
@@ -182,6 +192,7 @@ export function flashFeeForRestaurant(
   if (!isFlashLive(draw, now)) return null;
   const match = draw.restaurants.find((restaurant) => restaurant.slug === slug);
   if (!match) return null;
+  if (normalFeeMinor === 0) return null;
   if (match.feeMode === 'free') return 0;
   return Math.max(0, normalFeeMinor - FLASH_REDUCED_OFF_MINOR[city]);
 }

@@ -214,4 +214,21 @@ describe('flashFeeForRestaurant — the effective delivery fee ordering (AC4)', 
     expect(flashFeeForRestaurant(draw, 'hcmc', 'free-one', 15000, FLASH_WINDOW_MS)).toBeNull();
     expect(flashFeeForRestaurant(draw, 'hcmc', 'someone-else', 15000, 0)).toBeNull();
   });
+
+  it('returns null for a restaurant whose normal fee is already 0, in either fee mode — there is nothing to waive or reduce, so no struck-through ₫0 (#126 AC4)', () => {
+    expect(flashFeeForRestaurant(draw, 'hcmc', 'free-one', 0, 0)).toBeNull();
+    expect(flashFeeForRestaurant(draw, 'hcmc', 'reduced-one', 0, 0)).toBeNull();
+  });
+});
+
+describe('drawFlashDeal never labels an already-free restaurant "free" (#126 AC4)', () => {
+  it('a restaurant whose catalogue delivery fee is 0 is drawn as "reduced", never "free", even when the fee-mode coin flip would have said free', () => {
+    // hcmc's pool (restaurants.ts + catalogue-more.ts) has 'ca-phe-nha-go-18'
+    // at index 7 of 14 — pickIndex(14, 0.5) = floor(7) = 7. The very next
+    // random() call (its fee-mode coin flip) is 0, which reads as "free"
+    // for any restaurant whose normal fee is above 0.
+    const draw = drawFlashDeal('hcmc', 0, seededRandom([0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0]));
+    const zeroFeeRestaurant = draw.restaurants.find((restaurant) => restaurant.slug === 'ca-phe-nha-go-18');
+    expect(zeroFeeRestaurant?.feeMode).toBe('reduced');
+  });
 });
