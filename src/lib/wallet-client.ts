@@ -107,3 +107,87 @@ export async function claimDrip(config: WalletClientConfig): Promise<DripClaimRe
   const raw = await callRpc<RawDripClaim>(config, 'wallet_claim_drip');
   return raw ? toDripResult(raw) : null;
 }
+
+export interface DebitConfig extends WalletClientConfig {
+  /** The idempotency key (ADR 0008) — created before the debit, at the first Place-order tap. */
+  orderId: string;
+  currency: 'USD' | 'VND';
+  amountMinor: number;
+}
+
+interface RawDebit {
+  status: 'debited' | 'already_debited' | 'insufficient';
+  usd_minor: number;
+  vnd_minor: number;
+  next_window_start: string;
+}
+
+export interface DebitBalances {
+  usdMinor: number;
+  vndMinor: number;
+  nextWindowStart: string;
+}
+
+export type DebitResult =
+  /** `wallet_debit` answered definitively — `insufficient` included, since it's a real answer from the ledger, not a failure. */
+  | ({ kind: 'ok'; status: RawDebit['status'] } & DebitBalances)
+  /** A raised, non-retryable refusal (ADR 0008's table: below the floor, a conflicting `order_id` for someone else, not authenticated). Distinct from `unreachable` — this is a definitive "no". */
+  | { kind: 'blocked'; message: string }
+  /** Network error, timeout, or HTTP 5xx (ADR 0008, D1) — the caller applies the fallback: place the order as today, without a debit. */
+  | { kind: 'unreachable' };
+
+async function postDebit(config: DebitConfig): Promise<DebitResult> {
+  const fetchImpl = config.fetchImpl ?? (typeof fetch === 'function' ? fetch : undefined);
+  if (!fetchImpl) return { kind: 'unreachable' };
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+  const timeoutId = setTimeout(() => controller?.abort(), RPC_TIMEOUT_MS);
+
+  try {
+    const response = await fetchImpl(`${config.url}/rest/v1/rpc/wallet_debit`, {
+      method: 'POST',
+      signal: controller?.signal,
+      headers: {
+        apikey: config.publishableKey,
+        Authorization: `Bearer ${config.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_order_id: config.orderId,
+        p_currency: config.currency,
+        p_amount_minor: config.amountMinor,
+      }),
+    });
+
+    if (response.ok) {
+      const raw = (await response.json()) as RawDebit;
+      return { kind: 'ok', status: raw.status, usdMinor: raw.usd_minor, vndMinor: raw.vnd_minor, nextWindowStart: raw.next_window_start };
+    }
+    if (response.status >= 500) return { kind: 'unreachable' };
+    const body: unknown = await response.json().catch(() => ({}));
+    const message =
+      typeof body === 'object' && body !== null && 'message' in body && typeof (body as { message: unknown }).message === 'string'
+        ? (body as { message: string }).message
+        : 'refused';
+    return { kind: 'blocked', message };
+  } catch {
+    return { kind: 'unreachable' };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * `wallet_debit`, ADR 0008's D8/§"Source of truth". A network-level failure
+ * (a rejected fetch, a timeout, or a 5xx) is retried exactly once with the
+ * same `orderId` before being reported as `unreachable` — the request may
+ * have already landed, and `order_id` is the primary key `wallet_debit`
+ * checks first, so asking again is safe and resolves the ambiguity instead
+ * of assuming failure and letting D1's fallback place the order for free.
+ * Only a second failure is genuinely unreachable.
+ */
+export async function debitWallet(config: DebitConfig): Promise<DebitResult> {
+  const first = await postDebit(config);
+  if (first.kind !== 'unreachable') return first;
+  return postDebit(config);
+}

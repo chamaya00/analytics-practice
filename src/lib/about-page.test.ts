@@ -88,10 +88,19 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).toContain('no free-text field anywhere in this app, ever');
   });
 
-  it('states what is not logged', () => {
+  it('states what is not logged, in the events — no longer claiming no account exists at all (#149)', () => {
     const text = readAbout().body.textContent ?? '';
-    expect(text).toContain('anything that identifies you as a real person');
-    expect(text).toContain('No account, no card, no email, no address, no cross-site tracking cookie');
+    expect(text).toContain('anything that identifies you as a real person, in the events above');
+    expect(text).toContain('No card, no address, no cross-site tracking cookie');
+    expect(text).not.toContain('No account');
+  });
+
+  it('states that signing in stores an email via Supabase Auth, and a balance per account, and that it is still play money (#149, AC5)', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain('If you sign in to place an order');
+    expect(text).toContain('Google or Apple shares an email address with us, which Supabase Auth holds');
+    expect(text).toContain('Your balance is stored per account in our database');
+    expect(text).toContain("It's still play money: no payment is ever taken.");
   });
 
   it('discloses the IP-hash rate limit, its one-hour retention, and that it never joins the events table', () => {

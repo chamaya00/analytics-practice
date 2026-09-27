@@ -68,6 +68,11 @@ export interface PlacedOrder {
   rating: { stars: number; tags: RatingTag[] } | null;
 }
 
+/** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
+export function createOrderId(): string {
+  return generateId();
+}
+
 function generateId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   // Fallback for a test environment without a full Web Crypto shim — still
@@ -418,6 +423,8 @@ export interface PlaceOrderFields {
   savedAmountMinor?: number;
   /** The checkout breakdown's `totalMinor` (§5) — defaults to the subtotal for a caller with no breakdown to hand in (mostly tests unconcerned with the total). Every real caller (checkout-dom.ts) always has a breakdown and passes its `totalMinor`. */
   totalMinor?: number;
+  /** A pre-made order id (#149: the wallet debit's idempotency key, created at the first Place-order tap and kept in `sessionStorage` until this order is written — ADR 0008, "Source of truth"). Defaults to a freshly generated one, as before, for every caller that doesn't pass one. */
+  orderId?: string;
 }
 
 /**
@@ -468,7 +475,7 @@ export function placeOrder(
   const amountMinor = cartSubtotalMinor(items);
   const city: City = getRestaurant(slug)?.city ?? 'sf';
   const order: PlacedOrder = {
-    orderId: generateId(),
+    orderId: fields.orderId ?? generateId(),
     placedAt: new Date().toISOString(),
     etaMinutes,
     deliveryMs: pickDeliveryMs(etaMinutes, random),

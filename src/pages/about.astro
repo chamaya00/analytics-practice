@@ -53,10 +53,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     Driver avatars: Avataaars by Pablo Stanley, via DiceBear (MIT).
   </p>
   <p>
-    <strong>What we don't log:</strong> anything that identifies you as a real person. No account,
-    no card, no email, no address, no cross-site tracking cookie, and no free-text field anywhere in
+    <strong>What we don't log:</strong> anything that identifies you as a real person, in the events
+    above. No card, no address, no cross-site tracking cookie, and no free-text field anywhere in
     this app for any of the above, ever — because the choices above are the only ones this app
     actually asks you to make.
+  </p>
+  <p>
+    <strong>If you sign in to place an order:</strong> Google or Apple shares an email address with
+    us, which Supabase Auth holds to keep your play-money wallet tied to your account. Your balance
+    is stored per account in our database — never in the events above, and never joined to the
+    random browser ID. It's still play money: no payment is ever taken.
   </p>
   <div class="demo-disclosure" data-testid="about-disclosure">
     <span

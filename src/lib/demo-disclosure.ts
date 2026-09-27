@@ -4,6 +4,13 @@
 // checkout's "Place order" (checkout-dom.ts) and above the tracker's
 // Delivered-state rating prompt (tracker-dom.ts). Shared here, identical
 // markup and copy, so the two call sites can't drift apart.
+//
+// #149 adds a second sentence, plainly stating what #136's wallet stores now
+// that "No account" has stopped being true: an email, held by Supabase Auth,
+// and a play-money balance per account — neither ever added to an event
+// (ADR 0008, the #79 rule). True everywhere this renders, whether or not the
+// wallet is switched on for this build (D1): it describes the site, not the
+// visitor's own session.
 
 export function renderDemoDisclosure(): HTMLElement {
   const disclosure = document.createElement('div');
@@ -16,7 +23,8 @@ export function renderDemoDisclosure(): HTMLElement {
   const icon = iconWrapper.firstElementChild!;
 
   const text = document.createElement('span');
-  text.textContent = 'This is a demo. No payment is taken and no food is sent. ';
+  text.textContent =
+    'This is a demo. No payment is taken and no food is sent. Signing in stores an email, held by Supabase Auth, and your play-money balance per account. ';
 
   const link = document.createElement('a');
   link.href = '/about/';

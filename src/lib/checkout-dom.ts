@@ -11,10 +11,20 @@
 // vouchers and breakdown are all that restaurant's alone, and placing the
 // order clears only its lines. Opened with no slug and several carts
 // stored, it sends the visitor to the "Your carts" list to pick one.
+//
+// #149 wires #136's wallet into Place order (ADR 0008, D1, docs/design/143-
+// wallet.md's "Checkout at Place order"). D1, binding: unless the wallet's
+// build flag is set *and* its RPCs answer, Place order behaves exactly as
+// it always has — every branch below that touches the wallet only runs once
+// `walletState` has actually resolved to something other than `dark`, and
+// resolving to `dark` (no config, or any probe failing/timing out) takes
+// the exact original synchronous path with no `await` in the way, so a
+// wallet-off build's tests never see an async gap.
 
 import {
   cartSubtotalMinor,
   computeCheckoutBreakdown,
+  createOrderId,
   getCart,
   getVisitorId,
   placeOrder,
@@ -25,7 +35,7 @@ import {
 import { ALL_CARTS_PATH, offersPath, restaurantSlugFromSearch } from './cart-routes';
 import type { DeliveryInstructions, DropOffPreset } from './tracking';
 import { track } from './tracking';
-import { formatMoney } from './money';
+import { formatMoney, type Currency } from './money';
 import { getRestaurant } from './restaurants';
 import { estimateEtaMinutes } from './eta';
 import { createVehicleIcon } from './vehicle-icon';
@@ -34,6 +44,21 @@ import { clearOffersState, getOffersState, setOffersState } from './offers-store
 import { appliedDiscountAmountMinor, appliedVoucherIds, entriesForCity, syncOffersState } from './vouchers';
 import type { City } from './money';
 import { renderDemoDisclosure } from './demo-disclosure';
+import { readWalletEnvConfig, type WalletEnvConfig } from './wallet-config';
+import { probeWalletGate } from './wallet-gate';
+import {
+  createSupabaseAuth,
+  completeOAuthReturn,
+  getCurrentSession,
+  isOAuthReturn,
+  stripOAuthParams,
+  beginSignIn,
+  type SupabaseAuthLike,
+  type WalletSession,
+  type OAuthProvider,
+} from './auth-client';
+import { getWallet, claimDrip, debitWallet, type WalletBalances } from './wallet-client';
+import { formatNextDripHeadline } from './wallet-dom';
 
 interface ChoiceOption<T> {
   value: T;
@@ -53,14 +78,15 @@ const DELIVERY_INSTRUCTIONS_OPTIONS: ChoiceOption<DeliveryInstructions>[] = [
   { value: 'call_on_arrival', label: 'Call on arrival' },
 ];
 
-/** The chip button row itself, always one selected — must never render with nothing selected. Defaults to the first option. */
+/** The chip button row itself, always one selected — must never render with nothing selected. Defaults to `initial`, or the first option when `initial` is absent or not one of `options`. */
 function choiceButtons<T extends string | number>(
   legend: string,
   options: ChoiceOption<T>[],
   testIdPrefix: string,
   groupClass: string,
+  initial?: T,
 ): { element: HTMLElement; getValue: () => T } {
-  let selected = options[0].value;
+  let selected = initial !== undefined && options.some((option) => option.value === initial) ? initial : options[0].value;
 
   const group = document.createElement('div');
   group.className = groupClass;
@@ -100,6 +126,7 @@ function choiceField<T extends string | number>(
   options: ChoiceOption<T>[],
   testIdPrefix: string,
   groupClass: string,
+  initial?: T,
 ): { element: HTMLElement; getValue: () => T } {
   const wrapper = document.createElement('div');
   wrapper.className = 'checkout-field';
@@ -109,7 +136,7 @@ function choiceField<T extends string | number>(
   heading.className = 'section-title';
   heading.textContent = legend;
 
-  const { element: group, getValue } = choiceButtons(legend, options, testIdPrefix, groupClass);
+  const { element: group, getValue } = choiceButtons(legend, options, testIdPrefix, groupClass, initial);
   wrapper.append(heading, group);
   return { element: wrapper, getValue };
 }
@@ -202,6 +229,201 @@ function defaultRedirect(path: string): void {
   window.location.replace(path);
 }
 
+// --- Wallet plumbing (#149; ADR 0008, docs/design/143-wallet.md) ---
+
+/** New accounts' one-time preload (ADR 0008, amended by #145; owner, 2026-09-27, O6). Used only in the sign-in prompt's own copy. */
+const STARTING_BALANCE_TEXT = '$30.00 and 750.000 ₫';
+
+/** The drip's own fixed amounts (ADR 0008) — used only for the short-balance block's "adds …" copy, never sent anywhere. */
+const DRIP_MINOR: Record<Currency, number> = { USD: 500, VND: 100000 };
+
+const PENDING_ORDER_PREFIX = 'parody.pendingOrder.';
+
+function pendingOrderKey(restaurantSlug: string): string {
+  return `${PENDING_ORDER_PREFIX}${restaurantSlug}`;
+}
+
+/**
+ * Kept in `sessionStorage` from the first Place-order tap while the wallet
+ * is live, until the order this `orderId` pays for is actually written
+ * locally (ADR 0008, "Source of truth"). Carries the three in-memory
+ * checkout choices across the OAuth round trip's full-page navigation
+ * (`checkout-dom.ts:63` in #136's driver notes), and the total at the
+ * moment sign-in started, so the return can say whether it changed.
+ */
+interface PendingOrder {
+  orderId: string;
+  dropOffPreset: DropOffPreset;
+  deliveryInstructions: DeliveryInstructions;
+  utensils: boolean;
+  totalMinorAtSignIn: number;
+  provider: OAuthProvider | null;
+}
+
+function readPendingOrder(sessionStorage: Storage, restaurantSlug: string): PendingOrder | null {
+  const raw = sessionStorage.getItem(pendingOrderKey(restaurantSlug));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PendingOrder;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingOrder(sessionStorage: Storage, restaurantSlug: string, pending: PendingOrder): void {
+  sessionStorage.setItem(pendingOrderKey(restaurantSlug), JSON.stringify(pending));
+}
+
+function clearPendingOrder(sessionStorage: Storage, restaurantSlug: string): void {
+  sessionStorage.removeItem(pendingOrderKey(restaurantSlug));
+}
+
+type WalletCheckoutState =
+  | { kind: 'dark' }
+  | { kind: 'signed-out'; auth: SupabaseAuthLike; providers: { google: boolean; apple: boolean } }
+  | { kind: 'signed-in'; auth: SupabaseAuthLike; session: WalletSession; balances: WalletBalances };
+
+export interface CheckoutWalletDeps {
+  /** Injected in tests so no real config, network or `@supabase/supabase-js` client is ever touched. `undefined` (the default) reads the real env; pass `null` explicitly for "wallet off." */
+  config?: WalletEnvConfig | null;
+  createAuth?: (config: WalletEnvConfig) => Promise<SupabaseAuthLike>;
+  fetchImpl?: typeof fetch;
+  locationHref?: string;
+  /** Cleans the OAuth-return query params off the URL after completing the round trip — never the same call as `navigateToOAuth`, which starts it. */
+  replaceUrl?: (next: string) => void;
+  /** Starts the OAuth redirect — a real `window.location.href = url` by default, injected in tests so nothing actually navigates. */
+  navigateToOAuth?: (url: string) => void;
+}
+
+async function resolveWalletState(
+  url: URL,
+  replaceUrl: (next: string) => void,
+  config: WalletEnvConfig,
+  createAuth: (config: WalletEnvConfig) => Promise<SupabaseAuthLike>,
+  fetchImpl: typeof fetch | undefined,
+): Promise<{ state: WalletCheckoutState; oauthReturned: boolean; oauthFailed: boolean }> {
+  const oauthReturned = isOAuthReturn(url);
+
+  const gate = await probeWalletGate(config, fetchImpl);
+  if (!gate.ready) return { state: { kind: 'dark' }, oauthReturned, oauthFailed: false };
+
+  let auth: SupabaseAuthLike;
+  try {
+    auth = await createAuth(config);
+  } catch {
+    return { state: { kind: 'dark' }, oauthReturned, oauthFailed: false };
+  }
+
+  let session: WalletSession | null;
+  let oauthFailed = false;
+  if (oauthReturned) {
+    const result = await completeOAuthReturn(auth, url);
+    session = result.session;
+    oauthFailed = result.failed;
+    replaceUrl(stripOAuthParams(url).toString());
+  } else {
+    session = await getCurrentSession(auth);
+  }
+
+  if (!session) return { state: { kind: 'signed-out', auth, providers: gate.providers }, oauthReturned, oauthFailed };
+
+  const balances = await getWallet({
+    url: config.url,
+    publishableKey: config.publishableKey,
+    accessToken: session.accessToken,
+    fetchImpl,
+  });
+  // AC1/D1: the wallet RPC failing here is "the RPC failing... at Place
+  // order" — the same fallback as an absent config, not a stuck signed-out
+  // screen with no way to tell the visitor anything is wrong.
+  if (!balances) return { state: { kind: 'dark' }, oauthReturned, oauthFailed: false };
+
+  return { state: { kind: 'signed-in', auth, session, balances }, oauthReturned, oauthFailed };
+}
+
+function renderSignInPrompt(
+  providers: { google: boolean; apple: boolean },
+  onProvider: (provider: OAuthProvider) => void,
+  onClose: () => void,
+): { close: () => void; element: HTMLElement } {
+  const overlay = document.createElement('div');
+  overlay.className = 'sign-in-sheet-overlay';
+  overlay.setAttribute('data-testid', 'sign-in-prompt');
+
+  const scrim = document.createElement('div');
+  scrim.className = 'scrim';
+  scrim.setAttribute('data-testid', 'sign-in-prompt-scrim');
+
+  const panel = document.createElement('div');
+  panel.className = 'sheet';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'sign-in-prompt-heading');
+  panel.tabIndex = -1;
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'sheet-close';
+  closeButton.setAttribute('data-testid', 'sign-in-prompt-close');
+  closeButton.setAttribute('aria-label', 'Close');
+  closeButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>';
+
+  const heading = document.createElement('h1');
+  heading.id = 'sign-in-prompt-heading';
+  heading.textContent = 'Sign in to place your order';
+
+  const body = document.createElement('p');
+  body.textContent = `Orders spend play money from a wallet. New accounts start with ${STARTING_BALANCE_TEXT}. Your cart and offers stay as they are.`;
+
+  const buttons = document.createElement('div');
+  buttons.className = 'sign-in-provider-buttons';
+
+  function providerButton(provider: OAuthProvider, label: string, testId: string): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `sign-in-provider sign-in-provider--${provider}`;
+    button.setAttribute('data-testid', testId);
+    button.textContent = label;
+    button.addEventListener('click', () => onProvider(provider));
+    return button;
+  }
+
+  if (providers.google) buttons.append(providerButton('google', 'Continue with Google', 'google-signin'));
+  if (providers.apple) buttons.append(providerButton('apple', 'Continue with Apple', 'apple-signin'));
+
+  const fine = document.createElement('p');
+  fine.className = 'sign-in-prompt-fine';
+  fine.textContent = 'We keep the email Google or Apple shares with us, to hold your wallet. No payment is taken.';
+
+  const notNow = document.createElement('button');
+  notNow.type = 'button';
+  notNow.className = 'sign-in-not-now';
+  notNow.setAttribute('data-testid', 'sign-in-not-now');
+  notNow.textContent = 'Not now';
+
+  let closed = false;
+  function close(): void {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+    onClose();
+  }
+  function onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') close();
+  }
+  scrim.addEventListener('click', close);
+  closeButton.addEventListener('click', close);
+  notNow.addEventListener('click', close);
+  document.addEventListener('keydown', onKeydown);
+
+  panel.append(closeButton, heading, body, buttons, fine, notNow);
+  overlay.append(scrim, panel);
+
+  return { close, element: overlay };
+}
+
 export function renderCheckout(
   root: HTMLElement,
   storage: Storage,
@@ -212,6 +434,7 @@ export function renderCheckout(
   now: number = Date.now(),
   requestedSlug: string | null = null,
   redirect: (path: string) => void = defaultRedirect,
+  walletDeps: CheckoutWalletDeps = {},
 ): CheckoutView {
   root.innerHTML = '';
 
@@ -252,12 +475,17 @@ export function renderCheckout(
   const { cart } = selection;
   const { lines, restaurantSlug } = cart;
 
-  const dropOff = choiceField('Drop-off', DROP_OFF_OPTIONS, 'drop-off', 'chip-group');
+  // #149: restore the three in-memory choices across the OAuth round trip,
+  // from whatever was persisted at the tap that led to sign-in.
+  const pendingOnLoad = readPendingOrder(sessionStorage, restaurantSlug);
+
+  const dropOff = choiceField('Drop-off', DROP_OFF_OPTIONS, 'drop-off', 'chip-group', pendingOnLoad?.dropOffPreset);
   const deliveryInstructions = choiceField(
     'Delivery instructions',
     DELIVERY_INSTRUCTIONS_OPTIONS,
     'delivery-instructions',
     'chip-group',
+    pendingOnLoad?.deliveryInstructions,
   );
 
   const UTENSILS_OPTIONS: ChoiceOption<'yes' | 'no'>[] = [
@@ -270,6 +498,7 @@ export function renderCheckout(
     options: ChoiceOption<T>[],
     testIdPrefix: string,
     testId: string,
+    initial?: T,
   ): { element: HTMLElement; getValue: () => T } {
     const wrapper = document.createElement('div');
     wrapper.className = 'mini-field';
@@ -277,12 +506,18 @@ export function renderCheckout(
     const label = document.createElement('span');
     label.className = 'mini-label';
     label.textContent = labelText;
-    const { element: group, getValue } = choiceButtons(labelText, options, testIdPrefix, 'chip-group');
+    const { element: group, getValue } = choiceButtons(labelText, options, testIdPrefix, 'chip-group', initial);
     wrapper.append(label, group);
     return { element: wrapper, getValue };
   }
 
-  const utensilsField = miniField('Utensils & napkins', UTENSILS_OPTIONS, 'utensils', 'field-utensils');
+  const utensilsField = miniField(
+    'Utensils & napkins',
+    UTENSILS_OPTIONS,
+    'utensils',
+    'field-utensils',
+    pendingOnLoad ? (pendingOnLoad.utensils ? 'yes' : 'no') : undefined,
+  );
 
   const miniFields = document.createElement('section');
   miniFields.className = 'checkout-field';
@@ -347,6 +582,17 @@ export function renderCheckout(
 
   const disclosure = renderDemoDisclosure();
 
+  // #149: the wallet area sits between the breakdown and the disclosure —
+  // a notice from the OAuth return, the "Pays from wallet" row, or the
+  // short-balance block, per docs/design/143-wallet.md's "Checkout at Place
+  // order". Empty and untouched while the wallet is dark or still resolving.
+  const walletNotice = document.createElement('div');
+  walletNotice.hidden = true;
+  const walletRow = document.createElement('div');
+  walletRow.hidden = true;
+  const shortBalanceBlock = document.createElement('div');
+  shortBalanceBlock.hidden = true;
+
   const placeOrderButton = document.createElement('button');
   placeOrderButton.type = 'button';
   placeOrderButton.className = 'place-order';
@@ -354,67 +600,411 @@ export function renderCheckout(
   placeOrderButton.textContent = 'Place order';
 
   let placing = false;
+  let shortBalanceActive = false;
+
+  function currentFields() {
+    return {
+      dropOffPreset: dropOff.getValue(),
+      deliveryInstructions: deliveryInstructions.getValue(),
+      utensils: utensilsField.getValue() === 'yes',
+    };
+  }
+
+  /**
+   * Writes the order and fires `order_placed` — the exact original flow
+   * from before #149, unchanged when called with no `orderId` (the dark
+   * path). Also the last step whenever a debit succeeds or the wallet is
+   * unreachable at Place order (D1 fallback), passing the pre-made
+   * `orderId` from the pending record so the two share one idempotency key.
+   *
+   * If a debit already succeeded and this local write then fails or is
+   * interrupted, the `catch` leaves the pending record in `sessionStorage`
+   * rather than clearing it — ADR 0008's "Source of truth": the `orderId`
+   * survives for a retry to reuse and get `already_debited`, instead of the
+   * money being spent with no way back to the order it paid for.
+   */
+  function writeOrderAndTrack(orderId?: string): void {
+    try {
+      const order = placeOrder(
+        storage,
+        {
+          ...currentFields(),
+          appliedVoucherIds: appliedVoucherIds(sync.state),
+          savedAmountMinor: breakdown!.savedAmountMinor,
+          totalMinor: breakdown!.totalMinor,
+          orderId,
+        },
+        restaurantSlug,
+      );
+      clearOffersState(storage, restaurantSlug);
+      clearPendingOrder(sessionStorage, restaurantSlug);
+
+      track('order_placed', {
+        order_id: order.orderId,
+        item_count: order.itemCount,
+        amount_minor: order.amountMinor,
+        currency: order.currency,
+        drop_off_preset: order.dropOffPreset,
+        delivery_instructions: order.deliveryInstructions,
+        utensils: order.utensils,
+        applied_voucher_ids: order.appliedVoucherIds,
+        saved_amount_minor: order.savedAmountMinor,
+      });
+
+      navigate('/order-placed/');
+    } catch {
+      // See the doc comment above — deliberately silent.
+    }
+  }
+
+  // --- Wallet wiring ---
+
+  let resolvedState: WalletCheckoutState | null = null;
+  /**
+   * `null` only when there is no config to probe in the first place — the
+   * click handler's signal that "still unresolved" means "genuinely dark,"
+   * not "a live probe is still in flight." Set once, right after `walletConfig`
+   * is read below, and never reassigned.
+   */
+  let walletStateReady: Promise<WalletCheckoutState> | null = null;
+  let currentBalances: WalletBalances | null = null;
+  let signInPromptHandle: { close: () => void; element: HTMLElement } | null = null;
+  let debitInFlight = false;
+
+  function cityBalanceMinor(balances: WalletBalances): number {
+    return breakdown!.currency === 'USD' ? balances.usdMinor : balances.vndMinor;
+  }
+
+  function isShort(balances: WalletBalances): boolean {
+    return cityBalanceMinor(balances) < breakdown!.totalMinor;
+  }
+
+  function renderShortBalance(balances: WalletBalances): void {
+    shortBalanceBlock.innerHTML = '';
+    shortBalanceBlock.className = 'wallet-short-balance';
+    shortBalanceBlock.setAttribute('data-testid', 'wallet-short-balance');
+    shortBalanceBlock.setAttribute('role', 'alert');
+    shortBalanceBlock.tabIndex = -1;
+    shortBalanceBlock.hidden = false;
+
+    const balanceMinor = cityBalanceMinor(balances);
+    const shortfallMinor = breakdown!.totalMinor - balanceMinor;
+
+    const lead = document.createElement('p');
+    lead.className = 'wallet-short-balance-lead';
+    lead.setAttribute('data-testid', 'wallet-short-balance-shortfall');
+    lead.textContent = `${formatMoney(shortfallMinor, breakdown!.currency)} short`;
+
+    const detail = document.createElement('p');
+    detail.textContent = `Your wallet has ${formatMoney(balanceMinor, breakdown!.currency)}; this order is ${formatMoney(breakdown!.totalMinor, breakdown!.currency)}.`;
+
+    shortBalanceBlock.append(lead, detail);
+
+    const dripMinor = DRIP_MINOR[breakdown!.currency];
+    const fix = document.createElement('p');
+    fix.setAttribute('data-testid', 'wallet-short-balance-fix');
+    if (!balances.claimedThisWindow) {
+      const covers = dripMinor >= shortfallMinor;
+      fix.textContent = `Today's drip adds ${formatMoney(dripMinor, breakdown!.currency)}, which ${covers ? 'covers it' : "isn't enough on its own"}.`;
+      shortBalanceBlock.append(fix);
+
+      const collectButton = document.createElement('button');
+      collectButton.type = 'button';
+      collectButton.setAttribute('data-testid', 'wallet-short-balance-collect');
+      collectButton.textContent = 'Collect';
+      collectButton.addEventListener('click', () => void handleCollect());
+      shortBalanceBlock.append(collectButton);
+    } else {
+      fix.textContent = `${formatNextDripHeadline(balances.nextWindowStart, city, now)} adds ${formatMoney(dripMinor, breakdown!.currency)}.`;
+      shortBalanceBlock.append(fix);
+    }
+
+    // The demo disclosure is hidden in this state only (docs/design/143-wallet.md).
+    disclosure.hidden = true;
+    shortBalanceActive = true;
+    placeOrderButton.setAttribute('aria-disabled', 'true');
+  }
+
+  function renderWalletRow(balances: WalletBalances): void {
+    walletRow.innerHTML = '';
+    walletRow.className = 'wallet-pays-row';
+    walletRow.setAttribute('data-testid', 'wallet-pays-row');
+    walletRow.hidden = false;
+    const label = document.createElement('span');
+    label.textContent = 'Pays from wallet';
+    const amount = document.createElement('span');
+    amount.setAttribute('data-testid', 'wallet-pays-amount');
+    amount.textContent = formatMoney(cityBalanceMinor(balances), breakdown!.currency);
+    walletRow.append(label, amount);
+  }
+
+  function clearShortBalance(): void {
+    shortBalanceActive = false;
+    shortBalanceBlock.hidden = true;
+    shortBalanceBlock.innerHTML = '';
+    disclosure.hidden = false;
+    placeOrderButton.removeAttribute('aria-disabled');
+  }
+
+  function renderWalletArea(state: Extract<WalletCheckoutState, { kind: 'signed-in' }>): void {
+    currentBalances = state.balances;
+    if (isShort(state.balances)) {
+      walletRow.hidden = true;
+      renderShortBalance(state.balances);
+    } else {
+      clearShortBalance();
+      renderWalletRow(state.balances);
+    }
+  }
+
+  async function handleCollect(): Promise<void> {
+    if (resolvedState?.kind !== 'signed-in' || !currentBalances) return;
+    const result = await claimDrip({
+      url: walletConfig!.url,
+      publishableKey: walletConfig!.publishableKey,
+      accessToken: resolvedState.session.accessToken,
+      fetchImpl: walletDeps.fetchImpl,
+    });
+    if (!result) return; // best-effort — the block simply stays as it was (matches wallet-dom's claim-failed posture closely enough for checkout's purpose)
+    const updated: WalletBalances = {
+      usdMinor: result.usdMinor,
+      vndMinor: result.vndMinor,
+      windowStart: currentBalances.windowStart,
+      nextWindowStart: result.nextWindowStart,
+      claimedThisWindow: true,
+    };
+    resolvedState = { ...resolvedState, balances: updated };
+    renderWalletArea(resolvedState);
+  }
+
+  function showSignInPrompt(providers: { google: boolean; apple: boolean }): void {
+    if (signInPromptHandle) return;
+    signInPromptHandle = renderSignInPrompt(
+      providers,
+      (provider) => void handleProviderTap(provider),
+      () => {
+        signInPromptHandle = null;
+        placing = false;
+        placeOrderButton.disabled = false;
+      },
+    );
+    root.append(signInPromptHandle.element);
+    signInPromptHandle.element.querySelector<HTMLElement>('.sheet')?.focus();
+  }
+
+  async function handleProviderTap(provider: OAuthProvider): Promise<void> {
+    if (resolvedState?.kind !== 'signed-out') return;
+    const pending: PendingOrder = {
+      orderId: createOrderId(),
+      ...currentFields(),
+      totalMinorAtSignIn: breakdown!.totalMinor,
+      provider,
+    };
+    writePendingOrder(sessionStorage, restaurantSlug, pending);
+
+    const currentHref = walletDeps.locationHref ?? window.location.href;
+    const started = await beginSignIn(resolvedState.auth, provider, redirectUrlFor(currentHref, restaurantSlug), walletNavigate);
+    if (!started) {
+      // Never observed in practice against Supabase, but kept honest: leave
+      // checkout exactly as it was rather than sending the visitor nowhere.
+      placing = false;
+      placeOrderButton.disabled = false;
+    }
+  }
+
+  function walletNavigate(url: string): void {
+    if (walletDeps.navigateToOAuth) walletDeps.navigateToOAuth(url);
+    else window.location.href = url;
+  }
+
+  function redirectUrlFor(currentHref: string, slug: string): string {
+    const url = new URL(currentHref);
+    url.searchParams.set('restaurant', slug);
+    return url.toString();
+  }
+
+  async function handleSignedInPlaceOrder(state: Extract<WalletCheckoutState, { kind: 'signed-in' }>): Promise<void> {
+    const pending: PendingOrder = readPendingOrder(sessionStorage, restaurantSlug) ?? {
+      orderId: createOrderId(),
+      ...currentFields(),
+      totalMinorAtSignIn: breakdown!.totalMinor,
+      provider: null,
+    };
+    writePendingOrder(sessionStorage, restaurantSlug, pending);
+
+    debitInFlight = true;
+    const result = await debitWallet({
+      url: walletConfig!.url,
+      publishableKey: walletConfig!.publishableKey,
+      accessToken: state.session.accessToken,
+      fetchImpl: walletDeps.fetchImpl,
+      orderId: pending.orderId,
+      currency: breakdown!.currency,
+      amountMinor: breakdown!.totalMinor,
+    });
+    debitInFlight = false;
+
+    if (result.kind === 'unreachable') {
+      // D1 fallback: place the order as today, without a debit.
+      writeOrderAndTrack(pending.orderId);
+      return;
+    }
+
+    if (result.kind === 'blocked') {
+      placing = false;
+      placeOrderButton.disabled = false;
+      walletNotice.hidden = false;
+      walletNotice.className = 'wallet-notice';
+      walletNotice.setAttribute('data-testid', 'wallet-debit-blocked');
+      walletNotice.setAttribute('role', 'status');
+      walletNotice.textContent = "Couldn't place your order just now. Tap Place order to try again.";
+      return;
+    }
+
+    const updatedBalances: WalletBalances = {
+      usdMinor: result.usdMinor,
+      vndMinor: result.vndMinor,
+      windowStart: currentBalances?.windowStart ?? '',
+      nextWindowStart: result.nextWindowStart,
+      claimedThisWindow: currentBalances?.claimedThisWindow ?? false,
+    };
+    resolvedState = { ...state, balances: updatedBalances };
+    currentBalances = updatedBalances;
+
+    if (result.status === 'insufficient') {
+      placing = false;
+      placeOrderButton.disabled = false;
+      renderWalletArea(resolvedState);
+      shortBalanceBlock.focus();
+      return;
+    }
+
+    renderWalletRow(updatedBalances);
+    writeOrderAndTrack(pending.orderId);
+  }
+
+  function dispatchPlaceOrder(state: WalletCheckoutState): void {
+    if (state.kind === 'dark') {
+      writeOrderAndTrack();
+      return;
+    }
+    if (state.kind === 'signed-out') {
+      showSignInPrompt(state.providers);
+      return;
+    }
+    void handleSignedInPlaceOrder(state);
+  }
+
   placeOrderButton.addEventListener('click', () => {
+    if (shortBalanceActive) {
+      shortBalanceBlock.focus();
+      return;
+    }
+    if (placing || debitInFlight) return;
     // The guard against a double-tap firing two order_placed events for one
     // order_id: disable synchronously, on the very first click, before
     // anything else runs.
-    if (placing) return;
     placing = true;
     placeOrderButton.disabled = true;
+    walletNotice.hidden = true;
 
-    const order = placeOrder(
-      storage,
-      {
-        dropOffPreset: dropOff.getValue(),
-        deliveryInstructions: deliveryInstructions.getValue(),
-        utensils: utensilsField.getValue() === 'yes',
-        appliedVoucherIds: appliedVoucherIds(sync.state),
-        savedAmountMinor: breakdown.savedAmountMinor,
-        totalMinor: breakdown.totalMinor,
-      },
-      restaurantSlug,
-    );
-    clearOffersState(storage, restaurantSlug);
-
-    track('order_placed', {
-      order_id: order.orderId,
-      item_count: order.itemCount,
-      amount_minor: order.amountMinor,
-      currency: order.currency,
-      drop_off_preset: order.dropOffPreset,
-      delivery_instructions: order.deliveryInstructions,
-      utensils: order.utensils,
-      applied_voucher_ids: order.appliedVoucherIds,
-      saved_amount_minor: order.savedAmountMinor,
-    });
-
-    navigate('/order-placed/');
+    if (resolvedState !== null) {
+      // Already known — dark resolves here with no config at all (AC1: the
+      // exact original synchronous path, no `await` reached), and every
+      // other case resolves here once its probe has actually answered.
+      dispatchPlaceOrder(resolvedState);
+      return;
+    }
+    if (walletStateReady === null) {
+      // No config was ever probed — permanently dark.
+      writeOrderAndTrack();
+      return;
+    }
+    // A config exists and its probe is still in flight (docs/design/143-
+    // wallet.md's "loading" state): wait for the real answer rather than
+    // guessing dark, keeping the button disabled the same way a double-tap
+    // does until it resolves. Read back through `resolvedState` (set by the
+    // same chain just before it settles) rather than this `.then`'s own
+    // value, in case a later resolution already moved it on.
+    void walletStateReady.then(() => dispatchPlaceOrder(resolvedState!));
   });
 
-  const restaurantLine = document.createElement('p');
-  restaurantLine.className = 'checkout-restaurant';
-  restaurantLine.setAttribute('data-testid', 'checkout-restaurant');
-  restaurantLine.textContent = `Your order from ${cart.restaurantName}`;
-
-  const etaLine = document.createElement('p');
-  etaLine.className = 'checkout-restaurant';
-  etaLine.setAttribute('data-testid', 'checkout-eta');
-  const etaMinutes = estimateEtaMinutes(getVisitorId(storage), restaurantSlug);
-  if (restaurant) etaLine.append(createVehicleIcon(restaurant.city));
-  etaLine.append(`Arrives in about ${etaMinutes} min`);
+  const walletConfig = walletDeps.config === undefined ? readWalletEnvConfig() : walletDeps.config;
 
   root.append(
-    restaurantLine,
-    etaLine,
+    restaurantLineEl(),
+    etaLineEl(),
     dropOff.element,
     deliveryInstructions.element,
     miniFields,
     offersRow,
     dropNotice,
     breakdownEl,
+    walletNotice,
+    walletRow,
+    shortBalanceBlock,
     disclosure,
     placeOrderButton,
   );
+
+  function restaurantLineEl(): HTMLElement {
+    const restaurantLine = document.createElement('p');
+    restaurantLine.className = 'checkout-restaurant';
+    restaurantLine.setAttribute('data-testid', 'checkout-restaurant');
+    restaurantLine.textContent = `Your order from ${cart.restaurantName}`;
+    return restaurantLine;
+  }
+
+  function etaLineEl(): HTMLElement {
+    const etaLine = document.createElement('p');
+    etaLine.className = 'checkout-restaurant';
+    etaLine.setAttribute('data-testid', 'checkout-eta');
+    const etaMinutes = estimateEtaMinutes(getVisitorId(storage), restaurantSlug);
+    if (restaurant) etaLine.append(createVehicleIcon(restaurant.city));
+    etaLine.append(`Arrives in about ${etaMinutes} min`);
+    return etaLine;
+  }
+
+  if (walletConfig) {
+    const url = new URL(walletDeps.locationHref ?? window.location.href);
+    const createAuth = walletDeps.createAuth ?? createSupabaseAuth;
+    const replaceUrl =
+      walletDeps.replaceUrl ??
+      ((next: string) => window.history.replaceState({}, '', next));
+
+    walletStateReady = resolveWalletState(url, replaceUrl, walletConfig, createAuth, walletDeps.fetchImpl).then(({ state, oauthReturned, oauthFailed }) => {
+      resolvedState = state;
+
+      if (oauthReturned) {
+        if (oauthFailed) {
+          const pending = readPendingOrder(sessionStorage, restaurantSlug);
+          walletNotice.hidden = false;
+          walletNotice.className = 'wallet-notice';
+          walletNotice.setAttribute('data-testid', 'wallet-signin-failed');
+          walletNotice.setAttribute('role', 'status');
+          walletNotice.textContent =
+            pending?.provider === 'apple'
+              ? "Apple sign-in isn't working right now; try Google."
+              : "Sign-in didn't finish, so nothing was ordered. Your cart is still here; tap Place order to try again.";
+        } else if (state.kind === 'signed-in') {
+          const pending = readPendingOrder(sessionStorage, restaurantSlug);
+          walletNotice.hidden = false;
+          walletNotice.className = 'wallet-notice';
+          walletNotice.setAttribute('data-testid', 'wallet-returned-notice');
+          walletNotice.setAttribute('role', 'status');
+          if (pending && pending.totalMinorAtSignIn !== breakdown.totalMinor) {
+            walletNotice.textContent = `Welcome back. The total is now ${formatMoney(breakdown.totalMinor, breakdown.currency)} (was ${formatMoney(pending.totalMinorAtSignIn, breakdown.currency)}).`;
+          } else {
+            walletNotice.textContent = 'Signed in. Your cart and offers are as you left them.';
+          }
+        }
+      }
+
+      if (state.kind === 'signed-in') renderWalletArea(state);
+      return state;
+    });
+  }
+
   return { cartIsEmpty: false, cart };
 }
 
@@ -428,6 +1018,7 @@ export function initCheckoutPage(
   sessionStorage: Storage = window.sessionStorage,
   search: string = window.location.search,
   redirect: (path: string) => void = defaultRedirect,
+  walletDeps: CheckoutWalletDeps = {},
 ): void {
   const view = renderCheckout(
     root,
@@ -437,6 +1028,7 @@ export function initCheckoutPage(
     Date.now(),
     restaurantSlugFromSearch(search),
     redirect,
+    walletDeps,
   );
   if (view.cartIsEmpty || view.cart === null) return;
 
