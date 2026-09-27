@@ -1,10 +1,17 @@
-// The flash-deal bottom sheet (docs/design/87-promo-offers-and-flash.md,
-// "The flash-deal sheet"): drag handle, header with the drawn amount and a
-// live mm:ss countdown, the minimum-spend line, and the two drawn
-// restaurants — dismissible by the handle, the scrim, the "×", or tapping a
-// restaurant row, and auto-closing at 00:00. `flash_sheet_closed` fires
-// exactly once per sheet, by whichever of those four exits happens first
-// (contract §7's "at most one per flash_sheet_shown").
+// The flash-deal bottom sheet (docs/design/119-flash-sheet-tall-and-
+// collapsed-bar.md, superseding the short two-row card at docs/design/
+// 87-flash-sheet-hcmc.html): drag handle, a full-bleed header with the drawn
+// amount and a live mm:ss countdown, the minimum-spend line, and a scrolling
+// list of the draw's 5–6 restaurants — dismissible by the handle, the scrim,
+// the "×", or tapping a restaurant row, and auto-closing at 00:00.
+// `flash_sheet_closed` fires exactly once per draw (contract §7's "at most
+// one per flash_sheet_shown"), tracked via `options.eventAlreadyFired` so a
+// sheet reopened from the collapsed bar (below) never fires it twice.
+//
+// Dismissal (scrim/×/drag handle, not a restaurant tap or expiry) collapses
+// the sheet into `renderFlashReopenBar`'s pinned bar rather than discarding
+// it outright — #120 AC2/AC3. The caller (home-dom.ts) owns persisting that
+// collapsed state alongside the draw so it survives a reload.
 
 import { formatMoneyForCity, type City } from './money';
 import { getRestaurant, etaRangeLabel } from './restaurants';
@@ -19,6 +26,13 @@ export interface FlashSheetHandle {
   expire(): void;
 }
 
+export interface FlashSheetOptions {
+  /** True once `flash_sheet_closed` has already fired for this draw (a reopen from the collapsed bar) — closing again still runs the rest of `close()` (collapsing again on a `dismissed` outcome) but never fires the event a second time (AC7). */
+  eventAlreadyFired?: boolean;
+  /** Called after a `dismissed` close only — not `restaurant_tapped` (navigates away) or `expired` (AC3: an expired sheet never collapses). The caller uses this to persist the collapsed state and show the reopen bar. */
+  onDismissed?: () => void;
+}
+
 export function renderFlashSheet(
   root: HTMLElement,
   city: City,
@@ -27,6 +41,7 @@ export function renderFlashSheet(
     window.location.href = path;
   },
   now: () => number = Date.now,
+  options: FlashSheetOptions = {},
 ): FlashSheetHandle {
   const overlay = document.createElement('div');
   overlay.className = 'flash-sheet-overlay';
@@ -76,13 +91,16 @@ export function renderFlashSheet(
     if (closed) return;
     closed = true;
     if (intervalId !== undefined) clearInterval(intervalId);
-    track('flash_sheet_closed', {
-      city,
-      outcome,
-      seconds_remaining: flashSecondsRemaining(draw, now()),
-      restaurant_slug: outcome === 'restaurant_tapped' ? (restaurantSlug ?? 'none') : 'none',
-    });
+    if (!options.eventAlreadyFired) {
+      track('flash_sheet_closed', {
+        city,
+        outcome,
+        seconds_remaining: flashSecondsRemaining(draw, now()),
+        restaurant_slug: outcome === 'restaurant_tapped' ? (restaurantSlug ?? 'none') : 'none',
+      });
+    }
     overlay.remove();
+    if (outcome === 'dismissed') options.onDismissed?.();
   }
 
   scrim.addEventListener('click', () => close('dismissed'));
@@ -167,4 +185,89 @@ export function renderFlashSheet(
   return {
     expire: () => close('expired'),
   };
+}
+
+export interface FlashBarHandle {
+  /** Removes the bar and stops its own ticking countdown — called both when the bar is tapped (about to reopen the sheet) and by the bar itself once the window ends while collapsed (AC3: "a showing bar disappears", no event). */
+  destroy(): void;
+}
+
+/**
+ * The collapsed reopen bar (docs/design/119-flash-bar-collapsed-hcmc.html):
+ * pinned above the tab bar, "{amount} off flash deals" plus a live mm:ss,
+ * reopening the sheet on tap. Ticks independently of the sheet — it only
+ * ever exists while the sheet doesn't — and tears itself down at 00:00
+ * without firing anything, since `flash_sheet_closed` already fired once,
+ * on the dismissal that collapsed it here (AC7).
+ */
+export function renderFlashReopenBar(
+  root: HTMLElement,
+  city: City,
+  draw: FlashDraw,
+  onReopen: () => void,
+  now: () => number = Date.now,
+): FlashBarHandle {
+  const bar = document.createElement('button');
+  bar.type = 'button';
+  bar.className = 'reopen-bar';
+  bar.setAttribute('data-testid', 'flash-reopen-bar');
+  bar.setAttribute('aria-label', `Reopen ${formatMoneyForCity(draw.amountMinor, city)} off flash deals`);
+
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = `${formatMoneyForCity(draw.amountMinor, city)} off flash deals`;
+
+  const right = document.createElement('span');
+  right.className = 'right';
+  const lightning = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  lightning.setAttribute('class', 'lightning');
+  lightning.setAttribute('viewBox', '0 0 24 24');
+  lightning.setAttribute('fill', 'currentColor');
+  lightning.setAttribute('aria-hidden', 'true');
+  lightning.innerHTML = '<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/>';
+
+  const countdown = document.createElement('span');
+  countdown.className = 'countdown';
+  countdown.setAttribute('data-testid', 'flash-reopen-bar-countdown');
+  const minutesTile = document.createElement('span');
+  minutesTile.className = 'tile';
+  const separator = document.createElement('span');
+  separator.className = 'tile-sep';
+  separator.textContent = ':';
+  const secondsTile = document.createElement('span');
+  secondsTile.className = 'tile';
+  countdown.append(minutesTile, separator, secondsTile);
+
+  right.append(lightning, countdown);
+  bar.append(label, right);
+
+  let intervalId: ReturnType<typeof setInterval> | undefined;
+  let destroyed = false;
+
+  function destroy(): void {
+    if (destroyed) return;
+    destroyed = true;
+    if (intervalId !== undefined) clearInterval(intervalId);
+    bar.remove();
+  }
+
+  function renderCountdown(): void {
+    const secondsRemaining = flashSecondsRemaining(draw, now());
+    const [minutes, seconds] = formatCountdown(secondsRemaining).split(':');
+    minutesTile.textContent = minutes;
+    secondsTile.textContent = seconds;
+    if (secondsRemaining <= 0) destroy();
+  }
+
+  bar.addEventListener('click', () => {
+    destroy();
+    onReopen();
+  });
+
+  renderCountdown();
+  if (!destroyed) intervalId = setInterval(renderCountdown, 1000);
+
+  root.append(bar);
+
+  return { destroy };
 }
