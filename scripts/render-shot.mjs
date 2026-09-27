@@ -1,7 +1,13 @@
 // Photograph one URL at an exact viewport, for scripts/app-render and
 // scripts/design-render.
 //
-//   node scripts/render-shot.mjs <browser> <url> <width> <height> <out.png> [seed-file]
+//   node scripts/render-shot.mjs <browser> <url> <width> <height> <out.png> [seed-file] [dark]
+//
+// <dark>, if the literal string "dark", emulates prefers-color-scheme: dark
+// via the DevTools protocol's Emulation.setEmulatedMedia — #126 AC3, so a
+// criterion naming a dark-mode render has a command to point at rather than
+// a manual OS/browser toggle nothing here can drive. Requires <seed-file> to
+// be given too (pass "" to skip seeding while still setting this).
 //
 // <seed-file>, if given, is a path to a JS source file run in the page's own
 // context before any of the page's own scripts — via the DevTools protocol's
@@ -28,12 +34,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const [browser, url, widthArg, heightArg, out, seedFile] = process.argv.slice(2);
+const [browser, url, widthArg, heightArg, out, seedFile, darkArg] = process.argv.slice(2);
 if (!browser || !url || !widthArg || !heightArg || !out) {
-  console.error('usage: render-shot.mjs <browser> <url> <width> <height> <out.png> [seed-file]');
+  console.error('usage: render-shot.mjs <browser> <url> <width> <height> <out.png> [seed-file] [dark]');
   process.exit(2);
 }
 const seedScript = seedFile ? readFileSync(seedFile, 'utf8') : null;
+const dark = darkArg === 'dark';
 const width = Number(widthArg);
 const height = Number(heightArg);
 // A plain viewport of exactly this width, not full phone emulation: with
@@ -125,6 +132,9 @@ try {
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
   await send('Page.enable', {}, sessionId);
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile }, sessionId);
+  if (dark) {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] }, sessionId);
+  }
   if (seedScript) {
     await send('Page.addScriptToEvaluateOnNewDocument', { source: seedScript }, sessionId);
   }

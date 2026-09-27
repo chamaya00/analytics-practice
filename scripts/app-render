@@ -54,11 +54,11 @@ NARROW_SIZE="375,812"
 PORT="${APP_RENDER_PORT:-8765}"
 
 usage() {
-    echo "usage: $0 <route> <out-dir> [seed-file]" >&2
+    echo "usage: $0 <route> <out-dir> [seed-file] [dark]" >&2
     exit 2
 }
 
-[ $# -eq 2 ] || [ $# -eq 3 ] || usage
+[ $# -eq 2 ] || [ $# -eq 3 ] || [ $# -eq 4 ] || usage
 
 route=$1
 out_dir=$2
@@ -72,6 +72,13 @@ out_dir=$2
 # `./scripts/app-render <route> <out-dir>` still gets exactly what it did
 # before this was added.
 SEED_FILE="${3:-}"
+# Optional fourth argument, or APP_RENDER_DARK in the environment: any
+# non-empty value emulates prefers-color-scheme: dark (render-shot.mjs's own
+# optional flag) and suffixes both filenames with "-dark" so a light and a
+# dark render of the same route don't overwrite each other in the same
+# out-dir — #126 AC3. Positional as well as an env var because a sandboxed
+# run may not be able to set an environment variable inline.
+DARK="${4:-${APP_RENDER_DARK:-}}"
 
 case $route in
     /*) : ;;
@@ -191,7 +198,9 @@ mkdir -p "$out_dir"
 shoot() {
     size=$1
     suffix=$2
-    target="$out_dir/$slug-$suffix.png"
+    dark_suffix=""
+    [ -n "$DARK" ] && dark_suffix="-dark"
+    target="$out_dir/$slug-$suffix$dark_suffix.png"
 
     # With node on PATH, photograph through render-shot.mjs: headless
     # Chrome clamps --window-size to 500px wide, so the flag path below gives
@@ -201,7 +210,9 @@ shoot() {
         w=${size%,*}
         h=${size#*,}
         rm -f "$target"
-        node "$script_dir/render-shot.mjs" "$browser" "http://127.0.0.1:$PORT$route" "$w" "$h" "$target" "$SEED_FILE" >&2 || true
+        dark_flag=""
+        [ -n "$DARK" ] && dark_flag="dark"
+        node "$script_dir/render-shot.mjs" "$browser" "http://127.0.0.1:$PORT$route" "$w" "$h" "$target" "$SEED_FILE" "$dark_flag" >&2 || true
         if [ ! -s "$target" ]; then
             echo "app-render: render-shot.mjs produced no picture at $target" >&2
             echo "  URL: http://127.0.0.1:$PORT$route" >&2
