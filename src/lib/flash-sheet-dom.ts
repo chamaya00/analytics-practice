@@ -249,10 +249,11 @@ export function renderFlashSheet(
   countdownRow.append(countdownLabel, countdown);
   header.append(heading, subtitle, countdownRow, closeButton);
 
-  // Its own class, not home-dom.ts's `.restaurant-list` — that global rule
-  // sets a margin/gap meant for the home feed's card list, which leaked
-  // into this scrolling region and doubled its row spacing before this was
-  // split out (found rendering the tall sheet, #120).
+  // Its own class, not home-dom.ts's tile grid (`.tile-grid`, formerly
+  // `.restaurant-list`) — that global rule sets a margin/gap meant for the
+  // home feed's own grid, which leaked into this scrolling region and
+  // doubled its row spacing before this was split out (found rendering the
+  // tall sheet, #120).
   const list = document.createElement('div');
   list.className = 'deal-list';
 

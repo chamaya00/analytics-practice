@@ -1608,8 +1608,8 @@ const { title } = Astro.props;
 
   /* The only region that scrolls — the header above it is a flex sibling
      that never moves (#119's "fixed header, scrolling list" split). Its
-     own class, not home-dom.ts's `.restaurant-list`, whose global
-     margin/gap rule (line ~253) would otherwise leak in. */
+     own class, not home-dom.ts's `.tile-grid` (formerly `.restaurant-list`),
+     whose global grid/gap rule would otherwise leak in. */
   .flash-sheet-overlay .deal-list {
     flex: 1;
     overflow-y: auto;

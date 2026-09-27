@@ -396,6 +396,23 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('Mission Taqueria');
   });
 
+  it('touch and focus interactions pause auto-advance the same way pointer interaction does', () => {
+    vi.useFakeTimers();
+    window.localStorage.setItem('parody.city', 'sf');
+
+    const touchEl = root();
+    initHomePage(touchEl, pillRoot(), window.localStorage);
+    touchEl.querySelector('[data-testid="carousel"]')!.dispatchEvent(new Event('touchstart', { bubbles: true }));
+    vi.advanceTimersByTime(20000);
+    expect(touchEl.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+
+    const focusEl = root();
+    initHomePage(focusEl, pillRoot(), window.localStorage);
+    focusEl.querySelector('[data-testid="carousel"]')!.dispatchEvent(new Event('focusin', { bubbles: true }));
+    vi.advanceTimersByTime(20000);
+    expect(focusEl.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
+  });
+
   it('a pause-button press is the only interaction that stops rotation for good, outlasting a timer advance that would otherwise resume it', () => {
     vi.useFakeTimers();
     window.localStorage.setItem('parody.city', 'sf');
