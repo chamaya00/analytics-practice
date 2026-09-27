@@ -337,3 +337,18 @@ describe('cart swipe-to-remove row and remove-confirm dialog fit at 375px (polis
     expect(darkBlock).toContain('--color-danger:#ff8a9b');
   });
 });
+
+describe('menu\'s "View cart" bar sits above the tab bar, not flush on top of it (#118)', () => {
+  it('the cart summary bar is offset from the viewport bottom by the tab bar\'s own height, the same 56px offset .footer-bar (Offers) uses', () => {
+    const rules = css.match(/\.cart-summary-bar\{[^}]*\}/g) ?? [];
+    expect(rules.length, `expected a .cart-summary-bar rule among: ${rules.join(' / ')}`).toBeGreaterThan(0);
+    const rule = rules.find((candidate) => candidate.includes('position:fixed'));
+    expect(rule, `expected a fixed .cart-summary-bar rule among: ${rules.join(' / ')}`).toBeTruthy();
+    expect(rule).toContain('bottom:calc(56px + env(safe-area-inset-bottom))');
+
+    const footerRules = css.match(/\.footer-bar\{[^}]*\}/g) ?? [];
+    const footerRule = footerRules.find((candidate) => candidate.includes('bottom:calc'));
+    expect(footerRule, `expected a .footer-bar rule with a calc() offset among: ${footerRules.join(' / ')}`).toBeTruthy();
+    expect(footerRule).toContain('bottom:calc(56px + env(safe-area-inset-bottom))');
+  });
+});

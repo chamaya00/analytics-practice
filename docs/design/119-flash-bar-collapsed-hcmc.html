@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Dontdropthatpromo — collapsed flash-deal reopen bar, Ho Chi Minh City (VND)</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h1: 1.875rem;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+
+    --color-bg: #FBF7FF;
+    --color-surface: #F7F1FF;
+    --color-text: #241B33;
+    --color-text-muted: #6B5D85;
+    --color-border: #E3D6FA;
+    --color-accent: #6C3CE0;
+    --color-accent-secondary: #FF7A45;
+    --color-tab-active-bg: #EDE1FF;
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.4;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  /* Behind the bar: the home feed, scrolling normally — the point of the
+     collapsed state is that it no longer blocks the page. */
+  main { max-width: 26rem; margin: 0 auto; padding: var(--space-md) var(--space-lg) calc(150px + var(--space-lg)); }
+  .feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
+  .wordmark { margin: 0; font-size: var(--font-size-nav-title); font-weight: 500; }
+  .wordmark .word-strong { font-weight: 800; }
+  .location-pill { font-size: var(--font-size-muted); color: var(--color-text-muted); white-space: nowrap; }
+  .search { display: block; width: 100%; min-height: 40px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-surface); margin-bottom: var(--space-md); }
+  .feed-card { display: flex; gap: var(--space-sm); padding: var(--space-sm) 0; border-top: 1px solid var(--color-border); }
+  .feed-card .thumb { flex: none; width: 56px; height: 56px; border-radius: 10px; background: var(--color-surface); }
+  .feed-card .lines { flex: 1; }
+  .feed-card .line { height: 10px; border-radius: 10px; background: var(--color-surface); margin-bottom: 6px; }
+  .feed-card .line.short { width: 60%; }
+
+  /* Fixed stack at the true bottom of the screen: the reopen bar, then the
+     tab bar directly beneath it — a common ancestor rather than pixel math,
+     so the bar always sits flush above the tab bar regardless of either
+     one's own height. */
+  .bottom-stack {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    max-width: 26rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .reopen-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    background: var(--color-accent);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+    padding: var(--space-md) var(--space-lg);
+  }
+  .reopen-bar .label { font-weight: 800; font-size: var(--font-size-body); }
+  .reopen-bar .right { display: flex; align-items: center; gap: var(--space-sm); flex: none; }
+  .reopen-bar .lightning { width: 18px; height: 18px; flex: none; }
+  .reopen-bar .countdown { display: flex; gap: 4px; }
+  .reopen-bar .tile {
+    background: var(--color-text);
+    color: #fff;
+    border-radius: 10px;
+    min-width: 30px;
+    padding: 3px 5px;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .reopen-bar .tile-sep { color: #fff; font-weight: 800; font-size: 0.8125rem; }
+
+  .tab-bar {
+    display: flex;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+  .tab-bar a {
+    flex: 1;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+  .tab-bar a svg { width: 20px; height: 20px; }
+  .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+  .tab-bar a.current .tab-label { background: var(--color-tab-active-bg); padding: 1px var(--space-md); border-radius: 999px; }
+
+  .reference-only {
+    margin-top: var(--space-xxl);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="feed-header">
+    <p class="wordmark"><span class="word-strong">dont</span><wbr>drop<wbr>that<wbr>prom<span>o</span></p>
+    <span class="location-pill">Ho Chi Minh City ▾</span>
+  </div>
+  <span class="search"></span>
+  <div class="feed-card"><span class="thumb"></span><span class="lines"><span class="line"></span><span class="line short"></span></span></div>
+  <div class="feed-card"><span class="thumb"></span><span class="lines"><span class="line"></span><span class="line short"></span></span></div>
+  <div class="feed-card"><span class="thumb"></span><span class="lines"><span class="line"></span><span class="line short"></span></span></div>
+  <div class="feed-card"><span class="thumb"></span><span class="lines"><span class="line"></span><span class="line short"></span></span></div>
+
+  <p class="reference-only">Reference only, not part of the shipped page — the feed cards above are filler, standing in for the scrolling page that continues normally behind the bar.</p>
+</main>
+
+<div class="bottom-stack">
+  <div class="reopen-bar">
+    <span class="label">15.000 ₫ off flash deals</span>
+    <span class="right">
+      <svg class="lightning" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+      <span class="countdown">
+        <span class="tile">12</span>
+        <span class="tile-sep">:</span>
+        <span class="tile">15</span>
+      </span>
+    </span>
+  </div>
+  <nav class="tab-bar">
+    <a href="#" class="current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">Home</span></a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><span>Cart</span></a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg><span>Tracker</span></a>
+  </nav>
+</div>
+</body>
+</html>

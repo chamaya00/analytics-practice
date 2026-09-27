@@ -111,6 +111,28 @@ describe('desktop keeps the unchanged header shape, not the tab bar (AC2)', () =
   // this suite can assert that.
 });
 
+describe('tab bar stacking order (#118)', () => {
+  it('the tab bar carries an explicit z-index above ordinary page content and below the flash overlay (20) and the confirm dialog (30)', () => {
+    const css = deliveredCss('dist/index.html');
+    const rules = css.match(/\.tab-bar\[data-astro-cid-[\w-]+\]\{[^}]*\}/g) ?? [];
+    const rule = rules.find((candidate) => candidate.includes('z-index'));
+    expect(rule, `expected a .tab-bar rule with a z-index among: ${rules.join(' / ')}`).toBeTruthy();
+    expect(rule).toContain('z-index:10');
+
+    // .restaurant-card (BaseLayout.astro) is ordinary page content with no
+    // z-index of its own, i.e. the implicit 0 the tab bar used to lose to.
+    const cardRule = css.match(/\.restaurant-card\{[^}]*\}/)?.[0] ?? '';
+    expect(cardRule).not.toContain('z-index');
+
+    // The flash sheet and confirm dialog must still win over the tab bar —
+    // unchanged by this fix (criterion 3).
+    const flashRule = css.match(/\.flash-sheet-overlay\{[^}]*\}/)?.[0] ?? '';
+    expect(flashRule).toContain('z-index:20');
+    const confirmRule = css.match(/\.confirm-overlay\{[^}]*\}/)?.[0] ?? '';
+    expect(confirmRule).toContain('z-index:30');
+  });
+});
+
 describe('safe-area insets pad for hardware, not just the viewport rectangle (AC4)', () => {
   it('the header pads for the top inset (notch) and the tab bar pads for the bottom inset (home indicator)', () => {
     const css = deliveredCss('dist/index.html');
