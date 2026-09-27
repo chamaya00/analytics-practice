@@ -10,7 +10,8 @@
     "typecheck": "astro check",
     "lint": "eslint .",
     "test": "vitest run",
-    "generate-photo-manifest": "node scripts/generate-photo-manifest.mjs"
+    "generate-photo-manifest": "node scripts/generate-photo-manifest.mjs",
+    "rewrite-photo-credits": "node scripts/rewrite-photo-credits.mjs"
   },
   "repository": {
     "type": "git",
