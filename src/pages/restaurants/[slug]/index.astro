@@ -2,6 +2,8 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { ALL_RESTAURANTS, currencyForRestaurant } from '../../../lib/restaurants';
 import { formatMoney } from '../../../lib/money';
+import { formatReviewCount } from '../../../lib/reviews';
+import { VEHICLE_ICON_PATHS, vehicleForCity } from '../../../lib/vehicle-icon';
 
 export function getStaticPaths() {
   return ALL_RESTAURANTS.map((restaurant) => ({
@@ -18,9 +20,7 @@ const deliveryFeeLabel =
 <BaseLayout title={`${restaurant.name} — dontdropthatpromo`}>
   <img class="menu-hero" src={restaurant.heroImage} alt="" width="343" height="160" />
   <h1 class="restaurant-title">{restaurant.name}</h1>
-  <p class="restaurant-meta" data-testid="restaurant-meta">
-    {restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} · <span data-testid="restaurant-eta"></span> · {deliveryFeeLabel} delivery
-  </p>
+  <p class="restaurant-meta" data-testid="restaurant-meta">{restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} ({formatReviewCount(restaurant.reviewCount)}) · <svg class="vehicle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-vehicle={vehicleForCity(restaurant.city)} set:html={VEHICLE_ICON_PATHS[restaurant.city]} /><span data-testid="restaurant-eta"></span> · {deliveryFeeLabel} delivery</p>
   <div id="menu-root" data-testid="menu-root" data-slug={restaurant.slug}></div>
   <script>
     import { getRestaurant } from '../../../lib/restaurants';

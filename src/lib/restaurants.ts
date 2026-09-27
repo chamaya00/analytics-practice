@@ -32,6 +32,8 @@ export interface Restaurant {
   city: City;
   cuisineTag: string;
   rating: number;
+  /** Fixed alongside `rating` (#130, parent #129) — a plausible, varied count, formatted by reviews.ts's `formatReviewCount`. */
+  reviewCount: number;
   /** 0 means the fee shows as "Free" — no deal makes any fee 0 in this catalogue yet (#87's job). */
   deliveryFeeMinor: number;
   hasDeal: boolean;
@@ -50,6 +52,7 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Tacos',
     rating: 4.6,
+    reviewCount: 1247,
     deliveryFeeMinor: 199,
     hasDeal: true,
     heroImage: '/images/restaurants/mission-taqueria-hero.jpg',
@@ -100,6 +103,7 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Pizza',
     rating: 4.4,
+    reviewCount: 683,
     deliveryFeeMinor: 299,
     hasDeal: false,
     heroImage: '/images/restaurants/north-beach-pizzeria-hero.jpg',
@@ -150,6 +154,7 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Dim sum',
     rating: 4.7,
+    reviewCount: 2103,
     deliveryFeeMinor: 249,
     hasDeal: false,
     heroImage: '/images/restaurants/golden-lotus-dim-sum-hero.jpg',
@@ -200,6 +205,7 @@ const SF_RESTAURANTS: Restaurant[] = [
     city: 'sf',
     cuisineTag: 'Bowls',
     rating: 4.7,
+    reviewCount: 954,
     deliveryFeeMinor: 99,
     hasDeal: false,
     heroImage: '/images/restaurants/bay-grain-bowls-hero.jpg',
@@ -253,6 +259,7 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Bánh mì',
     rating: 4.8,
+    reviewCount: 3821,
     deliveryFeeMinor: 10000,
     hasDeal: true,
     heroImage: '/images/restaurants/ben-thanh-banh-mi-hero.jpg',
@@ -303,6 +310,7 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Phở',
     rating: 4.7,
+    reviewCount: 1560,
     deliveryFeeMinor: 15000,
     hasDeal: false,
     heroImage: '/images/restaurants/saigon-pho-quan-hero.jpg',
@@ -353,6 +361,7 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Cơm',
     rating: 4.5,
+    reviewCount: 742,
     deliveryFeeMinor: 12000,
     hasDeal: false,
     heroImage: '/images/restaurants/com-tam-quan-nha-hero.jpg',
@@ -403,6 +412,7 @@ const HCMC_RESTAURANTS: Restaurant[] = [
     city: 'hcmc',
     cuisineTag: 'Bún',
     rating: 4.6,
+    reviewCount: 1899,
     deliveryFeeMinor: 12000,
     hasDeal: false,
     heroImage: '/images/restaurants/bun-cha-co-ba-hero.jpg',

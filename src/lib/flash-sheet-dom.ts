@@ -20,6 +20,8 @@
 import { formatMoneyForCity, type City } from './money';
 import { getRestaurant } from './restaurants';
 import { estimateEtaMinutes, etaLabel } from './eta';
+import { formatReviewCount } from './reviews';
+import { createVehicleIcon } from './vehicle-icon';
 import { track } from './tracking';
 import { flashFeeForRestaurant, flashSecondsRemaining, type FlashDraw } from './flash-deal';
 import { FLASH_MINIMUM_SPEND_MINOR, formatCountdown } from './vouchers';
@@ -311,7 +313,11 @@ export function renderFlashSheet(
     const meta = document.createElement('p');
     meta.className = 'restaurant-meta';
     const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
-    meta.textContent = `★${restaurant.rating.toFixed(1)} · ${restaurant.cuisineTag} · ${eta}`;
+    meta.append(
+      `★${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)}) · ${restaurant.cuisineTag} · `,
+      createVehicleIcon(restaurant.city),
+      eta,
+    );
 
     const fee = document.createElement('p');
     fee.className = 'restaurant-fee';

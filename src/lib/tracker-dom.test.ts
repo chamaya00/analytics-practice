@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
 import { addToCart, getOrder, ORDER_KEY, placeOrder } from './order-store';
 import { resetTrack, setTrack } from './tracking';
+import { setStoredCity } from './location';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -318,5 +319,42 @@ describe('AC3: the tracker completes with no error when the sender is unconfigur
     }).not.toThrow();
 
     expect(getOrder(window.localStorage)?.rating).toEqual({ stars: 5, tags: [] });
+  });
+});
+
+describe('initTrackerPage — vehicle icon on the countdown (#130 AC4, AC5)', () => {
+  const HCMC_LINE = {
+    itemId: 'ben-thanh-banh-mi-thit-nuong',
+    restaurantSlug: 'ben-thanh-banh-mi',
+    restaurantName: 'Bến Thành Bánh Mì',
+    name: 'Bánh mì thịt nướng',
+    amountMinor: 35000,
+    currency: 'VND' as const,
+  };
+
+  it('a motorbike icon precedes the countdown text for an HCMC order', () => {
+    addToCart(window.localStorage, HCMC_LINE);
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true }, undefined, () => 0.5);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const icon = el.querySelector('[data-testid="tracker-countdown"] .vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('switching the stored city after ordering does not change the order’s own vehicle icon', () => {
+    setStoredCity(window.localStorage, 'hcmc');
+    addToCart(window.localStorage, HCMC_LINE);
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true }, undefined, () => 0.5);
+
+    setStoredCity(window.localStorage, 'sf');
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const icon = el.querySelector('[data-testid="tracker-countdown"] .vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
   });
 });
