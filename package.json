@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "typecheck": "astro check",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate-photo-manifest": "node scripts/generate-photo-manifest.mjs"
   },
   "repository": {
     "type": "git",
