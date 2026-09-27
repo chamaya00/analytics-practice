@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initCheckoutPage } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
-import { addToCart, getCart, getOrder, getVisitorId } from './order-store';
+import { addToCart, getCart, getLatestOrder, getVisitorId } from './order-store';
 import { estimateEtaMinutes } from './eta';
 import { resetTrack, setTrack } from './tracking';
 
@@ -195,7 +195,7 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     const orderPlacedCalls = stub.mock.calls.filter(([name]) => name === 'order_placed');
     expect(orderPlacedCalls).toHaveLength(1);
     const [, props] = orderPlacedCalls[0];
-    const order = getOrder(window.localStorage);
+    const order = getLatestOrder(window.localStorage);
     expect(props).toEqual({
       order_id: order!.orderId,
       item_count: 1,
@@ -208,7 +208,11 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
       saved_amount_minor: 499,
     });
     expect(getCart(window.localStorage)).toEqual([]);
-    expect(getOrder(window.localStorage)).not.toBeNull();
+    expect(getLatestOrder(window.localStorage)).not.toBeNull();
+    // order_placed.amount_minor stays the subtotal even though the stored
+    // order's own totalMinor is the breakdown's total (#144 §5).
+    expect(order?.amountMinor).toBe(2150);
+    expect(order?.totalMinor).toBe(2100);
   });
 
   it('a rapid double-tap on "Place order" fires exactly one order_placed for one order_id (AC3, contract §4/§7)', () => {
@@ -333,7 +337,7 @@ describe('initCheckoutPage — one cart per restaurant', () => {
 
     const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
     expect(props).toMatchObject({ item_count: 1, amount_minor: 425, currency: 'USD', applied_voucher_ids: [] });
-    expect(getOrder(window.localStorage)?.items.map((line) => line.itemId)).toEqual([TACO.itemId]);
+    expect(getLatestOrder(window.localStorage)?.items.map((line) => line.itemId)).toEqual([TACO.itemId]);
     expect(getCart(window.localStorage).map((line) => line.itemId)).toEqual([LINE.itemId]);
   });
 

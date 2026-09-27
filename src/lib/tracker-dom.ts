@@ -7,7 +7,7 @@
 // rating_submitted once when "Submit" is tapped — matching
 // docs/measurement/81-two-city-event-contract.md §7 exactly.
 
-import { getOrder, minutesSinceOrder, recordTrackerView, submitRating } from './order-store';
+import { getLatestOrder, minutesSinceOrder, recordTrackerView, submitRating } from './order-store';
 import { computeTrackerView, STEPS, type TrackerView } from './tracker-state';
 import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
@@ -231,10 +231,10 @@ export function renderTrackerView(
 }
 
 export function initTrackerPage(root: HTMLElement, storage: Storage = window.localStorage): () => void {
-  const order = getOrder(storage);
+  const order = getLatestOrder(storage);
 
   if (order) {
-    const viewNumber = recordTrackerView(storage);
+    const viewNumber = recordTrackerView(storage, order.orderId);
     track('tracker_viewed', {
       order_id: order.orderId,
       minutes_since_order: minutesSinceOrder(order),
@@ -243,9 +243,12 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
   }
 
   function onSubmitRating(stars: number, tags: RatingTag[]): void {
-    const current = getOrder(storage);
+    // Re-reads the latest order rather than reusing `order` above — the same
+    // order `render()` below is about to display, so the rating always lands
+    // on the order actually named by this write (#144 §3).
+    const current = getLatestOrder(storage);
     if (!current) return;
-    const updated = submitRating(storage, stars, tags);
+    const updated = submitRating(storage, current.orderId, stars, tags);
     if (!updated) return;
     track('rating_submitted', { order_id: current.orderId, stars, tags });
     render();
@@ -253,7 +256,7 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
 
   function render(): void {
     checkDelivery(storage);
-    const latest = getOrder(storage);
+    const latest = getLatestOrder(storage);
     const view = computeTrackerView(latest);
 
     const orderSummary = latest

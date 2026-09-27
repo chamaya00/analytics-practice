@@ -9,14 +9,18 @@ import {
   clearRestaurantCart,
   clearOrder,
   computeCheckoutBreakdown,
+  findOrder,
   getCart,
-  getOrder,
+  getLatestOrder,
+  getOrders,
   getSessionId,
   getVisitorId,
   linesForRestaurant,
   markOrderDelivered,
   minutesSinceOrder,
+  ORDER_HISTORY_CAP,
   ORDER_KEY,
+  ORDERS_KEY,
   pickDeliveryMs,
   placeOrder,
   recordTrackerView,
@@ -24,8 +28,10 @@ import {
   selectRestaurantCart,
   setItemQuantity,
   submitRating,
+  type PlacedOrder,
 } from './order-store';
 import { estimateEtaMinutes, ETA_MAX_MINUTES, ETA_MIN_MINUTES } from './eta';
+import { DRIVERS_BY_CITY } from './drivers';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -198,7 +204,7 @@ describe('placeOrder (AC1, AC9)', () => {
     expect(order.savedAmountMinor).toBe(0);
     expect(order.items).toHaveLength(1);
     expect(getCart(window.localStorage)).toEqual([]);
-    expect(getOrder(window.localStorage)).toEqual(order);
+    expect(getLatestOrder(window.localStorage)).toEqual(order);
   });
 
   it('stores a per-visitor estimate (10-25 min) and a delivery time at or before half of it (AC1, AC3)', () => {
@@ -366,7 +372,7 @@ describe('one cart per restaurant', () => {
       'north-beach-pizzeria',
       'saigon-pho-quan',
     ]);
-    expect(getOrder(window.localStorage)?.orderId).toBe(order.orderId);
+    expect(getLatestOrder(window.localStorage)?.orderId).toBe(order.orderId);
   });
 });
 
@@ -382,20 +388,62 @@ describe('clearOrder / start over (AC1)', () => {
 
     clearOrder(window.localStorage);
 
-    expect(getOrder(window.localStorage)).toBeNull();
+    expect(getLatestOrder(window.localStorage)).toBeNull();
     expect(getVisitorId(window.localStorage)).toBe(visitorId);
   });
 });
 
-describe('getOrder — an order stored before #121 (no etaMinutes/deliveryMs)', () => {
-  /** Same shape `placeOrder` wrote before #121 added `etaMinutes`/`deliveryMs` — a
-   * visitor's order already in progress on the live site when this shipped. */
-  function storeLegacyOrder(): void {
+describe('several orders coexist (AC1)', () => {
+  it('placing a second order keeps the first, each with its own placedAt/etaMinutes/deliveryMs', () => {
+    addToCart(window.localStorage, LINE);
+    const first = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      undefined,
+      () => 0.2,
+    );
+
+    addToCart(window.localStorage, LINE);
+    const second = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      undefined,
+      () => 0.8,
+    );
+
+    const orders = getOrders(window.localStorage);
+    expect(orders.map((order) => order.orderId)).toEqual([first.orderId, second.orderId]);
+    expect(orders[0].deliveryMs).not.toBe(orders[1].deliveryMs);
+    expect(getLatestOrder(window.localStorage)?.orderId).toBe(second.orderId);
+  });
+
+  it('getLatestOrder and getOrders are both empty with nothing stored', () => {
+    expect(getLatestOrder(window.localStorage)).toBeNull();
+    expect(getOrders(window.localStorage)).toEqual([]);
+  });
+
+  it('findOrder retrieves a specific order by id regardless of which is latest', () => {
+    addToCart(window.localStorage, LINE);
+    const first = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    expect(findOrder(window.localStorage, first.orderId)?.orderId).toBe(first.orderId);
+    expect(findOrder(window.localStorage, 'not-a-stored-id')).toBeNull();
+  });
+});
+
+describe('getOrders — migrating the legacy `parody.order` key (AC2)', () => {
+  const LEGACY_ORDER_ID = '11111111-1111-4111-8111-111111111111';
+
+  function storeLegacyOrder(overrides: Record<string, unknown> = {}): void {
     window.localStorage.setItem(
       ORDER_KEY,
       JSON.stringify({
-        orderId: 'legacy-order-1',
+        orderId: LEGACY_ORDER_ID,
         placedAt: new Date().toISOString(),
+        etaMinutes: 15,
+        deliveryMs: 5 * 60_000,
         items: [LINE],
         itemCount: 1,
         amountMinor: 1400,
@@ -405,93 +453,338 @@ describe('getOrder — an order stored before #121 (no etaMinutes/deliveryMs)', 
         utensils: true,
         appliedVoucherIds: [],
         savedAmountMinor: 0,
-        viewCount: 0,
-        deliveredEventFired: false,
-        rating: null,
+        viewCount: 3,
+        deliveredEventFired: true,
+        rating: { stars: 5, tags: ['fast'] },
+        ...overrides,
       }),
     );
   }
 
-  it('fills in a finite etaMinutes and the fixed 7-minute deliveryMs rather than leaving them undefined', () => {
-    storeLegacyOrder();
+  it('fills in a finite etaMinutes and the fixed 7-minute deliveryMs for a pre-#121 record missing them', () => {
+    storeLegacyOrder({ etaMinutes: undefined, deliveryMs: undefined });
     const visitorId = getVisitorId(window.localStorage);
 
-    const order = getOrder(window.localStorage);
+    const order = getLatestOrder(window.localStorage);
 
     expect(order?.etaMinutes).toBe(estimateEtaMinutes(visitorId, LINE.restaurantSlug));
     expect(order?.deliveryMs).toBe(7 * 60_000);
   });
+
+  it('appears in the new structure exactly once, preserving deliveredEventFired/viewCount/rating, for both a current-shape and a pre-#121 record — and reading again does not duplicate it', () => {
+    for (const legacyShape of [
+      { etaMinutes: 15, deliveryMs: 5 * 60_000 },
+      { etaMinutes: undefined, deliveryMs: undefined },
+    ]) {
+      window.localStorage.clear();
+      storeLegacyOrder(legacyShape);
+
+      const first = getOrders(window.localStorage);
+      expect(first).toHaveLength(1);
+      expect(first[0].orderId).toBe(LEGACY_ORDER_ID);
+      expect(first[0].deliveredEventFired).toBe(true);
+      expect(first[0].viewCount).toBe(3);
+      expect(first[0].rating).toEqual({ stars: 5, tags: ['fast'] });
+
+      const second = getOrders(window.localStorage);
+      expect(second).toHaveLength(1);
+      expect(second[0].orderId).toBe(LEGACY_ORDER_ID);
+    }
+  });
+
+  it('gives the migrated order a null total and a driver from its own city’s pool, once, persisted across reads', () => {
+    storeLegacyOrder();
+
+    const first = getLatestOrder(window.localStorage);
+    expect(first?.totalMinor).toBeNull();
+    expect(DRIVERS_BY_CITY.sf.map((driver) => driver.id)).toContain(first?.driver.id);
+
+    const second = getLatestOrder(window.localStorage);
+    expect(second?.driver).toEqual(first?.driver);
+  });
+
+  it('removes the legacy key once migrated — nothing reads it again, so leaving it behind would only be dead state', () => {
+    storeLegacyOrder();
+    getOrders(window.localStorage);
+
+    expect(window.localStorage.getItem(ORDER_KEY)).toBeNull();
+    expect(window.localStorage.getItem(ORDERS_KEY)).not.toBeNull();
+  });
+
+  it('a later placeOrder appends to the migrated order rather than the migration re-running and re-adding it', () => {
+    storeLegacyOrder();
+    const migrated = getOrders(window.localStorage)[0]; // triggers the migration once
+
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    const orders = getOrders(window.localStorage);
+    expect(orders).toHaveLength(2);
+    // Deep-equal, not just a matching id: if the migration ran a second time
+    // instead of reading the already-migrated record back, this copy would
+    // carry a freshly (re-)drawn driver rather than the one persisted the
+    // first time.
+    expect(orders[0]).toEqual(migrated);
+    expect(orders[1].orderId).not.toBe(LEGACY_ORDER_ID);
+  });
+});
+
+describe('placeOrder — driver (AC4)', () => {
+  const HCMC_LINE = {
+    itemId: 'ben-thanh-banh-mi-thit-nuong',
+    restaurantSlug: 'ben-thanh-banh-mi',
+    restaurantName: 'Bến Thành Bánh Mì',
+    name: 'Bánh mì thịt nướng',
+    amountMinor: 35000,
+    currency: 'VND' as const,
+  };
+
+  /** Returns each value in sequence, then keeps repeating the last one — lets a
+   * test predict exactly which call (deliveryMs, then the driver draw) sees which value. */
+  function seededRandom(sequence: number[]): () => number {
+    let i = 0;
+    return () => sequence[Math.min(i++, sequence.length - 1)];
+  }
+
+  it('stores exactly the driver a seeded random source picks from the order’s own restaurant’s city pool', () => {
+    addToCart(window.localStorage, {
+      itemId: 'north-beach-pizzeria-margherita',
+      restaurantSlug: 'north-beach-pizzeria',
+      restaurantName: 'North Beach Pizzeria',
+      name: 'Margherita',
+      amountMinor: 1650,
+      currency: 'USD',
+    });
+
+    // random() is consumed once for deliveryMs, then once more for the driver
+    // draw — the second value (0) is what picks pool index 0.
+    const order = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      'north-beach-pizzeria',
+      seededRandom([0.5, 0]),
+    );
+
+    expect(order.driver).toEqual(DRIVERS_BY_CITY.sf[0]);
+  });
+
+  it('an HCMC restaurant’s order gets an HCMC driver even while the stored city preference says SF', () => {
+    addToCart(window.localStorage, HCMC_LINE);
+
+    const order = placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      'ben-thanh-banh-mi',
+      seededRandom([0.5, 0.9]),
+    );
+
+    expect(DRIVERS_BY_CITY.hcmc.map((driver) => driver.id)).toContain(order.driver.id);
+    expect(DRIVERS_BY_CITY.sf.map((driver) => driver.id)).not.toContain(order.driver.id);
+  });
+
+  it('re-reading or re-rendering the order never changes its driver', () => {
+    addToCart(window.localStorage, LINE);
+    const order = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    expect(getLatestOrder(window.localStorage)?.driver).toEqual(order.driver);
+    expect(getLatestOrder(window.localStorage)?.driver).toEqual(order.driver);
+  });
+});
+
+describe('placeOrder — total (AC5)', () => {
+  it('stores the checkout breakdown’s totalMinor, separate from the amountMinor subtotal', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      totalMinor: 1899,
+    });
+
+    expect(order.amountMinor).toBe(1400);
+    expect(order.totalMinor).toBe(1899);
+  });
+});
+
+describe('order history cap (AC5)', () => {
+  function storedOrder(overrides: Partial<PlacedOrder> & { orderId: string; placedAt: string }): PlacedOrder {
+    return {
+      etaMinutes: 15,
+      deliveryMs: 5 * 60_000,
+      items: [{ ...LINE, quantity: 1 }],
+      itemCount: 1,
+      amountMinor: 1400,
+      totalMinor: 1400,
+      currency: 'USD',
+      driver: DRIVERS_BY_CITY.sf[0],
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 0,
+      deliveredEventFired: false,
+      rating: null,
+      ...overrides,
+    };
+  }
+
+  it('drops the oldest delivered-and-fired orders first once the cap is exceeded, never dropping a live order or a delivered one whose event hasn’t fired', () => {
+    const now = Date.now();
+    const orders: PlacedOrder[] = [];
+
+    // Two protected orders, older than everything else, stored first (oldest-first).
+    orders.push(
+      storedOrder({
+        orderId: 'delivered-unfired',
+        placedAt: new Date(now - 1000 * 60_000).toISOString(),
+        deliveryMs: 1000,
+        deliveredEventFired: false,
+      }),
+    );
+    orders.push(
+      storedOrder({
+        orderId: 'still-live',
+        placedAt: new Date(now - 999 * 60_000).toISOString(),
+        deliveryMs: 999_999_999,
+        deliveredEventFired: false,
+      }),
+    );
+    // ORDER_HISTORY_CAP droppable (delivered, event fired) orders, oldest first.
+    for (let i = 0; i < ORDER_HISTORY_CAP; i++) {
+      orders.push(
+        storedOrder({
+          orderId: `droppable-${i}`,
+          placedAt: new Date(now - (ORDER_HISTORY_CAP - i) * 60_000).toISOString(),
+          deliveryMs: 1000,
+          deliveredEventFired: true,
+        }),
+      );
+    }
+
+    window.localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    const ids = getOrders(window.localStorage).map((order) => order.orderId);
+
+    expect(ids).toContain('still-live');
+    expect(ids).toContain('delivered-unfired');
+    expect(ids).not.toContain('droppable-0');
+    expect(ids).not.toContain('droppable-1');
+    expect(ids).not.toContain('droppable-2');
+    expect(ids).toContain(`droppable-${ORDER_HISTORY_CAP - 1}`);
+    expect(ids).toHaveLength(ORDER_HISTORY_CAP);
+  });
 });
 
 describe('recordTrackerView (AC3)', () => {
-  it('increments the stored order’s view count on every call, starting at 1', () => {
+  it('increments the named order’s view count on every call, starting at 1', () => {
     addToCart(window.localStorage, LINE);
-    placeOrder(window.localStorage, {
+    const order = placeOrder(window.localStorage, {
       dropOffPreset: 'home',
       deliveryInstructions: 'hand_to_me',
       utensils: true,
     });
 
-    expect(recordTrackerView(window.localStorage)).toBe(1);
-    expect(recordTrackerView(window.localStorage)).toBe(2);
-    expect(getOrder(window.localStorage)?.viewCount).toBe(2);
+    expect(recordTrackerView(window.localStorage, order.orderId)).toBe(1);
+    expect(recordTrackerView(window.localStorage, order.orderId)).toBe(2);
+    expect(getLatestOrder(window.localStorage)?.viewCount).toBe(2);
   });
 
-  it('does nothing when there is no stored order', () => {
-    expect(recordTrackerView(window.localStorage)).toBe(0);
+  it('does nothing when that id isn’t stored', () => {
+    expect(recordTrackerView(window.localStorage, 'not-a-stored-id')).toBe(0);
+  });
+
+  it('updates only the named order when several are stored', () => {
+    addToCart(window.localStorage, LINE);
+    const first = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+    addToCart(window.localStorage, LINE);
+    const second = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    recordTrackerView(window.localStorage, first.orderId);
+
+    expect(findOrder(window.localStorage, first.orderId)?.viewCount).toBe(1);
+    expect(findOrder(window.localStorage, second.orderId)?.viewCount).toBe(0);
   });
 });
 
 describe('markOrderDelivered (contract §10)', () => {
-  it('sets deliveredEventFired on the stored order, defaulting to false', () => {
+  it('sets deliveredEventFired on the named order, defaulting to false', () => {
     addToCart(window.localStorage, LINE);
-    placeOrder(window.localStorage, {
+    const order = placeOrder(window.localStorage, {
       dropOffPreset: 'home',
       deliveryInstructions: 'hand_to_me',
       utensils: true,
     });
-    expect(getOrder(window.localStorage)?.deliveredEventFired).toBe(false);
+    expect(getLatestOrder(window.localStorage)?.deliveredEventFired).toBe(false);
 
-    markOrderDelivered(window.localStorage);
-    expect(getOrder(window.localStorage)?.deliveredEventFired).toBe(true);
+    markOrderDelivered(window.localStorage, order.orderId);
+    expect(getLatestOrder(window.localStorage)?.deliveredEventFired).toBe(true);
   });
 
-  it('does nothing when there is no stored order', () => {
-    expect(() => markOrderDelivered(window.localStorage)).not.toThrow();
-    expect(getOrder(window.localStorage)).toBeNull();
+  it('does nothing when that id isn’t stored', () => {
+    expect(() => markOrderDelivered(window.localStorage, 'not-a-stored-id')).not.toThrow();
+    expect(getLatestOrder(window.localStorage)).toBeNull();
+  });
+
+  it('marks only the named order when several are stored', () => {
+    addToCart(window.localStorage, LINE);
+    const first = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+    addToCart(window.localStorage, LINE);
+    const second = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    markOrderDelivered(window.localStorage, first.orderId);
+
+    expect(findOrder(window.localStorage, first.orderId)?.deliveredEventFired).toBe(true);
+    expect(findOrder(window.localStorage, second.orderId)?.deliveredEventFired).toBe(false);
   });
 });
 
 describe('submitRating (contract §7’s rating_submitted invariant)', () => {
-  it('records the rating on the stored order, defaulting to null', () => {
+  it('records the rating on the named order, defaulting to null', () => {
     addToCart(window.localStorage, LINE);
-    placeOrder(window.localStorage, {
+    const order = placeOrder(window.localStorage, {
       dropOffPreset: 'home',
       deliveryInstructions: 'hand_to_me',
       utensils: true,
     });
-    expect(getOrder(window.localStorage)?.rating).toBeNull();
+    expect(getLatestOrder(window.localStorage)?.rating).toBeNull();
 
-    const updated = submitRating(window.localStorage, 4, ['fast']);
+    const updated = submitRating(window.localStorage, order.orderId, 4, ['fast']);
     expect(updated?.rating).toEqual({ stars: 4, tags: ['fast'] });
-    expect(getOrder(window.localStorage)?.rating).toEqual({ stars: 4, tags: ['fast'] });
+    expect(getLatestOrder(window.localStorage)?.rating).toEqual({ stars: 4, tags: ['fast'] });
   });
 
   it('returns null and leaves the stored rating untouched on a second call — a second Submit is impossible', () => {
     addToCart(window.localStorage, LINE);
-    placeOrder(window.localStorage, {
+    const order = placeOrder(window.localStorage, {
       dropOffPreset: 'home',
       deliveryInstructions: 'hand_to_me',
       utensils: true,
     });
-    submitRating(window.localStorage, 4, ['fast']);
+    submitRating(window.localStorage, order.orderId, 4, ['fast']);
 
-    expect(submitRating(window.localStorage, 2, [])).toBeNull();
-    expect(getOrder(window.localStorage)?.rating).toEqual({ stars: 4, tags: ['fast'] });
+    expect(submitRating(window.localStorage, order.orderId, 2, [])).toBeNull();
+    expect(getLatestOrder(window.localStorage)?.rating).toEqual({ stars: 4, tags: ['fast'] });
   });
 
-  it('does nothing when there is no stored order', () => {
-    expect(submitRating(window.localStorage, 4, [])).toBeNull();
+  it('does nothing when that id isn’t stored', () => {
+    expect(submitRating(window.localStorage, 'not-a-stored-id', 4, [])).toBeNull();
+  });
+
+  it('rates only the named order when several are stored', () => {
+    addToCart(window.localStorage, LINE);
+    const first = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+    addToCart(window.localStorage, LINE);
+    const second = placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    submitRating(window.localStorage, first.orderId, 3, []);
+
+    expect(findOrder(window.localStorage, first.orderId)?.rating).toEqual({ stars: 3, tags: [] });
+    expect(findOrder(window.localStorage, second.orderId)?.rating).toBeNull();
   });
 });
 

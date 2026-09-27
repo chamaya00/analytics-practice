@@ -182,7 +182,7 @@ describe('the promo mechanic completes with no error when Supabase is not config
     }).not.toThrow();
 
     // No error surfaces to the visitor: the order still completes and the cart still clears.
-    expect(window.localStorage.getItem('parody.order')).not.toBeNull();
+    expect(window.localStorage.getItem('parody.orders')).not.toBeNull();
     expect(JSON.parse(window.localStorage.getItem('parody.cart') ?? '[]')).toEqual([]);
   });
 });

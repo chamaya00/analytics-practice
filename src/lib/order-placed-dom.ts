@@ -4,7 +4,7 @@
 // "start over"), this screen redirects to /restaurants instead of rendering
 // an empty confirmation.
 
-import { getOrder } from './order-store';
+import { getLatestOrder } from './order-store';
 import { formatMoney } from './money';
 import { getRestaurant } from './restaurants';
 import { createVehicleIcon } from './vehicle-icon';
@@ -27,7 +27,7 @@ export function renderOrderPlaced(
 ): OrderPlacedView {
   root.innerHTML = '';
 
-  const order = getOrder(storage);
+  const order = getLatestOrder(storage);
   if (!order) {
     navigate('/restaurants/');
     return { redirectedToRestaurants: true };
