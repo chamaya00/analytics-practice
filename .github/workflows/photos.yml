@@ -1,0 +1,83 @@
+name: photos
+
+# Downloads the photos named in docs/design/photos.json onto a GitHub-hosted
+# runner and commits them to the pull request's own branch.
+#
+# Why this is a workflow step: agent runs cannot reach Unsplash (#82 shipped
+# placeholders for that reason), and the owner chose not to widen the driving
+# session's network. A plain step on a hosted runner has ordinary internet
+# access. Roles edit the manifest; this does the fetching. Agents never edit
+# this file (house rules, "What agents never touch").
+#
+# It fires only when the manifest changes on a pull request from this
+# repository - never a fork, which gets no write token - and it commits only
+# public/images/ and the lock file. A commit that touches neither the
+# manifest nor anything else cannot re-trigger it, so it does not loop.
+#
+# The owner approved images.unsplash.com and unsplash.com as download sources
+# on 2026-09-27. The site never hotlinks either: what ships is the committed
+# file.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/design/photos.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: photos-${{ github.head_ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The agent App's token when it is configured: a push made with it
+      # starts CI on the new commit, which a push with GITHUB_TOKEN does not,
+      # and the merge gate needs CI on the head.
+      - id: app
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.AGENT_APP_ID }}
+          private-key: ${{ secrets.AGENT_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ steps.app.outputs.token || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - id: fetch
+        run: |
+          if node scripts/fetch-photos.mjs; then
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Commit whatever did download, even when some slots failed, so a
+      # retry only has the failures left to do.
+      - name: Commit fetched photos
+        run: |
+          git add public/images docs/design/photos.lock.json
+          if git diff --cached --quiet; then
+            echo "Nothing new to commit."
+          else
+            git config user.name "photos[bot]"
+            git config user.email "photos-bot@users.noreply.github.com"
+            git commit -m "Fetch photos named in docs/design/photos.json"
+            git push
+          fi
+
+      - if: steps.fetch.outputs.failed == 'true'
+        run: |
+          echo "Some photos did not download - see the fetch step's log." >&2
+          exit 1
