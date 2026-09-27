@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initCheckoutPage } from './checkout-dom';
+import { initCheckoutPage, type CheckoutWalletDeps } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
 import { addToCart, getCart, getLatestOrder, getVisitorId } from './order-store';
 import { estimateEtaMinutes } from './eta';
 import { resetTrack, setTrack } from './tracking';
+import type { SupabaseAuthLike } from './auth-client';
 
 // North Beach Pizzeria's own deliveryFeeMinor (restaurants.ts) is 299 — the
 // $2.99 figure AC1 names — and this line's amountMinor is chosen so the
@@ -394,5 +395,538 @@ describe('checkout — the flash fee reaches every drawn restaurant, not just th
     initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage);
 
     expect(el.querySelector('[data-testid="breakdown-delivery-fee"]')?.textContent).toContain('Free');
+  });
+});
+
+// --- #149: the wallet wired into checkout (ADR 0008, docs/design/143-wallet.md) ---
+
+const WALLET_CONFIG = { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key' };
+const CHECKOUT_HREF = 'https://site.example/checkout/?restaurant=north-beach-pizzeria';
+
+const RAW_SESSION = {
+  access_token: 'token-abc',
+  user: { id: 'user-1', email: 'visitor@example.com', app_metadata: { provider: 'google' } },
+};
+
+function signedInAuth(): Partial<SupabaseAuthLike> {
+  return { getSession: vi.fn().mockResolvedValue({ data: { session: RAW_SESSION } }) };
+}
+
+function fakeAuth(overrides: Partial<SupabaseAuthLike> = {}): SupabaseAuthLike {
+  return {
+    getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+    exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { session: RAW_SESSION }, error: null }),
+    signOut: vi.fn().mockResolvedValue({ error: null }),
+    signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: 'https://abcdefgh.supabase.co/auth/v1/authorize?provider=google' }, error: null }),
+    ...overrides,
+  };
+}
+
+interface WalletFetchOptions {
+  providers?: { google?: boolean; apple?: boolean };
+  ready?: boolean;
+  balances?: { usd_minor: number; vnd_minor: number; window_start: string; next_window_start: string; claimed_this_window: boolean } | null;
+  /** One entry per call; the last entry repeats for any call past the array's end. `'network-error'` rejects. */
+  debit?: Array<{ status: 'debited' | 'already_debited' | 'insufficient' } | { blocked: string } | 'network-error'>;
+  drip?: { claimed: boolean; usd_minor: number; vnd_minor: number; next_window_start: string } | null;
+}
+
+function walletFetch(opts: WalletFetchOptions) {
+  let debitCalls = 0;
+  return vi.fn().mockImplementation((url: string) => {
+    if (url.endsWith('/auth/v1/settings')) {
+      return Promise.resolve({ ok: true, json: async () => ({ external: opts.providers ?? {} }) });
+    }
+    if (url.endsWith('/rest/v1/rpc/wallet_ready')) {
+      return Promise.resolve({ ok: true, json: async () => opts.ready ?? false });
+    }
+    if (url.endsWith('/rest/v1/rpc/wallet_get')) {
+      if (!opts.balances) return Promise.resolve({ ok: false, json: async () => ({}) });
+      return Promise.resolve({ ok: true, json: async () => opts.balances });
+    }
+    if (url.endsWith('/rest/v1/rpc/wallet_claim_drip')) {
+      if (!opts.drip) return Promise.resolve({ ok: false, json: async () => ({}) });
+      return Promise.resolve({ ok: true, json: async () => opts.drip });
+    }
+    if (url.endsWith('/rest/v1/rpc/wallet_debit')) {
+      const entries = opts.debit ?? [];
+      const entry = entries[Math.min(debitCalls, entries.length - 1)];
+      debitCalls += 1;
+      if (entry === 'network-error') return Promise.reject(new Error('network down'));
+      if (!entry) return Promise.resolve({ ok: false, status: 500, json: async () => ({}) });
+      if ('blocked' in entry) return Promise.resolve({ ok: false, status: 400, json: async () => ({ message: entry.blocked }) });
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ status: entry.status, usd_minor: 900, vnd_minor: 750000, next_window_start: '2026-09-28T06:00:00.000Z' }),
+      });
+    }
+    throw new Error(`unexpected fetch ${url}`);
+  });
+}
+
+async function flush(): Promise<void> {
+  // A real macrotask drains the whole microtask queue first, however many
+  // `await` hops the wallet gate probe, session lookup and balance fetch
+  // chain through — counting ticks by hand undercounted in practice.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function walletDeps(overrides: Partial<CheckoutWalletDeps> & { auth?: Partial<SupabaseAuthLike> } = {}): CheckoutWalletDeps {
+  const { auth, ...rest } = overrides;
+  return {
+    config: WALLET_CONFIG,
+    createAuth: vi.fn().mockResolvedValue(fakeAuth(auth)),
+    fetchImpl: walletFetch({}),
+    locationHref: CHECKOUT_HREF,
+    replaceUrl: vi.fn(),
+    navigateToOAuth: vi.fn(),
+    ...rest,
+  };
+}
+
+describe('initCheckoutPage — wallet dark because a probe fails at Place order (AC1 fallback)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+
+  it('places the order exactly as today when wallet_ready() fails: placeOrder once, order_placed once with unchanged props, no prompt, no block, no debit', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: false }); // wallet_ready() answers false
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl }));
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    const orderPlacedCalls = stub.mock.calls.filter(([name]) => name === 'order_placed');
+    expect(orderPlacedCalls).toHaveLength(1);
+    const [, props] = orderPlacedCalls[0];
+    const order = getLatestOrder(window.localStorage);
+    expect(props).toEqual({
+      order_id: order!.orderId,
+      item_count: 1,
+      amount_minor: 2150,
+      currency: 'USD',
+      drop_off_preset: 'home',
+      delivery_instructions: 'leave_at_door',
+      utensils: true,
+      applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
+      saved_amount_minor: 499,
+    });
+    expect(el.querySelector('[data-testid="sign-in-prompt"]')).toBeNull();
+    expect(el.querySelector('[data-testid="wallet-short-balance"]')).toBeNull();
+  });
+
+  it('places the order exactly as today when the settings probe itself errors', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/auth/v1/settings')) return Promise.reject(new Error('network down'));
+      if (url.endsWith('/rest/v1/rpc/wallet_ready')) return Promise.resolve({ ok: true, json: async () => true });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl }));
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(stub.mock.calls.filter(([name]) => name === 'order_placed')).toHaveLength(1);
+    expect(getCart(window.localStorage)).toEqual([]);
+  });
+});
+
+describe('initCheckoutPage — wallet live, signed out (AC2)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+
+  it('the sign-in prompt appears on Place order, and nothing is placed, debited or tracked as order_placed', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true, apple: true }, ready: true });
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({ fetchImpl, auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) } }),
+    );
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(el.querySelector('[data-testid="sign-in-prompt"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="google-signin"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="apple-signin"]')).not.toBeNull();
+    expect(stub.mock.calls.filter(([name]) => name === 'order_placed')).toHaveLength(0);
+    expect(getLatestOrder(window.localStorage)).toBeNull();
+    expect(getCart(window.localStorage)).not.toEqual([]);
+  });
+
+  it('only the enabled provider’s button renders', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true, apple: false }, ready: true });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl }));
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(el.querySelector('[data-testid="google-signin"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="apple-signin"]')).toBeNull();
+  });
+
+  it('tapping a provider persists the pending order (choices + a pre-made orderId) and starts the OAuth redirect with this checkout’s URL', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true });
+    const navigateToOAuth = vi.fn();
+    const signInWithOAuth = vi.fn().mockResolvedValue({ data: { url: 'https://abcdefgh.supabase.co/auth/v1/authorize?provider=google' }, error: null });
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({ fetchImpl, navigateToOAuth, auth: { signInWithOAuth } }),
+    );
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="drop-off-office"]')?.click();
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+    el.querySelector<HTMLButtonElement>('[data-testid="google-signin"]')?.click();
+    await flush();
+
+    expect(signInWithOAuth).toHaveBeenCalledTimes(1);
+    const [[{ provider, options }]] = signInWithOAuth.mock.calls;
+    expect(provider).toBe('google');
+    expect(options?.skipBrowserRedirect).toBe(true);
+    expect(options?.redirectTo).toContain('restaurant=north-beach-pizzeria');
+    expect(navigateToOAuth).toHaveBeenCalledWith('https://abcdefgh.supabase.co/auth/v1/authorize?provider=google');
+
+    const pendingRaw = window.sessionStorage.getItem('parody.pendingOrder.north-beach-pizzeria');
+    expect(pendingRaw).not.toBeNull();
+    const pending = JSON.parse(pendingRaw!);
+    expect(pending.dropOffPreset).toBe('office');
+    expect(pending.provider).toBe('google');
+    expect(typeof pending.orderId).toBe('string');
+  });
+
+  it('Not now closes the prompt and leaves checkout exactly as it was, re-enabling Place order', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl }));
+    await flush();
+
+    const button = el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')!;
+    button.click();
+    await flush();
+    el.querySelector<HTMLButtonElement>('[data-testid="sign-in-not-now"]')?.click();
+
+    expect(el.querySelector('[data-testid="sign-in-prompt"]')).toBeNull();
+    expect(button.disabled).toBe(false);
+  });
+});
+
+describe('initCheckoutPage — returned from the OAuth round trip (AC2)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+
+  it('restores the persisted choices, recomputes the total, and shows a changed-total notice', async () => {
+    window.sessionStorage.setItem(
+      'parody.pendingOrder.north-beach-pizzeria',
+      JSON.stringify({
+        orderId: 'order-pending-1',
+        dropOffPreset: 'office',
+        deliveryInstructions: 'hand_to_me',
+        utensils: false,
+        totalMinorAtSignIn: 999999,
+        provider: 'google',
+      }),
+    );
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false } });
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({
+        fetchImpl,
+        locationHref: `${CHECKOUT_HREF}&code=abc123`,
+        auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
+      }),
+    );
+    await flush();
+
+    expect(el.querySelector('[data-testid="drop-off-office"]')?.classList.contains('selected')).toBe(true);
+    expect(el.querySelector('[data-testid="delivery-instructions-hand_to_me"]')?.classList.contains('selected')).toBe(true);
+    expect(el.querySelector('[data-testid="utensils-no"]')?.classList.contains('selected')).toBe(true);
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
+    const notice = el.querySelector('[data-testid="wallet-returned-notice"]');
+    expect(notice?.textContent).toContain('$21.00');
+    expect(notice?.textContent).toContain('$9,999.99');
+  });
+
+  it('shows the unchanged-total notice when the recomputed total matches', async () => {
+    window.sessionStorage.setItem(
+      'parody.pendingOrder.north-beach-pizzeria',
+      JSON.stringify({
+        orderId: 'order-pending-1',
+        dropOffPreset: 'home',
+        deliveryInstructions: 'leave_at_door',
+        utensils: true,
+        totalMinorAtSignIn: 2100,
+        provider: 'google',
+      }),
+    );
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false } });
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({ fetchImpl, locationHref: `${CHECKOUT_HREF}&code=abc123` }),
+    );
+    await flush();
+
+    expect(el.querySelector('[data-testid="wallet-returned-notice"]')?.textContent).toBe('Signed in. Your cart and offers are as you left them.');
+  });
+
+  it('a failed or cancelled return shows the neutral notice, and Place order is still enabled', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true });
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({ fetchImpl, locationHref: `${CHECKOUT_HREF}&error=access_denied` }),
+    );
+    await flush();
+
+    expect(el.querySelector('[data-testid="wallet-signin-failed"]')?.textContent).toContain("Sign-in didn't finish");
+    expect(el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.disabled).toBe(false);
+  });
+
+  it('names Apple specifically when the pending record says the failed attempt was Apple’s', async () => {
+    window.sessionStorage.setItem(
+      'parody.pendingOrder.north-beach-pizzeria',
+      JSON.stringify({
+        orderId: 'order-pending-1',
+        dropOffPreset: 'home',
+        deliveryInstructions: 'leave_at_door',
+        utensils: true,
+        totalMinorAtSignIn: 2100,
+        provider: 'apple',
+      }),
+    );
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true, apple: true }, ready: true });
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({ fetchImpl, locationHref: `${CHECKOUT_HREF}&error=server_error` }),
+    );
+    await flush();
+
+    expect(el.querySelector('[data-testid="wallet-signin-failed"]')?.textContent).toBe("Apple sign-in isn't working right now; try Google.");
+  });
+});
+
+describe('initCheckoutPage — wallet live, signed in, sufficient balance (AC3)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+
+  function sufficientDeps(overrides: Partial<CheckoutWalletDeps> = {}) {
+    return walletDeps({
+      fetchImpl: walletFetch({
+        providers: { google: true },
+        ready: true,
+        balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+        debit: [{ status: 'debited' }],
+      }),
+      auth: signedInAuth(),
+      ...overrides,
+    });
+  }
+
+  it('debits totalMinor exactly once, stores the order, fires order_placed once only after the debit, and the shown balance decreases', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const navigate = vi.fn();
+    initCheckoutPage(el, window.localStorage, navigate, window.sessionStorage, undefined, undefined, sufficientDeps());
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    const orderPlacedCalls = stub.mock.calls.filter(([name]) => name === 'order_placed');
+    expect(orderPlacedCalls).toHaveLength(1);
+    const order = getLatestOrder(window.localStorage);
+    expect(order).not.toBeNull();
+    expect(order!.totalMinor).toBe(2100);
+    expect(navigate).toHaveBeenCalledWith('/order-placed/');
+    expect(el.querySelector('[data-testid="wallet-pays-amount"]')?.textContent).toBe('$9.00'); // 900 cents from the stubbed debit response
+    expect(window.sessionStorage.getItem('parody.pendingOrder.north-beach-pizzeria')).toBeNull();
+  });
+
+  it('a rapid double-tap sends exactly one debit call for one orderId', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+      debit: [{ status: 'debited' }],
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, sufficientDeps({ fetchImpl }));
+    await flush();
+
+    const button = el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')!;
+    button.click();
+    button.click();
+    button.click();
+    await flush();
+
+    const debitCalls = fetchImpl.mock.calls.filter(([url]) => (url as string).endsWith('/rest/v1/rpc/wallet_debit'));
+    expect(debitCalls).toHaveLength(1);
+  });
+
+  it('a first debit call that fails with a network error is retried with the same orderId, and still places exactly one order', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+      debit: ['network-error', { status: 'debited' }],
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, sufficientDeps({ fetchImpl }));
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    const debitCalls = fetchImpl.mock.calls.filter(([url]) => (url as string).endsWith('/rest/v1/rpc/wallet_debit'));
+    expect(debitCalls).toHaveLength(2);
+    const bodies = debitCalls.map(([, init]) => JSON.parse((init as RequestInit).body as string));
+    expect(bodies[0].p_order_id).toBe(bodies[1].p_order_id);
+    expect(stub.mock.calls.filter(([name]) => name === 'order_placed')).toHaveLength(1);
+    expect(getLatestOrder(window.localStorage)).not.toBeNull();
+  });
+});
+
+describe('initCheckoutPage — wallet live, signed in, short balance (AC4)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+
+  it('shows the shortfall and the next drip time, blocks Place order, and attempts no debit, no order, no order_placed', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { usd_minor: 1000, vnd_minor: 750000, window_start: 'w', next_window_start: '2026-09-28T06:00:00.000Z', claimed_this_window: true },
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+
+    expect(el.querySelector('[data-testid="wallet-short-balance-shortfall"]')?.textContent).toBe('$11.00 short');
+    expect(el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.getAttribute('aria-disabled')).toBe('true');
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(stub.mock.calls.filter(([name]) => name === 'order_placed')).toHaveLength(0);
+    expect(getLatestOrder(window.localStorage)).toBeNull();
+    const debitCalls = fetchImpl.mock.calls.filter(([url]) => (url as string).endsWith('/rest/v1/rpc/wallet_debit'));
+    expect(debitCalls).toHaveLength(0);
+  });
+
+  it('offers Collect when a drip is available', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { usd_minor: 1000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+
+    expect(el.querySelector('[data-testid="wallet-short-balance-collect"]')).not.toBeNull();
+  });
+
+  it('a debit that comes back insufficient (balance spent elsewhere) blocks after the fact, with no order and no order_placed', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+      debit: [{ status: 'insufficient' }],
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(el.querySelector('[data-testid="wallet-short-balance"]')).not.toBeNull();
+    expect(stub.mock.calls.filter(([name]) => name === 'order_placed')).toHaveLength(0);
+    expect(getLatestOrder(window.localStorage)).toBeNull();
+  });
+});
+
+describe('initCheckoutPage — source of truth when a debit succeeds but the local write is lost (AC4)', () => {
+  it('leaves the pending order in sessionStorage so a retry reuses the same orderId, rather than silently dropping it', async () => {
+    addToCart(window.localStorage, LINE);
+    const brokenStorage: Storage = {
+      ...window.localStorage,
+      getItem: (key: string) => window.localStorage.getItem(key),
+      setItem: (key: string, value: string) => {
+        if (key === 'parody.orders') throw new Error('storage full');
+        window.localStorage.setItem(key, value);
+      },
+      removeItem: (key: string) => window.localStorage.removeItem(key),
+      key: (index: number) => window.localStorage.key(index),
+      clear: () => window.localStorage.clear(),
+      get length() {
+        return window.localStorage.length;
+      },
+    };
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+      debit: [{ status: 'debited' }],
+    });
+    initCheckoutPage(el, brokenStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+
+    expect(() => el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click()).not.toThrow();
+    await flush();
+
+    const pendingRaw = window.sessionStorage.getItem('parody.pendingOrder.north-beach-pizzeria');
+    expect(pendingRaw).not.toBeNull();
+    const debitCalls = fetchImpl.mock.calls.filter(([url]) => (url as string).endsWith('/rest/v1/rpc/wallet_debit'));
+    expect(debitCalls).toHaveLength(1);
   });
 });

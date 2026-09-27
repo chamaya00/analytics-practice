@@ -616,35 +616,45 @@ export function renderCheckout(
    * path). Also the last step whenever a debit succeeds or the wallet is
    * unreachable at Place order (D1 fallback), passing the pre-made
    * `orderId` from the pending record so the two share one idempotency key.
+   *
+   * If a debit already succeeded and this local write then fails or is
+   * interrupted, the `catch` leaves the pending record in `sessionStorage`
+   * rather than clearing it — ADR 0008's "Source of truth": the `orderId`
+   * survives for a retry to reuse and get `already_debited`, instead of the
+   * money being spent with no way back to the order it paid for.
    */
   function writeOrderAndTrack(orderId?: string): void {
-    const order = placeOrder(
-      storage,
-      {
-        ...currentFields(),
-        appliedVoucherIds: appliedVoucherIds(sync.state),
-        savedAmountMinor: breakdown!.savedAmountMinor,
-        totalMinor: breakdown!.totalMinor,
-        orderId,
-      },
-      restaurantSlug,
-    );
-    clearOffersState(storage, restaurantSlug);
-    clearPendingOrder(sessionStorage, restaurantSlug);
+    try {
+      const order = placeOrder(
+        storage,
+        {
+          ...currentFields(),
+          appliedVoucherIds: appliedVoucherIds(sync.state),
+          savedAmountMinor: breakdown!.savedAmountMinor,
+          totalMinor: breakdown!.totalMinor,
+          orderId,
+        },
+        restaurantSlug,
+      );
+      clearOffersState(storage, restaurantSlug);
+      clearPendingOrder(sessionStorage, restaurantSlug);
 
-    track('order_placed', {
-      order_id: order.orderId,
-      item_count: order.itemCount,
-      amount_minor: order.amountMinor,
-      currency: order.currency,
-      drop_off_preset: order.dropOffPreset,
-      delivery_instructions: order.deliveryInstructions,
-      utensils: order.utensils,
-      applied_voucher_ids: order.appliedVoucherIds,
-      saved_amount_minor: order.savedAmountMinor,
-    });
+      track('order_placed', {
+        order_id: order.orderId,
+        item_count: order.itemCount,
+        amount_minor: order.amountMinor,
+        currency: order.currency,
+        drop_off_preset: order.dropOffPreset,
+        delivery_instructions: order.deliveryInstructions,
+        utensils: order.utensils,
+        applied_voucher_ids: order.appliedVoucherIds,
+        saved_amount_minor: order.savedAmountMinor,
+      });
 
-    navigate('/order-placed/');
+      navigate('/order-placed/');
+    } catch {
+      // See the doc comment above — deliberately silent.
+    }
   }
 
   // --- Wallet wiring ---
