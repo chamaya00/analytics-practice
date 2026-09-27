@@ -52,6 +52,24 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
     expect(fee?.textContent).toContain(formatMoneyForCity(10000, 'hcmc')); // ben-thanh-banh-mi's own normal fee
   });
 
+  it('each drawn restaurant shows a thumbnail with a "Deal" sticker (AC4)', () => {
+    const el = root();
+    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    const row = el.querySelector('[data-testid="flash-restaurant-ben-thanh-banh-mi"]');
+    const photo = row?.querySelector('.restaurant-photo');
+    expect(photo?.querySelector('img')?.getAttribute('src')).toBeTruthy();
+    expect(photo?.querySelector('.deal-sticker')?.textContent).toBe('Deal');
+  });
+
+  it('the countdown is split into MM/SS tiles around a separator (AC4)', () => {
+    const el = root();
+    renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());
+    const countdown = el.querySelector('[data-testid="flash-sheet-countdown"]');
+    const tiles = countdown?.querySelectorAll('.tile');
+    expect(Array.from(tiles ?? []).map((tile) => tile.textContent)).toEqual(['15', '00']);
+    expect(countdown?.querySelector('.tile-sep')?.textContent).toBe(':');
+  });
+
   it('the countdown ticks down as the fake clock advances', () => {
     const el = root();
     renderFlashSheet(el, 'hcmc', DRAW, vi.fn(), () => Date.now());

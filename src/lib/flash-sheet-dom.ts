@@ -98,6 +98,22 @@ export function renderFlashSheet(
     row.className = 'restaurant-row';
     row.setAttribute('data-testid', `flash-restaurant-${restaurant.slug}`);
 
+    const photo = document.createElement('span');
+    photo.className = 'restaurant-photo';
+    const img = document.createElement('img');
+    img.src = restaurant.heroImage;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.width = 60;
+    img.height = 60;
+    const sticker = document.createElement('span');
+    sticker.className = 'deal-sticker';
+    sticker.textContent = 'Deal';
+    photo.append(img, sticker);
+
+    const main = document.createElement('span');
+    main.className = 'restaurant-main';
+
     const name = document.createElement('p');
     name.className = 'restaurant-name';
     name.textContent = restaurant.name;
@@ -116,7 +132,8 @@ export function renderFlashSheet(
     original.textContent = formatMoneyForCity(restaurant.deliveryFeeMinor, city);
     fee.append(original);
 
-    row.append(name, meta, fee);
+    main.append(name, meta, fee);
+    row.append(photo, main);
     row.addEventListener('click', () => {
       close('restaurant_tapped', restaurant.slug);
       navigate(`/restaurants/${restaurant.slug}/`);
@@ -124,8 +141,19 @@ export function renderFlashSheet(
     list.append(row);
   }
 
+  const countdownMinutes = document.createElement('span');
+  countdownMinutes.className = 'tile';
+  const countdownSeparator = document.createElement('span');
+  countdownSeparator.className = 'tile-sep';
+  countdownSeparator.textContent = ':';
+  const countdownSeconds = document.createElement('span');
+  countdownSeconds.className = 'tile';
+  countdown.append(countdownMinutes, countdownSeparator, countdownSeconds);
+
   function renderCountdown(): void {
-    countdown.textContent = formatCountdown(flashSecondsRemaining(draw, now()));
+    const [minutes, seconds] = formatCountdown(flashSecondsRemaining(draw, now())).split(':');
+    countdownMinutes.textContent = minutes;
+    countdownSeconds.textContent = seconds;
     if (flashSecondsRemaining(draw, now()) <= 0) close('expired');
   }
 
