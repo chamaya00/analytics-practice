@@ -182,7 +182,7 @@
     },
     {
       "path": "public/images/dishes/mission-taqueria-al-pastor.jpg",
-      "query": "al pastor tacos pineapple onion",
+      "query": "pork pineapple tacos plate cilantro",
       "width": 64,
       "height": 64
     },
@@ -242,7 +242,7 @@
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-congee.jpg",
-      "query": "rice porridge congee bowl",
+      "query": "plain rice porridge scallions",
       "width": 64,
       "height": 64
     },
@@ -344,7 +344,7 @@
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-iced-green-tea.jpg",
-      "query": "iced matcha green tea glass",
+      "query": "matcha latte iced glass",
       "width": 64,
       "height": 64
     },
@@ -464,7 +464,7 @@
     },
     {
       "path": "public/images/dishes/inner-richmond-sushi-bar-miso-soup.jpg",
-      "query": "miso soup lacquer bowl",
+      "query": "tofu seaweed soup bowl",
       "width": 64,
       "height": 64
     },
@@ -500,7 +500,7 @@
     },
     {
       "path": "public/images/dishes/valencia-street-tandoor-mango-lassi.jpg",
-      "query": "mango lassi glass yogurt drink",
+      "query": "yellow yogurt smoothie glass",
       "width": 64,
       "height": 64
     },

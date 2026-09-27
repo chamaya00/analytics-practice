@@ -61,7 +61,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 
 | File | Search | Status |
 |---|---|---|
-| `public/images/dishes/mission-taqueria-al-pastor.svg` | "al pastor tacos pineapple onion" | Placeholder — not yet downloaded |
+| `public/images/dishes/mission-taqueria-al-pastor.svg` | "pork pineapple tacos plate cilantro" | Placeholder — not yet downloaded |
 | `public/images/dishes/mission-taqueria-carne-asada.svg` | "carne asada steak tacos" | Placeholder — not yet downloaded |
 | `public/images/dishes/mission-taqueria-chips-guac.svg` | "tortilla chips and guacamole" | Placeholder — not yet downloaded |
 | `public/images/dishes/mission-taqueria-horchata.svg` | "cinnamon rice milk drink" | Placeholder — not yet downloaded |
@@ -71,7 +71,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/north-beach-pizzeria-caesar.svg` | "caesar salad bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/golden-lotus-dim-sum-har-gow.svg` | "shrimp dumplings steamer" | Placeholder — not yet downloaded |
 | `public/images/dishes/golden-lotus-dim-sum-siu-mai.svg` | "siu mai pork dumplings" | Placeholder — not yet downloaded |
-| `public/images/dishes/golden-lotus-dim-sum-congee.svg` | "rice porridge congee bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/golden-lotus-dim-sum-congee.svg` | "plain rice porridge scallions" | Placeholder — not yet downloaded |
 | `public/images/dishes/golden-lotus-dim-sum-noodles.svg` | "chinese stir fried noodles plate" | Placeholder — not yet downloaded |
 | `public/images/dishes/ben-thanh-banh-mi-thit-nuong.svg` | "grilled pork banh mi sandwich" | Placeholder — not yet downloaded |
 | `public/images/dishes/ben-thanh-banh-mi-op-la.svg` | "banh mi fried egg sandwich" | Placeholder — not yet downloaded |
@@ -88,7 +88,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/bay-grain-bowls-teriyaki-chicken.svg` | "teriyaki chicken rice bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/bay-grain-bowls-tofu-poke.svg` | "tofu poke bowl edamame" | Placeholder — not yet downloaded |
 | `public/images/dishes/bay-grain-bowls-miso-soup.svg` | "japanese miso soup bowl tofu" | Placeholder — not yet downloaded |
-| `public/images/dishes/bay-grain-bowls-iced-green-tea.svg` | "iced matcha green tea glass" | Placeholder — not yet downloaded |
+| `public/images/dishes/bay-grain-bowls-iced-green-tea.svg` | "matcha latte iced glass" | Placeholder — not yet downloaded |
 | `public/images/dishes/bun-cha-co-ba-bun-cha-ha-noi.svg` | "bun cha grilled pork vermicelli" | Placeholder — not yet downloaded |
 | `public/images/dishes/bun-cha-co-ba-bun-bo-hue.svg` | "bun bo hue spicy beef soup" | Placeholder — not yet downloaded |
 | `public/images/dishes/bun-cha-co-ba-tra-chanh.svg` | "iced lemon tea glass" | Placeholder — not yet downloaded |
@@ -108,13 +108,13 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/inner-richmond-sushi-bar-salmon-avocado-roll.svg` | "salmon avocado roll" | Placeholder — not yet downloaded |
 | `public/images/dishes/inner-richmond-sushi-bar-chirashi-bowl.svg` | "chirashi sashimi bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/inner-richmond-sushi-bar-nigiri-set.svg` | "nigiri sushi set" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.svg` | "miso soup lacquer bowl" | Placeholder — not yet downloaded |
+| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.svg` | "tofu seaweed soup bowl" | Placeholder — not yet downloaded |
 | `public/images/dishes/inner-richmond-sushi-bar-seaweed-salad.svg` | "seaweed salad" | Placeholder — not yet downloaded |
 | `public/images/dishes/valencia-street-tandoor-chicken-tikka-masala.svg` | "chicken tikka masala" | Placeholder — not yet downloaded |
 | `public/images/dishes/valencia-street-tandoor-saag-paneer.svg` | "saag paneer" | Placeholder — not yet downloaded |
 | `public/images/dishes/valencia-street-tandoor-lamb-rogan-josh.svg` | "lamb rogan josh curry" | Placeholder — not yet downloaded |
 | `public/images/dishes/valencia-street-tandoor-garlic-naan.svg` | "garlic naan bread basket" | Placeholder — not yet downloaded |
-| `public/images/dishes/valencia-street-tandoor-mango-lassi.svg` | "mango lassi glass yogurt drink" | Placeholder — not yet downloaded |
+| `public/images/dishes/valencia-street-tandoor-mango-lassi.svg` | "yellow yogurt smoothie glass" | Placeholder — not yet downloaded |
 | `public/images/dishes/cole-valley-mezze-chicken-shawarma-plate.svg` | "chicken shawarma plate" | Placeholder — not yet downloaded |
 | `public/images/dishes/cole-valley-mezze-falafel-wrap.svg` | "falafel wrap" | Placeholder — not yet downloaded |
 | `public/images/dishes/cole-valley-mezze-lamb-kofta-bowl.svg` | "lamb kofta bowl" | Placeholder — not yet downloaded |
