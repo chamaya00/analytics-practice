@@ -11,22 +11,25 @@
 
 import type { City } from './money';
 
-// Redrawn for the round 1 review (item 2): at the old 14px size the motorbike
-// read as a squiggle and the car as a blob. Both are now drawn to read at
-// ~16px — the scooter as two wheels, a low footboard, a raised seat and a
-// front column with a handlebar; the car as a side profile with a
-// window/roofline cut into the body, not a single unbroken silhouette.
+// Round 1's redraw still read as a blocky squiggle at phone size (round 2
+// review): the shapes only used the box's middle band, so a 1.2em icon still
+// drew a tiny glyph. Round 2 uses the driver's own path data as-is — a
+// scooter (rear body/seat, footboard, raked steering column and handlebar,
+// two wheels) and a car (side profile with roofline, belt line, two wheels)
+// — verified to read at 15px. `stroke-linecap`/`stroke-linejoin: round` now
+// live on the `<svg>` wrapper (createVehicleIcon, below, and the restaurant
+// page's inline svg) rather than per-path, since these paths don't set them.
 export const VEHICLE_ICON_PATHS: Record<City, string> = {
   hcmc:
-    '<circle cx="6" cy="18" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/>' +
-    '<path d="M6.5 17h3.5v-2.3h2.5v2.3h4.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-    '<path d="M16.5 17v-4" stroke-linecap="round"/>' +
-    '<path d="M15 13h3" stroke-linecap="round"/>',
+    '<circle cx="5.5" cy="17" r="2.5"/><circle cx="18.5" cy="17" r="2.5"/>' +
+    '<path d="M3 14.5c0-2.5 1.7-3.5 4-3.5h4"/>' +
+    '<path d="M8 17h6l2.5-11"/>' +
+    '<path d="M14.5 5.5h3.5"/>',
   sf:
-    '<path d="M5 16v-2.5l1.6-3.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.8 1l1.6 3.5V16" stroke-linecap="round" stroke-linejoin="round"/>' +
-    '<path d="M5 16h14" stroke-linecap="round"/>' +
-    '<path d="M9 9.3 8 12h8l-1-2.7" stroke-linecap="round" stroke-linejoin="round"/>' +
-    '<circle cx="7.5" cy="16.5" r="1.6"/><circle cx="16.5" cy="16.5" r="1.6"/>',
+    '<circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>' +
+    '<path d="M5 17H3v-4l2.5-1 2.5-4h8l3 4 2 1v4h-2"/>' +
+    '<path d="M9 17h6"/>' +
+    '<path d="M3 13h18"/>',
 };
 
 /** "motorbike" for HCMC, "car" for SF — the data-vehicle value a test asserts against rather than the raw path data (#130 AC4/AC5). */
@@ -45,6 +48,8 @@ export function createVehicleIcon(city: City): SVGSVGElement {
   svg.setAttribute('fill', 'none');
   svg.setAttribute('stroke', 'currentColor');
   svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('data-vehicle', vehicleForCity(city));
   svg.classList.add('vehicle-icon');
