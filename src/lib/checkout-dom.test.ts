@@ -70,11 +70,20 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
   });
 
-  it('the Offers row names the applied count and "You saved" total', () => {
+  it('the Offers row names the applied count and "You saved" total, in the mock\'s violet label/summary/chevron shape (AC1)', () => {
     const el = root();
     initCheckoutPage(el, window.localStorage, vi.fn());
-    expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('2 applied');
-    expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('$4.99');
+    const row = el.querySelector('[data-testid="offers-row"]');
+    expect(row?.querySelector('.label')?.textContent).toBe('Offers');
+    expect(row?.querySelector('.summary')?.textContent).toContain('2 applied');
+    expect(row?.querySelector('.summary')?.textContent).toContain('$4.99');
+    expect(row?.querySelector('.summary .chevron')).not.toBeNull();
+  });
+
+  it('the Discount line carries a tag icon (AC1)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+    expect(el.querySelector('[data-testid="breakdown-discount"] .icon-tag')).not.toBeNull();
   });
 
   it('renders the demo disclosure directly above "Place order" (AC1)', () => {
@@ -90,6 +99,31 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
       'This is a demo. No payment is taken and no food is sent.',
     );
     expect(el.querySelector('[data-testid="demo-disclosure"] a')?.getAttribute('href')).toBe('/about/');
+  });
+
+  it('the utensils control is a right-aligned pill pair on the label\'s own row, not stacked beneath it (AC2)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const field = el.querySelector('[data-testid="field-utensils"]');
+    expect(field?.classList.contains('mini-field')).toBe(true);
+    // Exactly the label and the chip-group as this row's own two children —
+    // the mock's `.inline-row` has nothing else sharing the row.
+    expect(field?.children).toHaveLength(2);
+    expect(field?.children[0].classList.contains('mini-label')).toBe(true);
+    const pills = field?.querySelectorAll('.chip-group .chip');
+    expect(pills).toHaveLength(2);
+    expect(Array.from(pills ?? []).map((pill) => pill.textContent)).toEqual(['Yes', 'No']);
+  });
+
+  it('Drop-off and Delivery instructions are muted section-title labels, not full-size headings (AC1)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const dropOffHeading = el.querySelector('[data-testid="field-drop-off"] h2');
+    const deliveryHeading = el.querySelector('[data-testid="field-delivery-instructions"] h2');
+    expect(dropOffHeading?.classList.contains('section-title')).toBe(true);
+    expect(deliveryHeading?.classList.contains('section-title')).toBe(true);
   });
 
   it('renders exactly the three named preset fields and nothing typed anywhere (AC2)', () => {

@@ -67,6 +67,15 @@ describe('renderOffers — HCMC ₫250.000 worked example (AC1, AC2)', () => {
     );
   });
 
+  it('the delivery voucher\'s badge carries a distinct package icon from a discount voucher\'s tag icon (AC3)', () => {
+    const el = root();
+    renderOffers(el, window.localStorage, window.sessionStorage);
+
+    const discountBadge = el.querySelector('[data-testid="voucher-row-hcmc-discount-t1"] .badge svg');
+    const deliveryBadge = el.querySelector('[data-testid="voucher-row-hcmc-delivery-entry"] .badge svg');
+    expect(discountBadge?.innerHTML).not.toEqual(deliveryBadge?.innerHTML);
+  });
+
   it('every control is a checkbox or a button — no typed field anywhere (AC5)', () => {
     const el = root();
     renderOffers(el, window.localStorage, window.sessionStorage);

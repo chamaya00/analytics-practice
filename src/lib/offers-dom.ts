@@ -34,7 +34,12 @@ export function prefersReducedMotion(): boolean {
   }
 }
 
-function badgeIcon(): string {
+// docs/design/87-offers-hcmc.html gives the delivery-group badge its own
+// box/package icon, distinct from a discount voucher's price tag.
+function badgeIcon(stackGroup: StackGroup): string {
+  if (stackGroup === 'delivery') {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 20 7v10l-8 4-8-4V7l8-4Z" stroke-linejoin="round"/><path d="M4 7l8 4 8-4M12 11v10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>';
 }
 
@@ -56,7 +61,7 @@ function renderVoucherRow(
 
   const badge = document.createElement('span');
   badge.className = 'badge';
-  badge.innerHTML = badgeIcon();
+  badge.innerHTML = badgeIcon(entry.stackGroup);
 
   const main = document.createElement('span');
   main.className = 'voucher-main';

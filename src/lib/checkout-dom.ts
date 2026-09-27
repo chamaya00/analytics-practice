@@ -103,6 +103,7 @@ function choiceField<T extends string | number>(
   wrapper.setAttribute('data-testid', `field-${testIdPrefix}`);
 
   const heading = document.createElement('h2');
+  heading.className = 'section-title';
   heading.textContent = legend;
 
   const { element: group, getValue } = choiceButtons(legend, options, testIdPrefix, groupClass);
@@ -152,7 +153,16 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
   wrapper.append(deliveryRow, row('breakdown-service-fee', 'Service fee', breakdown.serviceFeeMinor));
 
   if (breakdown.discountAmountMinor > 0) {
-    wrapper.append(row('breakdown-discount', 'Discount', -breakdown.discountAmountMinor, 'discount'));
+    const discountRow = document.createElement('div');
+    discountRow.className = 'breakdown-row discount';
+    discountRow.setAttribute('data-testid', 'breakdown-discount');
+    const labelEl = document.createElement('span');
+    labelEl.innerHTML =
+      '<svg class="icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 20 2 20 10 11 19 3 11 12 2Z"/><circle cx="16" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>Discount';
+    const valueEl = document.createElement('span');
+    valueEl.textContent = formatMoney(-breakdown.discountAmountMinor, breakdown.currency);
+    discountRow.append(labelEl, valueEl);
+    wrapper.append(discountRow);
   }
 
   if (breakdown.savedAmountMinor > 0) {
@@ -300,11 +310,27 @@ export function renderCheckout(
   offersRow.type = 'button';
   offersRow.className = 'offers-row';
   offersRow.setAttribute('data-testid', 'offers-row');
+
+  const offersLabel = document.createElement('span');
+  offersLabel.className = 'label';
+  offersLabel.textContent = 'Offers';
+
+  const offersSummary = document.createElement('span');
+  offersSummary.className = 'summary';
   const appliedCount = appliedVoucherIds(sync.state).length;
-  offersRow.textContent =
-    appliedCount === 0
-      ? 'Offers  ›  Select an offer'
-      : `Offers  ›  ${appliedCount} applied · You saved ${formatMoney(breakdown.savedAmountMinor, breakdown.currency)}`;
+  offersSummary.append(
+    document.createTextNode(
+      appliedCount === 0
+        ? 'Select an offer'
+        : `${appliedCount} applied · You saved ${formatMoney(breakdown.savedAmountMinor, breakdown.currency)}`,
+    ),
+  );
+  const chevron = document.createElement('span');
+  chevron.innerHTML =
+    '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5 16 12 9 19" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  offersSummary.append(chevron.firstElementChild!);
+
+  offersRow.append(offersLabel, offersSummary);
   offersRow.addEventListener('click', () => navigate(offersPath(restaurantSlug)));
 
   const dropNotice = document.createElement('p');
@@ -368,11 +394,11 @@ export function renderCheckout(
 
   root.append(
     restaurantLine,
-    offersRow,
-    dropNotice,
     dropOff.element,
     deliveryInstructions.element,
     miniFields,
+    offersRow,
+    dropNotice,
     breakdownEl,
     disclosure,
     placeOrderButton,
