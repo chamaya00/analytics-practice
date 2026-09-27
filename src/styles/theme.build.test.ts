@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { deliveredCss } from '../../test-support/dist-css';
 
@@ -132,16 +134,65 @@ describe('landing hero wordmark fits at 375px (driver review, #67)', () => {
   });
 });
 
-describe('home feed promo banner fits at 375px (#82 review round 2, item 1)', () => {
-  // Originally a row layout whose fixed-width banner image spilled past the
-  // box and pushed the heading off-screen at 375px (measured scrollWidth 453
-  // on 938d004) — fixed by stacking. #104 round 1 removed the image outright
-  // (driver review, item 1: no Unsplash search was ever named for that slot,
-  // so it stayed a permanent "Placeholder"), leaving the banner's own claim
-  // and sub lines as the only thing this stack now protects.
-  it('the banner stacks its claim above its sub line rather than placing them side by side', () => {
-    const rule = css.match(/\.promo-banner\{[^}]*\}/)?.[0] ?? '';
-    expect(rule).toContain('flex-direction:column');
+describe('promo carousel fits at 375px (#137)', () => {
+  // Replaces the old single .promo-banner slot — docs/design/
+  // 137-carousel-header-tiles.md's own arithmetic: 200px of photo plus a
+  // caption strip, 256px total (excluding the dot row).
+  it('the slide media is sized as a hero image, not a slightly-tall list row', () => {
+    const rule = css.match(/\.carousel-slide-media\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('height:200px');
+  });
+
+  it('the pause control and every dot clear the 44px touch-target floor (docs/design/46-phone-native.md)', () => {
+    const pauseRule = css.match(/\.carousel-pause\{[^}]*\}/)?.[0] ?? '';
+    expect(pauseRule).toContain('min-width:44px');
+    expect(pauseRule).toContain('min-height:44px');
+
+    const dotRule = css.match(/\.carousel-dot\{[^}]*\}/)?.[0] ?? '';
+    expect(dotRule).toContain('min-width:44px');
+    expect(dotRule).toContain('min-height:44px');
+  });
+
+  it('the slide link and the pause control suppress the default tap-highlight', () => {
+    const linkRule = css.match(/\.carousel-slide-link\{[^}]*\}/)?.[0] ?? '';
+    expect(linkRule).toContain('-webkit-tap-highlight-color:transparent');
+    const pauseRule = css.match(/\.carousel-pause\{[^}]*\}/)?.[0] ?? '';
+    expect(pauseRule).toContain('-webkit-tap-highlight-color:transparent');
+  });
+});
+
+describe('"Near you" 2-column tile grid fits at 375px (#137)', () => {
+  it('the grid lays out exactly two columns, not the old vertical single-column list', () => {
+    const rule = css.match(/\.tile-grid\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('grid-template-columns:repeat(2,1fr)');
+  });
+
+  it('a tile card suppresses the default tap-highlight and defines a visible :active pressed rule, same touch feedback as .restaurant-card', () => {
+    const rule = css.match(/\.tile-card\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('-webkit-tap-highlight-color:transparent');
+    expect(rule).toContain('-webkit-user-select:none');
+    expect(css).toMatch(/\.tile-card:active\{[^}]*transform:[^}]*\}/);
+  });
+
+  it('the tile name has no line-clamp or truncation, so a long name wraps instead of clipping (AC5)', () => {
+    const rule = css.match(/\.tile-card-name\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).not.toContain('-webkit-line-clamp');
+    expect(rule).not.toContain('text-overflow');
+    expect(rule).not.toContain('white-space:nowrap');
+  });
+});
+
+describe('header city pill and wallet-balance placeholder, home route only (#137)', () => {
+  it('the home page reserves a three-column brand row for the wordmark, the pill, and the balance placeholder', () => {
+    const homeCss = deliveredCss('dist/index.html');
+    const rule = homeCss.match(/\.brand-group--home\[data-astro-cid-[\w-]+\]\{[^}]*grid-template-columns:1fr auto 1fr[^}]*\}/);
+    expect(rule).not.toBeNull();
+  });
+
+  it('the pill and balance slots do not exist in the header markup on another route', () => {
+    const cartHtml = readFileSync(path.join(process.cwd(), 'dist/cart/index.html'), 'utf-8');
+    expect(cartHtml).not.toContain('city-pill-slot');
+    expect(cartHtml).not.toContain('balance-slot');
   });
 });
 

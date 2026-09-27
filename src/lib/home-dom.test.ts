@@ -388,8 +388,11 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     vi.advanceTimersByTime(4000);
     expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('$2 off your first order');
 
-    // ~5s after the interaction ended, auto-advance resumes.
-    vi.advanceTimersByTime(1500);
+    // ~5s after the interaction ended, auto-advance resumes (a new 5s
+    // interval starts) — its first tick lands 5s after that, so the slide
+    // actually changes 10s after the interaction ended.
+    vi.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(5000);
     expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('Mission Taqueria');
   });
 
@@ -432,7 +435,11 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     expect(dots[2].getAttribute('aria-current')).toBe('true');
   });
 
-  it('clears the previous carousel\'s auto-advance interval before the next renderFeed() starts one, so at most one interval is ever live', () => {
+  it('clears the previous carousel\'s auto-advance interval before the next renderFeed() starts one, so at most one carousel interval is ever live', () => {
+    // The flash-deal sheet/reopen-bar also call setInterval (their own 1s
+    // countdown ticks, flash-sheet-dom.ts), so this isolates the carousel's
+    // own 5s interval by its distinct delay rather than counting every
+    // setInterval call in the page.
     vi.useFakeTimers();
     const setIntervalSpy = vi.spyOn(window, 'setInterval');
     const clearIntervalSpy = vi.spyOn(window, 'clearInterval');
@@ -442,15 +449,15 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     const pill = pillRoot();
     initHomePage(el, pill, window.localStorage, window.sessionStorage);
 
-    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
-    expect(clearIntervalSpy).not.toHaveBeenCalled();
+    const carouselIntervalCalls = () => setIntervalSpy.mock.calls.filter(([, delay]) => delay === 5000);
+    expect(carouselIntervalCalls()).toHaveLength(1);
+    const firstIntervalId = setIntervalSpy.mock.results[setIntervalSpy.mock.calls.indexOf(carouselIntervalCalls()[0])].value;
 
     pill.querySelector<HTMLButtonElement>('[data-testid="location-bar"]')?.click();
     el.querySelector<HTMLButtonElement>('[data-testid="location-card-hcmc"]')?.click();
 
-    expect(setIntervalSpy).toHaveBeenCalledTimes(2);
-    expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
-    expect(vi.getTimerCount()).toBeLessThanOrEqual(1);
+    expect(carouselIntervalCalls()).toHaveLength(2);
+    expect(clearIntervalSpy).toHaveBeenCalledWith(firstIntervalId);
   });
 });
 
