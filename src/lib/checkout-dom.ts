@@ -393,11 +393,11 @@ export function renderCheckout(
 
   root.append(
     restaurantLine,
-    offersRow,
-    dropNotice,
     dropOff.element,
     deliveryInstructions.element,
     miniFields,
+    offersRow,
+    dropNotice,
     breakdownEl,
     disclosure,
     placeOrderButton,
