@@ -9,6 +9,8 @@ import { getStoredCity, setStoredCity } from './location';
 import { CUISINE_SHORTCUTS, restaurantsForCity, type Restaurant } from './restaurants';
 import { getVisitorId } from './order-store';
 import { estimateEtaMinutes, etaLabel } from './eta';
+import { formatReviewCount } from './reviews';
+import { createVehicleIcon } from './vehicle-icon';
 import { track } from './tracking';
 import {
   ensureFlashDraw,
@@ -158,7 +160,11 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   meta.className = 'restaurant-card-meta';
   const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
   const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
-  meta.append(`★ ${restaurant.rating.toFixed(1)} · ${eta} · ${feeLabel} delivery`);
+  meta.append(
+    `★ ${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)}) · `,
+    createVehicleIcon(restaurant.city),
+    ` ${eta} · ${feeLabel} delivery`,
+  );
 
   body.append(name, tag, meta);
 
