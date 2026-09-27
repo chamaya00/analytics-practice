@@ -41,9 +41,21 @@ describe('committed placeholder images — weight budget (AC3)', () => {
     }
   });
 
-  it("the home feed's first paint (up to six restaurant thumbnails, phone width; the promo banner is text-only, #104 round 1) totals at most 900KB", () => {
+  // #137's own "Image budget" section left this slice size to the engineer:
+  // the carousel's current-on-load slide is the first-order slide (text
+  // only — the same "no image" property the old single .promo-banner had),
+  // so it adds nothing here, and the real change is the "Near you" grid
+  // going from one column to two. At 375px, main's own padding is
+  // var(--space-lg) (20px) each side and the header/search/carousel/chips/
+  // heading above the grid run to roughly 480-500px, leaving under half of
+  // the 812px viewport ./scripts/app-render photographs (its own NARROW_SIZE)
+  // for tiles — enough for the grid's first row (2 tiles) in full and a
+  // second row's photos to at least partly enter the viewport, so this
+  // slice counts 4 (two rows of two) rather than the old single-column six,
+  // erring toward the stricter (more images counted) side of that estimate.
+  it("the home feed's first paint (up to 4 restaurant thumbnails: the 2-column tile grid's first two rows, phone width; the carousel's on-load slide is the text-only first-order slide) totals at most 900KB", () => {
     for (const city of ['sf', 'hcmc'] as const) {
-      const restaurants = restaurantsForCity(city).slice(0, 6);
+      const restaurants = restaurantsForCity(city).slice(0, 4);
       const total = restaurants.reduce(
         (sum, restaurant) => sum + statSync(path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''))).size,
         0,

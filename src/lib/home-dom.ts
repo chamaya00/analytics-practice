@@ -1,12 +1,13 @@
-// Home feed (docs/design/80-two-city-brand-and-flow.md, screens 1 and 2):
-// `/` now replaces both the old landing page and `/restaurants` — a real
-// delivery app opens directly onto its feed. Renders the location picker
-// (first visit or no persisted city) or the current city's feed (location
-// bar, search, one promo banner, cuisine shortcuts, restaurant cards).
+// Home feed (docs/design/80-two-city-brand-and-flow.md, screens 1 and 2;
+// carousel/header/grid per docs/design/137-carousel-header-tiles.md): `/`
+// replaces both the old landing page and `/restaurants` — a real delivery
+// app opens directly onto its feed. Renders the location picker (first
+// visit or no persisted city) or the current city's feed (city pill in the
+// header, search, promo carousel, cuisine shortcuts, a 2-column tile grid).
 
 import { CITIES, CITY_CURRENCY, CITY_NAMES, formatMoneyForCity, type City } from './money';
 import { getStoredCity, setStoredCity } from './location';
-import { CUISINE_SHORTCUTS, restaurantsForCity, type Restaurant } from './restaurants';
+import { CUISINE_SHORTCUTS, restaurantsForCity, getRestaurant, type Restaurant } from './restaurants';
 import { getVisitorId } from './order-store';
 import { estimateEtaMinutes, etaLabel } from './eta';
 import { formatReviewCount } from './reviews';
@@ -21,17 +22,332 @@ import {
   type FlashDraw,
 } from './flash-deal';
 import { renderFlashReopenBar, renderFlashSheet } from './flash-sheet-dom';
+import { gestureAxis } from './swipe-row';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
-/** The home feed's one promo banner slot (docs/design/80-two-city-brand-and-flow.md,
- * "Look outside this repository": one legible claim, no carousel), localized per
- * city's own currency — docs/design/80-home-sf.html / 80-home-hcmc.html's own
- * banner copy, not a placeholder. */
+/** The carousel's first-order slide claim (docs/design/80-two-city-brand-and-flow.md's
+ * original banner copy, carried forward unchanged — docs/design/137-carousel-header-tiles.md's
+ * "seventh slide"), localized per city's own currency. */
 const PROMO_BANNER_CLAIM: Record<City, string> = {
   sf: '$2 off your first order',
   hcmc: '10.000 ₫ off your first order',
 };
+
+/** Six restaurants per city, three ad slides and three promo slides, all named and
+ * sourced against the catalogue by docs/design/137-carousel-header-tiles.md's "Content
+ * picked" section — order fixed there too (first-order, then alternating ad/promo). */
+const CAROUSEL_RESTAURANT_SLIDES: Record<City, Array<{ type: 'ad' | 'promo'; slug: string; claim?: string }>> = {
+  sf: [
+    { type: 'ad', slug: 'mission-taqueria' },
+    { type: 'promo', slug: 'north-beach-pizzeria', claim: 'Free Garlic knots with a $20 minimum' },
+    { type: 'ad', slug: 'inner-richmond-sushi-bar' },
+    { type: 'promo', slug: 'noe-valley-morning-kitchen', claim: 'Buy 1 get 1 free: Buttermilk pancakes' },
+    { type: 'ad', slug: 'ocean-beach-fish-house' },
+    { type: 'promo', slug: 'valencia-street-tandoor', claim: 'Free Mango lassi with a $18 minimum' },
+  ],
+  hcmc: [
+    { type: 'ad', slug: 'ben-thanh-banh-mi' },
+    { type: 'promo', slug: 'saigon-pho-quan', claim: 'Free Gỏi cuốn with an 80.000 ₫ minimum' },
+    { type: 'ad', slug: 'hu-tieu-nam-vang-hoa-phat' },
+    { type: 'promo', slug: 'bun-cha-co-ba', claim: 'Buy 1 get 1 free: Bún chả Hà Nội' },
+    { type: 'ad', slug: 'quan-lau-ut-hanh' },
+    { type: 'promo', slug: 'bo-bit-tet-chu-tam-go-vap', claim: 'Free Khoai tây chiên with a 150.000 ₫ minimum' },
+  ],
+};
+
+interface CarouselSlide {
+  type: 'first-order' | 'ad' | 'promo';
+  claim: string;
+  sub: string;
+  photo: string | null;
+  href: string | null;
+}
+
+function carouselSlidesForCity(city: City): CarouselSlide[] {
+  const firstOrder: CarouselSlide = {
+    type: 'first-order',
+    claim: PROMO_BANNER_CLAIM[city],
+    sub: 'Applied automatically at checkout',
+    photo: null,
+    href: null,
+  };
+
+  const restaurantSlides: CarouselSlide[] = CAROUSEL_RESTAURANT_SLIDES[city].map((spec) => {
+    const restaurant = getRestaurant(spec.slug)!;
+    const isAd = spec.type === 'ad';
+    return {
+      type: spec.type,
+      claim: isAd ? restaurant.name : spec.claim!,
+      sub: isAd ? `${restaurant.cuisineTag} · ★ ${restaurant.rating.toFixed(1)}` : restaurant.name,
+      photo: restaurant.heroImage,
+      href: `/restaurants/${restaurant.slug}/`,
+    };
+  });
+
+  return [firstOrder, ...restaurantSlides];
+}
+
+const CAROUSEL_ADVANCE_MS = 5000;
+const CAROUSEL_RESUME_MS = 5000;
+/** A horizontal drag past this many px, more horizontal than vertical (`gestureAxis`,
+ * ./swipe-row), is a swipe; short of it, or more vertical, and the page's own
+ * scroll wins (driver review, PR #150 round 1, item 3). */
+const CAROUSEL_SWIPE_PX = 40;
+
+function prefersReducedMotion(): boolean {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+const PAUSE_ICON = '<path d="M8 5v14M16 5v14" stroke-linecap="round" stroke-linejoin="round"/>';
+const PLAY_ICON = '<path d="M7 5v14l12-7Z" stroke-linejoin="round"/>';
+
+/** Renders the 7-slide promo carousel (docs/design/137-carousel-header-tiles.md,
+ * "Promo carousel" and "Motion, named") — auto-advances every 5s, pauses on
+ * touch/pointer/focus interaction and resumes ~5s after it ends, never
+ * auto-advances under `prefers-reduced-motion: reduce`, and the explicit
+ * pause control is the only thing that stops rotation for good. `destroy()`
+ * must be called before a re-render starts a second interval (#133's own
+ * "traps" section) — `renderFeed` below does this via `carouselCleanups`. */
+function renderCarousel(city: City): { element: HTMLElement; destroy: () => void } {
+  const slides = carouselSlidesForCity(city);
+  let current = 0;
+  let advanceInterval: ReturnType<typeof setInterval> | null = null;
+  let resumeTimeout: ReturnType<typeof setTimeout> | null = null;
+  let pausedForGood = false;
+
+  const carousel = document.createElement('div');
+  carousel.className = 'carousel';
+  carousel.setAttribute('data-testid', 'carousel');
+  carousel.setAttribute('role', 'group');
+  carousel.setAttribute('aria-roledescription', 'carousel');
+  carousel.setAttribute('aria-label', 'Promotions');
+
+  const slideEl = document.createElement('div');
+  slideEl.className = 'carousel-slide';
+  slideEl.setAttribute('data-testid', 'carousel-slide');
+  slideEl.setAttribute('role', 'group');
+  slideEl.setAttribute('aria-roledescription', 'slide');
+
+  const media = document.createElement('div');
+  media.className = 'carousel-slide-media';
+
+  const pauseButton = document.createElement('button');
+  pauseButton.type = 'button';
+  pauseButton.className = 'carousel-pause';
+  pauseButton.setAttribute('data-testid', 'carousel-pause');
+  // The button is the full 44px hit area; the visible scrim disc is this
+  // smaller inner mark, same split as .carousel-dot/.carousel-dot-mark below
+  // (driver review, PR #150 round 1, item 5 — the mock's chip reads much
+  // smaller than a 44px disc).
+  const pauseMark = document.createElement('span');
+  pauseMark.className = 'carousel-pause-mark';
+  pauseButton.append(pauseMark);
+  media.append(pauseButton);
+
+  const caption = document.createElement('div');
+  caption.className = 'carousel-caption';
+  const claimEl = document.createElement('span');
+  claimEl.className = 'carousel-claim';
+  claimEl.setAttribute('data-testid', 'carousel-claim');
+  const subEl = document.createElement('span');
+  subEl.className = 'carousel-sub';
+  subEl.setAttribute('data-testid', 'carousel-sub');
+  caption.append(claimEl, subEl);
+
+  const dotsRow = document.createElement('div');
+  dotsRow.className = 'carousel-dots';
+  dotsRow.setAttribute('data-testid', 'carousel-dots');
+
+  const dots: HTMLButtonElement[] = slides.map((_slide, index) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'carousel-dot';
+    dot.setAttribute('data-testid', `carousel-dot-${index}`);
+    dot.setAttribute('aria-label', `Go to slide ${index + 1}`);
+    const mark = document.createElement('span');
+    mark.className = 'carousel-dot-mark';
+    dot.append(mark);
+    dot.addEventListener('click', () => {
+      goToSlide(index);
+      pauseAndScheduleResume();
+    });
+    dotsRow.append(dot);
+    return dot;
+  });
+
+  function stopAutoAdvance(): void {
+    if (advanceInterval !== null) {
+      clearInterval(advanceInterval);
+      advanceInterval = null;
+    }
+  }
+
+  function clearResumeTimeout(): void {
+    if (resumeTimeout !== null) {
+      clearTimeout(resumeTimeout);
+      resumeTimeout = null;
+    }
+  }
+
+  function startAutoAdvance(): void {
+    if (pausedForGood || prefersReducedMotion()) return;
+    stopAutoAdvance();
+    advanceInterval = setInterval(() => goToSlide(current + 1), CAROUSEL_ADVANCE_MS);
+  }
+
+  /** The temporary pause while a touch/pointer/focus interaction is ongoing —
+   * distinct from the pause button's "for good" stop below. */
+  function pauseTemporarily(): void {
+    stopAutoAdvance();
+    clearResumeTimeout();
+  }
+
+  function scheduleResume(): void {
+    clearResumeTimeout();
+    if (pausedForGood) return;
+    resumeTimeout = setTimeout(() => {
+      resumeTimeout = null;
+      startAutoAdvance();
+    }, CAROUSEL_RESUME_MS);
+  }
+
+  function pauseAndScheduleResume(): void {
+    stopAutoAdvance();
+    scheduleResume();
+  }
+
+  function updatePauseButton(): void {
+    const label = pausedForGood ? 'Play carousel' : 'Pause carousel';
+    pauseButton.setAttribute('aria-label', label);
+    pauseButton.setAttribute('aria-pressed', pausedForGood ? 'true' : 'false');
+    pauseMark.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${pausedForGood ? PLAY_ICON : PAUSE_ICON}</svg>`;
+  }
+
+  pauseButton.addEventListener('click', () => {
+    pausedForGood = !pausedForGood;
+    updatePauseButton();
+    if (pausedForGood) {
+      stopAutoAdvance();
+      clearResumeTimeout();
+    } else {
+      startAutoAdvance();
+    }
+  });
+
+  function renderSlideContent(): void {
+    const slide = slides[current];
+
+    const oldLink = media.querySelector('.carousel-slide-link');
+    if (oldLink) oldLink.remove();
+
+    const link = document.createElement(slide.href ? 'a' : 'div');
+    link.className = 'carousel-slide-link';
+    link.setAttribute('data-testid', 'carousel-slide-link');
+    if (slide.href) (link as HTMLAnchorElement).href = slide.href;
+
+    if (slide.photo) {
+      const img = document.createElement('img');
+      img.className = 'carousel-slide-photo';
+      img.loading = 'lazy';
+      img.alt = '';
+      img.src = slide.photo;
+      link.append(img);
+    } else {
+      // The first-order slide has no photo (docs/design/137's "Image
+      // budget" — it stays text-only). Left as an empty media box it read
+      // as a failed image load (driver review, PR #150 round 1, item 1), so
+      // its claim/sub render here instead, in a tinted panel — the same
+      // surface/border/accent-text treatment the old .promo-banner used.
+      // The caption strip below stays empty for this slide rather than
+      // repeating the same text twice.
+      const panel = document.createElement('div');
+      panel.className = 'carousel-slide-panel';
+      panel.setAttribute('data-testid', 'carousel-panel');
+      const panelClaim = document.createElement('span');
+      panelClaim.className = 'carousel-slide-panel-claim';
+      panelClaim.setAttribute('data-testid', 'carousel-panel-claim');
+      panelClaim.textContent = slide.claim;
+      const panelSub = document.createElement('span');
+      panelSub.className = 'carousel-slide-panel-sub';
+      panelSub.setAttribute('data-testid', 'carousel-panel-sub');
+      panelSub.textContent = slide.sub;
+      panel.append(panelClaim, panelSub);
+      link.append(panel);
+    }
+
+    if (slide.type === 'ad') {
+      const adLabel = document.createElement('span');
+      adLabel.className = 'carousel-ad-label';
+      adLabel.setAttribute('data-testid', 'carousel-ad-label');
+      adLabel.textContent = 'Ad';
+      link.append(adLabel);
+    }
+
+    media.prepend(link);
+
+    claimEl.textContent = slide.type === 'first-order' ? '' : slide.claim;
+    subEl.textContent = slide.type === 'first-order' ? '' : slide.sub;
+
+    for (const [index, dot] of dots.entries()) {
+      dot.classList.toggle('is-current', index === current);
+      dot.setAttribute('aria-current', index === current ? 'true' : 'false');
+    }
+  }
+
+  function goToSlide(index: number): void {
+    current = ((index % slides.length) + slides.length) % slides.length;
+    renderSlideContent();
+  }
+
+  for (const type of ['pointerdown', 'touchstart', 'focusin']) {
+    carousel.addEventListener(type, pauseTemporarily);
+  }
+  for (const type of ['pointerup', 'touchend', 'focusout']) {
+    carousel.addEventListener(type, scheduleResume);
+  }
+
+  // Swipe navigation (#133's own "can also be swiped", missed by #138's
+  // split — driver review, PR #150 round 1, item 3). Pointer Events cover
+  // touch the same way swipe-row.ts's cart-row drag already does; there is
+  // no live drag-follow here (the design doc names none), so this only
+  // reads the gesture on release, using the same axis lock (gestureAxis)
+  // the cart row uses to tell a swipe from the page's own vertical scroll.
+  let swipeStart: { pointerId: number; x: number; y: number } | null = null;
+
+  carousel.addEventListener('pointerdown', (event) => {
+    swipeStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+  });
+
+  carousel.addEventListener('pointerup', (event) => {
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (gestureAxis(dx, dy, CAROUSEL_SWIPE_PX) !== 'horizontal') return;
+    goToSlide(current + (dx < 0 ? 1 : -1));
+    pauseAndScheduleResume();
+  });
+
+  carousel.addEventListener('pointercancel', () => {
+    swipeStart = null;
+  });
+
+  slideEl.append(media, caption);
+  carousel.append(slideEl, dotsRow);
+
+  renderSlideContent();
+  updatePauseButton();
+  startAutoAdvance();
+
+  return {
+    element: carousel,
+    destroy(): void {
+      stopAutoAdvance();
+      clearResumeTimeout();
+    },
+  };
+}
 
 /** Storage-blocked (private browsing) is detected up front, not only after a failed write — #80's error state is a property of the sheet itself, shown before any tap rather than for the instant between a tap and the sheet dismissing. */
 function isStorageBlocked(storage: Storage): boolean {
@@ -128,58 +444,57 @@ function flashFeeFor(restaurant: Restaurant, draw: FlashDraw | null, now: number
   return flashFeeForRestaurant(draw, restaurant.city, restaurant.slug, restaurant.deliveryFeeMinor, now);
 }
 
-function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, now: number, visitorId: string): HTMLElement {
+/** The "Near you" 2-column tile grid's own card (docs/design/137-carousel-header-tiles.md,
+ * "Two-column tile grid") — a new class, `.tile-card`, not a restyle of `.restaurant-card`:
+ * that class is still used, unchanged, by the cart list (cart-dom.ts) and the flash sheet
+ * (flash-sheet-dom.ts), and restyling it in place would silently restyle both. */
+function renderTileCard(restaurant: Restaurant, draw: FlashDraw | null, now: number, visitorId: string): HTMLElement {
   const card = document.createElement('a');
-  card.className = 'restaurant-card';
+  card.className = 'tile-card';
   card.href = `/restaurants/${restaurant.slug}/`;
   card.setAttribute('data-testid', `restaurant-card-${restaurant.slug}`);
 
   const img = document.createElement('img');
-  img.className = 'restaurant-card-photo';
+  img.className = 'tile-card-photo';
   img.src = restaurant.heroImage;
   img.alt = '';
   img.loading = 'lazy';
-  img.width = 96;
-  img.height = 96;
 
   const body = document.createElement('div');
-  body.className = 'restaurant-card-body';
+  body.className = 'tile-card-body';
 
   const name = document.createElement('span');
-  name.className = 'restaurant-card-name';
+  name.className = 'tile-card-name';
   name.textContent = restaurant.name;
 
-  // The rating moves onto the cuisine line (#130 round 1 review, item 1) —
-  // "Bánh mì · ★ 4.8 (3k+)" — so the icon+ETA+fee line has room at 375px;
-  // combined on one line with the icon and fee, it wrapped a lone "delivery"
-  // onto its own line on every card.
-  const tag = document.createElement('span');
-  tag.className = 'restaurant-card-tag';
-  tag.textContent = `${restaurant.cuisineTag} · ★ ${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)})`;
+  const rating = document.createElement('span');
+  rating.className = 'tile-card-rating';
+  rating.textContent = `★ ${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)})`;
 
   const flashFeeMinor = flashFeeFor(restaurant, draw, now);
   const effectiveFeeMinor = flashFeeMinor ?? restaurant.deliveryFeeMinor;
 
   const meta = document.createElement('span');
-  meta.className = 'restaurant-card-meta';
+  meta.className = 'tile-card-meta';
   const feeLabel = effectiveFeeMinor === 0 ? 'Free' : formatMoneyForCity(effectiveFeeMinor, restaurant.city);
   const eta = etaLabel(estimateEtaMinutes(visitorId, restaurant.slug));
   meta.append(createVehicleIcon(restaurant.city), `${eta} · ${feeLabel} delivery`);
 
-  body.append(name, tag, meta);
+  body.append(name, rating, meta);
 
   if (restaurant.hasDeal) {
     const badge = document.createElement('span');
     badge.className = 'deal-badge';
     badge.setAttribute('data-testid', `deal-badge-${restaurant.slug}`);
     badge.textContent = 'Deal';
-    body.append(badge);
+    card.append(badge);
   }
 
   if (flashFeeMinor !== null) {
     // A small badge beside the meta line, not a full-width bar underneath it
-    // (#104) — appended inside .restaurant-card-meta itself so it sits on
-    // the same line as the rating/ETA/fee text rather than as its own row.
+    // (#104) — appended inside .tile-card-meta itself so it sits on the same
+    // line as the ETA/fee text rather than as its own row (#137's "Flash
+    // badge: inline, next to the ETA/fee line").
     const flashBadge = document.createElement('span');
     flashBadge.className = 'flash-badge';
     flashBadge.setAttribute('data-testid', `flash-badge-${restaurant.slug}`);
@@ -191,7 +506,9 @@ function renderRestaurantCard(restaurant: Restaurant, draw: FlashDraw | null, no
   return card;
 }
 
-function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visitorId: string): void {
+const carouselCleanups = new WeakMap<HTMLElement, () => void>();
+
+function renderFeed(root: HTMLElement, pillRoot: HTMLElement, city: City, sessionStorage: Storage, visitorId: string): void {
   const now = Date.now();
   const initial = ensureFlashDraw(sessionStorage, city, now);
   const { isNewDraw } = initial;
@@ -201,6 +518,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
   feed.className = 'home-feed';
   feed.setAttribute('data-testid', 'home-feed');
 
+  pillRoot.innerHTML = '';
   const locationBar = document.createElement('button');
   locationBar.type = 'button';
   locationBar.className = 'location-bar';
@@ -210,9 +528,10 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
     root.innerHTML = '';
     renderLocationPicker(root, window.localStorage, (pickedCity) => {
       root.innerHTML = '';
-      renderFeed(root, pickedCity, sessionStorage, visitorId);
+      renderFeed(root, pillRoot, pickedCity, sessionStorage, visitorId);
     });
   });
+  pillRoot.append(locationBar);
 
   const search = document.createElement('input');
   search.type = 'search';
@@ -220,18 +539,9 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
   search.setAttribute('data-testid', 'home-search');
   search.setAttribute('placeholder', 'Search restaurants or cuisines');
 
-  const banner = document.createElement('div');
-  banner.className = 'promo-banner';
-  banner.setAttribute('data-testid', 'promo-banner');
-  const bannerClaim = document.createElement('span');
-  bannerClaim.className = 'promo-banner-claim';
-  bannerClaim.setAttribute('data-testid', 'promo-banner-claim');
-  bannerClaim.textContent = PROMO_BANNER_CLAIM[city];
-  const bannerSub = document.createElement('span');
-  bannerSub.className = 'promo-banner-sub';
-  bannerSub.setAttribute('data-testid', 'promo-banner-sub');
-  bannerSub.textContent = 'Applied automatically at checkout';
-  banner.append(bannerClaim, bannerSub);
+  const carousel = renderCarousel(city);
+  carouselCleanups.get(root)?.();
+  carouselCleanups.set(root, carousel.destroy);
 
   const chipRow = document.createElement('div');
   chipRow.className = 'cuisine-chips';
@@ -242,9 +552,9 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
   nearYouHeading.setAttribute('data-testid', 'near-you-heading');
   nearYouHeading.textContent = 'Near you';
 
-  const list = document.createElement('div');
-  list.className = 'restaurant-list';
-  list.setAttribute('data-testid', 'restaurant-list');
+  const tileGrid = document.createElement('div');
+  tileGrid.className = 'tile-grid';
+  tileGrid.setAttribute('data-testid', 'restaurant-list');
 
   const empty = document.createElement('p');
   empty.setAttribute('data-testid', 'home-empty');
@@ -258,19 +568,19 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
 
     const liveDraw = isFlashLive(draw, Date.now()) ? draw : null;
 
-    list.innerHTML = '';
+    tileGrid.innerHTML = '';
     for (const restaurant of matches) {
-      list.append(renderRestaurantCard(restaurant, liveDraw, Date.now(), visitorId));
+      tileGrid.append(renderTileCard(restaurant, liveDraw, Date.now(), visitorId));
     }
 
     if (matches.length === 0) {
       const label = activeCuisine ?? search.value;
       empty.textContent = `No restaurants match “${label}” in ${CITY_NAMES[city]} yet.`;
       empty.hidden = false;
-      list.hidden = true;
+      tileGrid.hidden = true;
     } else {
       empty.hidden = true;
-      list.hidden = false;
+      tileGrid.hidden = false;
     }
   }
 
@@ -294,7 +604,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
 
   renderList();
 
-  feed.append(locationBar, search, banner, chipRow, nearYouHeading, list, empty);
+  feed.append(search, carousel.element, chipRow, nearYouHeading, tileGrid, empty);
   root.append(feed);
 
   if (isFlashLive(draw, Date.now())) {
@@ -358,6 +668,7 @@ function renderFeed(root: HTMLElement, city: City, sessionStorage: Storage, visi
 
 export function initHomePage(
   root: HTMLElement,
+  pillRoot: HTMLElement,
   storage: Storage = window.localStorage,
   sessionStorage: Storage = window.sessionStorage,
 ): void {
@@ -368,12 +679,12 @@ export function initHomePage(
   if (city === null) {
     renderLocationPicker(root, storage, (pickedCity) => {
       root.innerHTML = '';
-      renderFeed(root, pickedCity, sessionStorage, visitorId);
+      renderFeed(root, pillRoot, pickedCity, sessionStorage, visitorId);
       track('home_viewed', { city: pickedCity });
     });
     return;
   }
 
-  renderFeed(root, city, sessionStorage, visitorId);
+  renderFeed(root, pillRoot, city, sessionStorage, visitorId);
   track('home_viewed', { city });
 }
