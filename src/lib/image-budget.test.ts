@@ -31,7 +31,7 @@ function listImageFiles(dir: string): string[] {
 }
 
 describe('committed placeholder images — weight budget (AC3)', () => {
-  it('every restaurant hero thumbnail is at most 40KB', () => {
+  it('every restaurant hero thumbnail is at most 180KB (fetch-photos.mjs MAX_BYTES)', () => {
     for (const city of ['sf', 'hcmc'] as const) {
       for (const restaurant of restaurantsForCity(city)) {
         const filePath = path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''));

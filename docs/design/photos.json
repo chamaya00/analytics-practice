@@ -14,13 +14,13 @@
     },
     {
       "path": "public/images/restaurants/mission-taqueria-hero.jpg",
-      "query": "modern taqueria interior",
+      "query": "street tacos platter spread",
       "width": 343,
       "height": 180
     },
     {
       "path": "public/images/restaurants/north-beach-pizzeria-hero.jpg",
-      "query": "neighborhood pizzeria interior",
+      "query": "wood fired pizza whole",
       "width": 343,
       "height": 180
     },
@@ -32,7 +32,7 @@
     },
     {
       "path": "public/images/restaurants/ben-thanh-banh-mi-hero.jpg",
-      "query": "banh mi shop vietnam",
+      "query": "banh mi sandwiches platter",
       "width": 343,
       "height": 180
     },
@@ -50,7 +50,7 @@
     },
     {
       "path": "public/images/restaurants/bay-grain-bowls-hero.jpg",
-      "query": "grain bowl restaurant",
+      "query": "quinoa grain bowl with vegetables",
       "width": 343,
       "height": 180
     },
@@ -98,7 +98,7 @@
     },
     {
       "path": "public/images/restaurants/post-street-ramen-bar-hero.jpg",
-      "query": "ramen shop counter",
+      "query": "bowl of ramen noodles broth",
       "width": 343,
       "height": 180
     },
@@ -128,7 +128,7 @@
     },
     {
       "path": "public/images/restaurants/goi-cuon-co-hai-cho-cu-hero.jpg",
-      "query": "vietnamese fresh spring rolls",
+      "query": "vietnamese rice paper spring rolls table",
       "width": 343,
       "height": 180
     },
@@ -170,7 +170,7 @@
     },
     {
       "path": "public/images/restaurants/mi-quang-que-son-co-lien-hero.jpg",
-      "query": "mi quang turmeric noodle bowl",
+      "query": "vietnamese egg noodle soup bowl",
       "width": 343,
       "height": 180
     },
@@ -182,193 +182,193 @@
     },
     {
       "path": "public/images/dishes/mission-taqueria-al-pastor.jpg",
-      "query": "tacos close up",
+      "query": "al pastor tacos with pineapple",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/mission-taqueria-carne-asada.jpg",
-      "query": "tacos close up",
+      "query": "carne asada steak tacos",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/mission-taqueria-chips-guac.jpg",
-      "query": "tacos close up",
+      "query": "tortilla chips and guacamole",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/mission-taqueria-horchata.jpg",
-      "query": "tacos close up",
+      "query": "horchata rice cinnamon drink glass",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/north-beach-pizzeria-margherita.jpg",
-      "query": "pizza slice close up",
+      "query": "margherita pizza whole",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/north-beach-pizzeria-pepperoni.jpg",
-      "query": "pizza slice close up",
+      "query": "pepperoni pizza slice",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/north-beach-pizzeria-garlic-knots.jpg",
-      "query": "pizza slice close up",
+      "query": "garlic knots bread rolls",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/north-beach-pizzeria-caesar.jpg",
-      "query": "pizza slice close up",
+      "query": "caesar salad bowl",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-har-gow.jpg",
-      "query": "dim sum bamboo steamer",
+      "query": "shrimp dumplings steamer",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-siu-mai.jpg",
-      "query": "dim sum bamboo steamer",
+      "query": "siu mai pork dumplings",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-congee.jpg",
-      "query": "dim sum bamboo steamer",
+      "query": "century egg congee bowl",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/golden-lotus-dim-sum-noodles.jpg",
-      "query": "dim sum bamboo steamer",
+      "query": "rice noodle rolls soy sauce",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/ben-thanh-banh-mi-thit-nuong.jpg",
-      "query": "banh mi sandwich close up",
+      "query": "grilled pork banh mi sandwich",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/ben-thanh-banh-mi-op-la.jpg",
-      "query": "banh mi sandwich close up",
+      "query": "banh mi fried egg sandwich",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/ben-thanh-banh-mi-ca-phe-sua-da.jpg",
-      "query": "banh mi sandwich close up",
+      "query": "vietnamese iced milk coffee glass",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/ben-thanh-banh-mi-tra-da.jpg",
-      "query": "banh mi sandwich close up",
+      "query": "vietnamese iced black tea glass",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/saigon-pho-quan-bo.jpg",
-      "query": "pho bowl close up",
+      "query": "beef pho noodle soup bowl",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/saigon-pho-quan-ga.jpg",
-      "query": "pho bowl close up",
+      "query": "chicken pho noodle soup",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/saigon-pho-quan-goi-cuon.jpg",
-      "query": "pho bowl close up",
+      "query": "vietnamese spring rolls with peanut sauce",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/saigon-pho-quan-cha-gio.jpg",
-      "query": "pho bowl close up",
+      "query": "crispy fried spring rolls pork",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/com-tam-quan-nha-suon-nuong.jpg",
-      "query": "vietnamese broken rice plate",
+      "query": "grilled pork chop rice plate",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/com-tam-quan-nha-bi-cha.jpg",
-      "query": "vietnamese broken rice plate",
+      "query": "vietnamese shredded pork skin rice",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/com-tam-quan-nha-nuoc-mia.jpg",
-      "query": "vietnamese broken rice plate",
+      "query": "sugarcane juice glass ice",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/com-tam-quan-nha-sam-lanh.jpg",
-      "query": "vietnamese broken rice plate",
+      "query": "vietnamese herbal iced tea",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-teriyaki-chicken.jpg",
-      "query": "grain bowl close up",
+      "query": "teriyaki chicken rice bowl",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-tofu-poke.jpg",
-      "query": "grain bowl close up",
+      "query": "tofu poke bowl edamame",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-miso-soup.jpg",
-      "query": "grain bowl close up",
+      "query": "miso soup bowl tofu",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bay-grain-bowls-iced-green-tea.jpg",
-      "query": "grain bowl close up",
+      "query": "iced green tea glass",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bun-cha-co-ba-bun-cha-ha-noi.jpg",
-      "query": "bun cha vietnam close up",
+      "query": "bun cha grilled pork vermicelli",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bun-cha-co-ba-bun-bo-hue.jpg",
-      "query": "bun cha vietnam close up",
+      "query": "bun bo hue spicy beef soup",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bun-cha-co-ba-tra-chanh.jpg",
-      "query": "bun cha vietnam close up",
+      "query": "iced lemon tea glass",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/bun-cha-co-ba-sinh-to-bo.jpg",
-      "query": "bun cha vietnam close up",
+      "query": "avocado smoothie glass",
       "width": 64,
       "height": 64
     },
@@ -716,13 +716,13 @@
     },
     {
       "path": "public/images/dishes/hu-tieu-nam-vang-hoa-phat-tra-tac.jpg",
-      "query": "kumquat iced tea",
+      "query": "kumquat honey iced tea",
       "width": 64,
       "height": 64
     },
     {
       "path": "public/images/dishes/goi-cuon-co-hai-cho-cu-goi-cuon-tom-thit.jpg",
-      "query": "vietnamese fresh spring rolls",
+      "query": "shrimp pork spring rolls rice paper",
       "width": 64,
       "height": 64
     },
@@ -938,7 +938,7 @@
     },
     {
       "path": "public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.jpg",
-      "query": "kumquat iced tea",
+      "query": "vietnamese kumquat iced tea glass",
       "width": 64,
       "height": 64
     },
