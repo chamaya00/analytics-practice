@@ -136,6 +136,14 @@ describe('wordmark breaks only at word boundaries (#82 AC2)', () => {
     const stripped = inner.replace(/ data-astro-cid-[\w-]+/g, '').replace(/<\/?span[^>]*>/g, '');
     expect(stripped).toBe('dont<wbr>drop<wbr>that<wbr>promo');
   });
+
+  it('the final "o" carries the tail mark from #80, and the parody drop glyph is gone', () => {
+    const html = readHtml('dist/index.html');
+    expect(html).toMatch(/prom<span class="wordmark-tail"[^>]*>o<\/span>/);
+    expect(html).not.toContain('drop-glyph');
+    const css = deliveredCss('dist/index.html');
+    expect(css).toMatch(/\.wordmark-tail\[data-astro-cid-[\w-]+\]:after\{[^}]*border-bottom:2px solid var\(--color-accent-a\)/);
+  });
 });
 
 describe('sitewide footer link (AC2, AC5)', () => {
