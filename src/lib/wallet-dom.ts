@@ -228,9 +228,14 @@ function renderWalletSheet(
   heading.id = 'wallet-sheet-heading';
   heading.textContent = 'Wallet';
 
+  // docs/design/143-wallet.md's own mock is drawn for San Francisco ("Play
+  // money. San Francisco orders spend dollars."); worded here per the
+  // *current* city rather than fixed to SF, since the sheet is the same
+  // markup for both cities (that doc's own "Mocks and pictures" table) and a
+  // fixed SF sentence would be wrong while looking at HCMC's balance.
   const kicker = document.createElement('p');
   kicker.className = 'wallet-sheet-kicker';
-  kicker.textContent = 'Play money. San Francisco orders spend dollars.';
+  kicker.textContent = `Play money. ${CITY_NAMES[city]} orders spend ${city === 'sf' ? 'dollars' : 'đồng'}.`;
 
   const mainBalance = document.createElement('p');
   mainBalance.className = 'wallet-sheet-balance';
