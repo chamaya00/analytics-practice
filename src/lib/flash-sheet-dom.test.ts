@@ -14,6 +14,8 @@ import {
 import { resetTrack, setTrack } from './tracking';
 import type { FlashDraw } from './flash-deal';
 import { formatMoneyForCity } from './money';
+import { getRestaurant } from './restaurants';
+import { formatReviewCount } from './reviews';
 
 const DRAW: FlashDraw = {
   drawnAt: 0,
@@ -123,6 +125,29 @@ describe('renderFlashSheet — anatomy (AC4)', () => {
     expect(rows.length).toBe(DRAW.restaurants.length);
     expect(rows.length).toBeGreaterThanOrEqual(5);
     expect(rows.length).toBeLessThanOrEqual(6);
+  });
+
+  it('each row shows the rating immediately followed by the formatted review count, then a motorbike icon before the ETA (HCMC, #130 AC3/AC4)', () => {
+    const el = root();
+    renderFlashSheet(el, 'hcmc', DRAW, 'visitor-1', vi.fn(), () => Date.now());
+    const restaurant = getRestaurant('ben-thanh-banh-mi')!;
+    const meta = el.querySelector('[data-testid="flash-restaurant-ben-thanh-banh-mi"] .restaurant-meta');
+    expect(meta?.textContent).toContain(`★${restaurant.rating.toFixed(1)} (${formatReviewCount(restaurant.reviewCount)})`);
+
+    const icon = meta?.querySelector('.vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    // No space character between icon and text (round 1 review, item 3) —
+    // the gap is the icon's own CSS margin, not a literal leading space.
+    expect(icon?.nextSibling?.textContent).toMatch(/^\d+ min$/);
+  });
+
+  it('a drawn SF restaurant shows a car icon, not a motorbike (#130 AC4)', () => {
+    const sfDraw: FlashDraw = { ...DRAW, restaurants: [{ slug: 'mission-taqueria', feeMode: 'free' }] };
+    const el = root();
+    renderFlashSheet(el, 'sf', sfDraw, 'visitor-1', vi.fn(), () => Date.now());
+    const meta = el.querySelector('[data-testid="flash-restaurant-mission-taqueria"] .restaurant-meta');
+    expect(meta?.querySelector('.vehicle-icon')?.getAttribute('data-vehicle')).toBe('car');
   });
 });
 

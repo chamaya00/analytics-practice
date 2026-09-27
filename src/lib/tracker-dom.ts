@@ -13,6 +13,8 @@ import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
+import { getRestaurant } from './restaurants';
+import { createVehicleIcon } from './vehicle-icon';
 
 const STAR_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
@@ -171,6 +173,8 @@ function renderRatedPrompt(stars: number): HTMLElement {
 
 export interface TrackerOrderSummary {
   restaurantName: string;
+  /** Drives the countdown's vehicle icon — the order's own restaurant's city, not the current city picker (#130 AC5). */
+  restaurantSlug: string;
   itemCount: number;
 }
 
@@ -211,7 +215,9 @@ export function renderTrackerView(
     const countdown = document.createElement('p');
     countdown.className = 'tracker-countdown';
     countdown.setAttribute('data-testid', 'tracker-countdown');
-    countdown.textContent = `${formatCountdown(Math.ceil(view.remainingMs / 1000))} until estimated arrival`;
+    const orderRestaurant = orderSummary ? getRestaurant(orderSummary.restaurantSlug) : undefined;
+    if (orderRestaurant) countdown.append(createVehicleIcon(orderRestaurant.city));
+    countdown.append(`${formatCountdown(Math.ceil(view.remainingMs / 1000))} until estimated arrival`);
     root.append(countdown);
   }
 
@@ -250,7 +256,13 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
     const latest = getOrder(storage);
     const view = computeTrackerView(latest);
 
-    const orderSummary = latest ? { restaurantName: latest.items[0]?.restaurantName ?? '', itemCount: latest.itemCount } : null;
+    const orderSummary = latest
+      ? {
+          restaurantName: latest.items[0]?.restaurantName ?? '',
+          restaurantSlug: latest.items[0]?.restaurantSlug ?? '',
+          itemCount: latest.itemCount,
+        }
+      : null;
     renderTrackerView(root, view, onSubmitRating, orderSummary);
   }
 

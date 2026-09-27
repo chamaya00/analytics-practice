@@ -82,6 +82,17 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
     expect(el.querySelector('[data-testid="checkout-eta"]')?.textContent).toBe(`Arrives in about ${expected} min`);
   });
 
+  it('a car icon (SF) precedes the estimate text (#130 AC4)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const etaLine = el.querySelector('[data-testid="checkout-eta"]');
+    const icon = etaLine?.querySelector('.vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('car');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    expect(icon?.nextSibling?.textContent).toMatch(/^Arrives in about \d+ min$/);
+  });
+
   it('the Offers row names the applied count and "You saved" total, in the mock\'s violet label/summary/chevron shape (AC1)', () => {
     const el = root();
     initCheckoutPage(el, window.localStorage, vi.fn());
@@ -256,6 +267,24 @@ describe('initCheckoutPage — a cart too small to qualify for any voucher (AC1,
     const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
     expect(props.applied_voucher_ids).toEqual([]);
     expect(props.saved_amount_minor).toBe(0);
+  });
+});
+
+describe('initCheckoutPage — an HCMC restaurant (#130 AC4)', () => {
+  it('a motorbike icon precedes the estimate text, not a car', () => {
+    addToCart(window.localStorage, {
+      itemId: 'ben-thanh-banh-mi-thit-nuong',
+      restaurantSlug: 'ben-thanh-banh-mi',
+      restaurantName: 'Bến Thành Bánh Mì',
+      name: 'Bánh mì thịt nướng',
+      amountMinor: 35000,
+      currency: 'VND',
+    });
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const icon = el.querySelector('[data-testid="checkout-eta"] .vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
   });
 });
 

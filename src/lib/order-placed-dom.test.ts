@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initOrderPlacedPage } from './order-placed-dom';
 import { addToCart, placeOrder } from './order-store';
+import { setStoredCity } from './location';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -57,5 +58,46 @@ describe('initOrderPlacedPage (AC9)', () => {
     expect(el.querySelector('[data-testid="order-placed-eta"]')?.textContent).toBe(
       `Arrives in about ${order.etaMinutes} min`,
     );
+  });
+
+  it('a vehicle icon precedes the estimate text, matching the order’s own restaurant’s city (#130 AC4)', () => {
+    addToCart(window.localStorage, {
+      itemId: 'ben-thanh-banh-mi-thit-nuong',
+      restaurantSlug: 'ben-thanh-banh-mi',
+      restaurantName: 'Bến Thành Bánh Mì',
+      name: 'Bánh mì thịt nướng',
+      amountMinor: 35000,
+      currency: 'VND',
+    });
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    const el = root();
+    initOrderPlacedPage(el, window.localStorage, vi.fn());
+
+    const icon = el.querySelector('[data-testid="order-placed-eta"] .vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('switching the stored city after ordering does not change the order’s own vehicle icon (#130 AC5)', () => {
+    setStoredCity(window.localStorage, 'hcmc');
+    addToCart(window.localStorage, {
+      itemId: 'ben-thanh-banh-mi-thit-nuong',
+      restaurantSlug: 'ben-thanh-banh-mi',
+      restaurantName: 'Bến Thành Bánh Mì',
+      name: 'Bánh mì thịt nướng',
+      amountMinor: 35000,
+      currency: 'VND',
+    });
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    // The visitor switches their city preference to SF after ordering.
+    setStoredCity(window.localStorage, 'sf');
+
+    const el = root();
+    initOrderPlacedPage(el, window.localStorage, vi.fn());
+
+    const icon = el.querySelector('[data-testid="order-placed-eta"] .vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
   });
 });
