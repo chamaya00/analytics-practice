@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { budgetSpent, downloadUrl, entriesToFetch, pickResult, validateEntry } from './fetch-photos.mjs';
+import { budgetSpent, downloadUrl, entriesToFetch, pickResult, searchAttempts, validateEntry } from './fetch-photos.mjs';
 
 const good = { path: 'public/images/restaurants/ben-thanh-banh-mi.jpg', query: 'banh mi sandwich', width: 320, height: 240 };
 
@@ -58,5 +58,22 @@ describe('fetch-photos rate limit', () => {
     expect(budgetSpent(new Headers({ 'x-ratelimit-remaining': '0' }))).toBe(true);
     expect(budgetSpent(new Headers({ 'x-ratelimit-remaining': '12' }))).toBe(false);
     expect(budgetSpent(new Headers())).toBe(false);
+  });
+});
+
+describe('fetch-photos re-fetch and fallback', () => {
+  it('re-fetches an unpinned slot whose query changed, and leaves an unchanged one alone', () => {
+    const lock = { [good.path]: { id: 'x', query: 'banh mi sandwich' } };
+    expect(entriesToFetch([good], lock, () => true)).toEqual([]);
+    expect(entriesToFetch([{ ...good, query: 'banh mi baguette' }], lock, () => true)).toHaveLength(1);
+  });
+
+  it('broadens a search that finds nothing: drop the orientation, then the last word', () => {
+    expect(searchAttempts('com tam restaurant vietnam', 'landscape')).toEqual([
+      { query: 'com tam restaurant vietnam', orientation: 'landscape' },
+      { query: 'com tam restaurant vietnam', orientation: null },
+      { query: 'com tam restaurant', orientation: null },
+    ]);
+    expect(searchAttempts('pho', 'squarish')).toHaveLength(2);
   });
 });
