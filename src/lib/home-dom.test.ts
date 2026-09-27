@@ -3,6 +3,7 @@ import { initHomePage } from './home-dom';
 import { getStoredCity } from './location';
 import { restaurantsForCity } from './restaurants';
 import { resetTrack, setTrack } from './tracking';
+import { formatReviewCount } from './reviews';
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -116,9 +117,36 @@ describe('home feed contents (AC2)', () => {
     expect(card?.querySelector('.restaurant-card-meta')?.textContent).toMatch(/delivery(Flash)?$/);
     expect(card?.querySelector(`[data-testid="deal-badge-${dealRestaurant.slug}"]`)).not.toBeNull();
 
+    // #130 AC3: the rating is immediately followed by the formatted review
+    // count in parentheses — asserted against the exact node text, not a
+    // loose containment check, since the meta line is now a sequence of
+    // nodes (text + icon + text) rather than one string.
+    const meta = card?.querySelector('.restaurant-card-meta');
+    expect(meta?.textContent).toContain(
+      `★ ${dealRestaurant.rating.toFixed(1)} (${formatReviewCount(dealRestaurant.reviewCount)})`,
+    );
+
+    // #130 AC4: a car icon (SF) sits immediately before the "N min" estimate.
+    const icon = meta?.querySelector('.vehicle-icon');
+    expect(icon).not.toBeNull();
+    expect(icon?.getAttribute('data-vehicle')).toBe('car');
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
+    expect(icon?.nextSibling?.textContent).toMatch(/^ \d+ min/);
+
     const noDealRestaurant = restaurantsForCity('sf').find((restaurant) => !restaurant.hasDeal)!;
     const plainCard = el.querySelector(`[data-testid="restaurant-card-${noDealRestaurant.slug}"]`);
     expect(plainCard?.querySelector('.deal-badge')).toBeNull();
+  });
+
+  it('an HCMC restaurant card shows a motorbike icon, not a car (#130 AC4)', () => {
+    window.localStorage.setItem('parody.city', 'hcmc');
+    const el = root();
+    initHomePage(el, window.localStorage);
+
+    const restaurant = restaurantsForCity('hcmc')[0];
+    const meta = el.querySelector(`[data-testid="restaurant-card-${restaurant.slug}"] .restaurant-card-meta`);
+    const icon = meta?.querySelector('.vehicle-icon');
+    expect(icon?.getAttribute('data-vehicle')).toBe('motorbike');
   });
 
   it('an empty search names the current city rather than a generic empty state', () => {
