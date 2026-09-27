@@ -32,6 +32,8 @@
 
 set -eu
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+
 WIDE_SIZE="1280,900"
 NARROW_SIZE="375,812"
 
@@ -84,6 +86,24 @@ shoot() {
     size=$1
     suffix=$2
     target="$out_dir/$name-$suffix.png"
+
+    # With node on PATH, photograph through render-shot.mjs: headless Chrome
+    # clamps --window-size to 500px wide, so the flag path below gives the
+    # "narrow" shot a 500px viewport, the mock's phone media queries never
+    # apply, and the picture is the desktop layout cropped. See that file.
+    if command -v node >/dev/null 2>&1; then
+        w=${size%,*}
+        h=${size#*,}
+        rm -f "$target"
+        node "$script_dir/render-shot.mjs" "$browser" "file://$mock_abs" "$w" "$h" "$target" >&2 || true
+        if [ ! -s "$target" ]; then
+            echo "design-render: render-shot.mjs produced no picture at $target" >&2
+            echo "  Mock: $mock_abs" >&2
+            exit 1
+        fi
+        echo "$target"
+        return 0
+    fi
 
     # --no-sandbox because this normally runs as root in a container, where the
     # sandbox cannot start. --virtual-time-budget lets webfonts, transitions,
