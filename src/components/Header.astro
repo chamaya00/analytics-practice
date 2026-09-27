@@ -25,28 +25,10 @@ const TAB_ICON_PATHS: Record<string, string> = {
 <header class="site-header">
   <div class="brand-group">
     <p class="site-name">
-      <svg
-        class="drop-glyph"
-        width="14"
-        height="20"
-        viewBox="0 0 16 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        aria-hidden="true"
-      >
-        <path d="M4 2C4 2 8 0.5 12 2" />
-        <line x1="8" y1="2" x2="8" y2="8" />
-        <path
-          d="M8 8C4 13 3 17 3 19C3 21.5 5.5 23 8 23C10.5 23 13 21.5 13 19C13 17 12 13 8 8Z"
-          fill="currentColor"
-          stroke="none"
-        />
-      </svg>
       <span class="wordmark"
         ><span class="wordmark-strong">dont</span><wbr /><span class="wordmark-light">drop</span><wbr /><span
           class="wordmark-light">that</span
-        ><wbr /><span class="wordmark-light">promo</span></span
+        ><wbr /><span class="wordmark-light">prom<span class="wordmark-tail">o</span></span></span
       >
     </p>
   </div>
@@ -128,9 +110,24 @@ const TAB_ICON_PATHS: Record<string, string> = {
     font-weight: 800;
   }
 
-  .drop-glyph {
-    color: var(--color-accent-a);
-    vertical-align: -4px;
+  /* docs/design/80-two-city-brand-and-flow.md: "The final "o" carries a
+     small tail curling off its bottom-right, the one mark this direction
+     adds, standing in for a logomark" - drawn as in 80-home-sf.html, and
+     replacing the parody's separate drop glyph. */
+  .wordmark-tail {
+    position: relative;
+  }
+
+  .wordmark-tail::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    bottom: -2px;
+    width: 6px;
+    height: 6px;
+    border-bottom: 2px solid var(--color-accent-a);
+    border-right: 2px solid var(--color-accent-a);
+    border-radius: 0 0 6px 0;
   }
 
   .site-nav {

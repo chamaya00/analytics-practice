@@ -37,15 +37,17 @@
 
 set -eu
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+
 # What builds this repository. Empty means nothing needs building - a static site
 # already in the tree, say. Whatever this is, it has to be a command the engineer
 # and designer roles are also allowed to run, or a run will be refused it even
 # though this script is granted: the allowlist is per command, not per script.
-BUILD_CMD=""
+BUILD_CMD="npm run build"
 
 # The directory the built site is served from. This is what the route resolves
 # against, so it has to be the directory holding the built entry point.
-SERVE_DIR=""
+SERVE_DIR="dist"
 
 WIDE_SIZE="1280,900"
 NARROW_SIZE="375,812"
@@ -180,6 +182,24 @@ shoot() {
     size=$1
     suffix=$2
     target="$out_dir/$slug-$suffix.png"
+
+    # With node on PATH, photograph through app-render-shot.mjs: headless
+    # Chrome clamps --window-size to 500px wide, so the flag path below gives
+    # the "narrow" shot a 500px viewport and the phone layout never applies.
+    # See that file for the measurement.
+    if command -v node >/dev/null 2>&1; then
+        w=${size%,*}
+        h=${size#*,}
+        rm -f "$target"
+        node "$script_dir/app-render-shot.mjs" "$browser" "http://127.0.0.1:$PORT$route" "$w" "$h" "$target" >&2 || true
+        if [ ! -s "$target" ]; then
+            echo "app-render: app-render-shot.mjs produced no picture at $target" >&2
+            echo "  URL: http://127.0.0.1:$PORT$route" >&2
+            exit 1
+        fi
+        echo "$target"
+        return 0
+    fi
 
     # The flags are design-render's, for design-render's reasons: no sandbox
     # because this normally runs as root in a container, and a virtual time

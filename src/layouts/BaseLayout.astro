@@ -65,10 +65,6 @@ const { title } = Astro.props;
      duplicated per page, same reasoning as .reset-button in global.css. All
      tokens (spacing, color, type) are global.css's own, unchanged. */
 
-  .drop-glyph {
-    color: var(--color-accent-a);
-  }
-
   /* ---- landing: order-in-progress banner ---- */
 
   .order-banner {
@@ -1157,7 +1153,6 @@ const { title } = Astro.props;
 
   @media (prefers-reduced-motion: reduce) {
     .order-placed-mark,
-    .drop-glyph,
     .voucher-row-unlocking {
       transition: none;
       animation: none;
