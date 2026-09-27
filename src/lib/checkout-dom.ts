@@ -28,6 +28,7 @@ import { track } from './tracking';
 import { formatMoney } from './money';
 import { getRestaurant } from './restaurants';
 import { estimateEtaMinutes } from './eta';
+import { createVehicleIcon } from './vehicle-icon';
 import { flashFeeForRestaurant, getFlashDraw } from './flash-deal';
 import { clearOffersState, getOffersState, setOffersState } from './offers-store';
 import { appliedDiscountAmountMinor, appliedVoucherIds, entriesForCity, syncOffersState } from './vouchers';
@@ -398,7 +399,8 @@ export function renderCheckout(
   etaLine.className = 'checkout-restaurant';
   etaLine.setAttribute('data-testid', 'checkout-eta');
   const etaMinutes = estimateEtaMinutes(getVisitorId(storage), restaurantSlug);
-  etaLine.textContent = `Arrives in about ${etaMinutes} min`;
+  if (restaurant) etaLine.append(createVehicleIcon(restaurant.city));
+  etaLine.append(`Arrives in about ${etaMinutes} min`);
 
   root.append(
     restaurantLine,

@@ -6,6 +6,8 @@
 
 import { getOrder } from './order-store';
 import { formatMoney } from './money';
+import { getRestaurant } from './restaurants';
+import { createVehicleIcon } from './vehicle-icon';
 
 export interface OrderPlacedView {
   redirectedToRestaurants: boolean;
@@ -52,7 +54,12 @@ export function renderOrderPlaced(
   // not re-derived, so it can never drift from what checkout showed (AC2).
   const eta = document.createElement('p');
   eta.setAttribute('data-testid', 'order-placed-eta');
-  eta.textContent = `Arrives in about ${order.etaMinutes} min`;
+  // The order's own restaurant's city, not the current city picker (#130 AC5)
+  // — a visitor who switches cities after ordering still sees this order's
+  // own vehicle.
+  const orderRestaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
+  if (orderRestaurant) eta.append(createVehicleIcon(orderRestaurant.city));
+  eta.append(`Arrives in about ${order.etaMinutes} min`);
 
   const trackLink = document.createElement('a');
   trackLink.href = '/tracker/';

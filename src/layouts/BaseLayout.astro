@@ -310,6 +310,20 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
+  /* The city vehicle icon beside every delivery estimate (#130) — sized and
+     coloured to the surrounding text everywhere it appears (home cards, the
+     restaurant page, flash-sheet rows, checkout, order placed, the tracker
+     countdown), all of them plain inline/block text except the restaurant
+     page's own flex .restaurant-meta below, which centres it via
+     align-items instead of the vertical-align nudge used here. */
+  .vehicle-icon {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+    margin-right: 3px;
+  }
+
   .deal-badge {
     position: absolute;
     top: var(--space-sm);
@@ -1900,10 +1914,19 @@ const { title } = Astro.props;
 
   .restaurant-meta {
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-sm);
     margin: 0;
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
+  }
+
+  /* A flex item here, not an inline glyph — no vertical-align nudge needed
+     (that's for the plain-text sites; see .vehicle-icon above), and no
+     margin-right since `gap` already spaces every item in this row. */
+  .restaurant-meta .vehicle-icon {
+    margin-right: 0;
   }
 
   /* The menu's own Add/Sold-out control — a true pill, distinct from
