@@ -1,0 +1,349 @@
+<!doctype html>
+<!--
+  Mock for docs/design/137-carousel-header-tiles.md — Ho Chi Minh City, light
+  theme. Structurally identical to 137-home-feed-sf-light.html; only the
+  catalogue content, currency, and cuisine chips differ. See that file's own
+  header comment for what this format deliberately omits and why.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Home feed mock — Ho Chi Minh City, light</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --font-size-tiny: 0.625rem;
+
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+
+    --color-bg: #fbf7ff;
+    --color-surface: #f7f1ff;
+    --color-text: #241b33;
+    --color-text-muted: #6b5d85;
+    --color-border: #e3d6fa;
+    --color-accent-a: #6c3ce0;
+    --color-accent-b: #ff7a45;
+    --color-badge-ink: #241b33;
+    --color-photo-scrim: rgba(0, 0, 0, 0.72);
+  }
+
+  * , *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    line-height: 1.4;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  main { max-width: 26rem; margin: 0 auto; padding: var(--space-sm) var(--space-lg) var(--space-xl); }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .wordmark {
+    margin: 0;
+    font-size: var(--font-size-nav-title);
+    font-weight: 500;
+  }
+  .wordmark .word-strong { font-weight: 800; }
+  .wordmark .tail { position: relative; }
+  .wordmark .tail::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    bottom: -2px;
+    width: 6px;
+    height: 6px;
+    border-bottom: 2px solid var(--color-accent-a);
+    border-right: 2px solid var(--color-accent-a);
+    border-radius: 0 0 6px 0;
+  }
+
+  .location-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex: none;
+    white-space: nowrap;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: var(--space-xs) var(--space-md);
+    min-height: 32px;
+  }
+
+  .home-search {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-top: var(--space-md);
+    padding: 0 var(--space-md);
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+
+  .carousel { margin-top: var(--space-md); }
+
+  .carousel-slide {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .carousel-photo {
+    height: 158px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-sm);
+    color: #fff;
+    font-size: var(--font-size-tiny);
+    background: linear-gradient(135deg, #8a5cf0 0%, #d68a5a 100%);
+  }
+
+  .ad-label {
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    background: var(--color-photo-scrim);
+    color: #fff;
+    font-size: var(--font-size-tiny);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  .pause-btn {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-photo-scrim);
+    color: #fff;
+    border-radius: 999px;
+  }
+  .pause-btn svg { width: 14px; height: 14px; }
+
+  .carousel-caption { padding: var(--space-sm) var(--space-md); }
+  .carousel-claim { display: block; font-weight: 800; font-size: var(--font-size-body); color: var(--color-text); }
+  .carousel-sub { display: block; font-size: var(--font-size-muted); color: var(--color-text-muted); margin-top: 2px; }
+
+  .carousel-dots { display: flex; justify-content: center; gap: var(--space-xs); margin-top: var(--space-sm); }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-border); padding: 0; border: none; }
+  .dot.active { width: 16px; background: var(--color-accent-a); }
+
+  .slide-ref-label {
+    margin: var(--space-md) 0 var(--space-xs);
+    font-size: var(--font-size-tiny);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .slide-ref-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+  .slide-ref-card { position: relative; border-radius: 10px; overflow: hidden; border: 1px dashed var(--color-border); background: var(--color-surface); }
+  .slide-ref-photo { height: 56px; display: flex; align-items: flex-start; justify-content: flex-start; background: linear-gradient(135deg, #8a5cf0 0%, #d68a5a 100%); }
+  .slide-ref-photo .ad-label { position: static; margin: var(--space-xs); font-size: 0.5625rem; padding: 2px 6px; }
+  .slide-ref-caption { padding: var(--space-xs) var(--space-sm); font-size: var(--font-size-tiny); color: var(--color-text-muted); }
+  .slide-ref-caption b { display: block; color: var(--color-text); font-size: var(--font-size-muted); }
+
+  .cuisine-row { margin-top: var(--space-md); display: flex; gap: var(--space-sm); overflow-x: auto; }
+  .cuisine-chip {
+    flex: none;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+
+  h2.section-title { font-size: var(--font-size-h2); font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); }
+
+  .tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+
+  .tile-card { position: relative; display: flex; flex-direction: column; text-decoration: none; color: var(--color-text); }
+
+  .tile-card-photo {
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-xs);
+    color: #fff;
+    font-size: var(--font-size-tiny);
+    background: linear-gradient(135deg, #8a5cf0 0%, #d68a5a 100%);
+  }
+
+  .tile-card-body { padding-top: var(--space-xs); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .tile-card-name { font-weight: 800; font-size: var(--font-size-body); overflow-wrap: break-word; }
+  .tile-card-rating, .tile-card-meta { font-size: var(--font-size-muted); color: var(--color-text-muted); }
+  .tile-card-meta svg { width: 1.1em; height: 1.1em; vertical-align: -0.2em; margin-right: 0.25em; }
+
+  .deal-badge {
+    position: absolute;
+    top: var(--space-xs);
+    right: var(--space-xs);
+    background: var(--color-accent-b);
+    color: var(--color-badge-ink);
+    font-size: var(--font-size-tiny);
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  .flash-badge {
+    display: inline-block;
+    font-size: 0.5625rem;
+    font-weight: 800;
+    color: #fff;
+    background: var(--color-accent-a);
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-left: var(--space-xs);
+    vertical-align: 1px;
+  }
+
+  .reference-only {
+    margin-top: var(--space-xl);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="site-header">
+    <p class="wordmark"><span class="word-strong">dont</span><wbr>drop<wbr>that<wbr>prom<span class="tail">o</span></p>
+    <button type="button" class="location-bar">Ho Chi Minh City ▾</button>
+  </header>
+
+  <div class="home-search">Search restaurants or cuisines</div>
+
+  <section class="carousel" aria-label="Promotions and ads" aria-roledescription="carousel">
+    <div class="carousel-slide" aria-roledescription="slide" aria-label="2 of 7">
+      <div class="carousel-photo">[photo: ben-thanh-banh-mi-hero.jpg]</div>
+      <span class="ad-label">Ad</span>
+      <button type="button" class="pause-btn" aria-label="Pause carousel">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </button>
+      <div class="carousel-caption">
+        <span class="carousel-claim">Bến Thành Bánh Mì</span>
+        <span class="carousel-sub">Bánh mì · ★ 4.8</span>
+      </div>
+    </div>
+    <div class="carousel-dots" role="tablist" aria-label="Choose slide">
+      <button type="button" class="dot" role="tab" aria-label="Slide 1"></button>
+      <button type="button" class="dot active" role="tab" aria-selected="true" aria-label="Slide 2"></button>
+      <button type="button" class="dot" role="tab" aria-label="Slide 3"></button>
+      <button type="button" class="dot" role="tab" aria-label="Slide 4"></button>
+      <button type="button" class="dot" role="tab" aria-label="Slide 5"></button>
+      <button type="button" class="dot" role="tab" aria-label="Slide 6"></button>
+      <button type="button" class="dot" role="tab" aria-label="Slide 7"></button>
+    </div>
+  </section>
+
+  <p class="slide-ref-label">Slide anatomy (reference — the carousel above shows one at a time)</p>
+  <div class="slide-ref-row">
+    <div class="slide-ref-card">
+      <div class="slide-ref-photo"><span class="ad-label">Ad</span></div>
+      <div class="slide-ref-caption"><b>Hủ Tiếu Nam Vang Hòa Phát</b>Hủ tiếu · ★ 4.6</div>
+    </div>
+    <div class="slide-ref-card">
+      <div class="slide-ref-photo"></div>
+      <div class="slide-ref-caption"><b>Free Gỏi cuốn with an 80.000 ₫ minimum</b>Sài Gòn Phở Quán</div>
+    </div>
+  </div>
+
+  <div class="cuisine-row">
+    <span class="cuisine-chip">Phở</span>
+    <span class="cuisine-chip">Bánh mì</span>
+    <span class="cuisine-chip">Cơm</span>
+    <span class="cuisine-chip">Bún</span>
+  </div>
+
+  <h2 class="section-title">Near you</h2>
+  <div class="tile-grid">
+    <a class="tile-card" href="#">
+      <span class="deal-badge">Deal</span>
+      <div class="tile-card-photo">[photo: ben-thanh-banh-mi-hero.jpg]</div>
+      <div class="tile-card-body">
+        <span class="tile-card-name">Bến Thành Bánh Mì</span>
+        <span class="tile-card-rating">★ 4.8 (3k+)</span>
+        <span class="tile-card-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="2.5"/><circle cx="18.5" cy="17" r="2.5"/><path d="M3 14.5c0-2.5 1.7-3.5 4-3.5h4"/><path d="M8 17h6l2.5-11"/><path d="M14.5 5.5h3.5"/></svg>24 min · 10.000 ₫ delivery</span>
+      </div>
+    </a>
+    <a class="tile-card" href="#">
+      <div class="tile-card-photo">[photo: bo-bit-tet-chu-tam-go-vap-hero.jpg]</div>
+      <div class="tile-card-body">
+        <span class="tile-card-name">Bò Bít Tết Chú Tám Gò Vấp</span>
+        <span class="tile-card-rating">★ 4.3 (264)</span>
+        <span class="tile-card-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="2.5"/><circle cx="18.5" cy="17" r="2.5"/><path d="M3 14.5c0-2.5 1.7-3.5 4-3.5h4"/><path d="M8 17h6l2.5-11"/><path d="M14.5 5.5h3.5"/></svg>19 min · 18.000 ₫ delivery</span>
+      </div>
+    </a>
+    <a class="tile-card" href="#">
+      <div class="tile-card-photo">[photo: saigon-pho-quan-hero.jpg]</div>
+      <div class="tile-card-body">
+        <span class="tile-card-name">Sài Gòn Phở Quán</span>
+        <span class="tile-card-rating">★ 4.7 (1k+)</span>
+        <span class="tile-card-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="2.5"/><circle cx="18.5" cy="17" r="2.5"/><path d="M3 14.5c0-2.5 1.7-3.5 4-3.5h4"/><path d="M8 17h6l2.5-11"/><path d="M14.5 5.5h3.5"/></svg>25 min · Free delivery<span class="flash-badge">Flash</span></span>
+      </div>
+    </a>
+    <a class="tile-card" href="#">
+      <div class="tile-card-photo">[photo: com-tam-quan-nha-hero.jpg]</div>
+      <div class="tile-card-body">
+        <span class="tile-card-name">Cơm Tấm Quán Nhà</span>
+        <span class="tile-card-rating">★ 4.5 (742)</span>
+        <span class="tile-card-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="17" r="2.5"/><circle cx="18.5" cy="17" r="2.5"/><path d="M3 14.5c0-2.5 1.7-3.5 4-3.5h4"/><path d="M8 17h6l2.5-11"/><path d="M14.5 5.5h3.5"/></svg>20 min · 12.000 ₫ delivery</span>
+      </div>
+    </a>
+  </div>
+
+  <p class="reference-only">Reference only, not part of the shipped page — this line and the dashed rule above it exist so a reader of the render can tell the mock's own scaffolding from the page it depicts.</p>
+</main>
+</body>
+</html>
