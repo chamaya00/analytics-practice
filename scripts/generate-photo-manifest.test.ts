@@ -13,6 +13,13 @@ describe('generate-photo-manifest', () => {
     }
   });
 
+  it('parses a row rewritten to .jpg by rewrite-photo-credits the same as its .svg placeholder row (#106)', () => {
+    const svgRow = '| `public/images/dishes/a-b.svg` | "some query" | Placeholder — not yet downloaded |';
+    const jpgRow = '| `public/images/dishes/a-b.jpg` | "some query" | [X](https://u/x) — [photo 1](https://u/p) — Unsplash License |';
+    expect(parseCreditsRows(jpgRow)).toEqual(parseCreditsRows(svgRow));
+    expect(parseCreditsRows(jpgRow)).toEqual([{ path: 'public/images/dishes/a-b.jpg', query: 'some query', ...SLOT_SIZE.dishes }]);
+  });
+
   it('sizes every slot from the component that actually renders it, never invents a fourth size', () => {
     const rows = parseCreditsRows(readFileSync(CREDITS, 'utf8'));
     for (const row of rows) {

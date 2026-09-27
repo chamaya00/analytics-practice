@@ -1,58 +1,57 @@
-# Photo credits — two-city catalogue placeholders
+# Photo credits — two-city catalogue
 
-Issue #82 (child of #80/#79). Every image the site loads is a committed file
-under `public/images/`, served from the site itself — none of it is a
-hotlinked URL to another host. **Every file listed below is a placeholder**,
-not a downloaded photo: `./scripts/app-render`'s attempt-1 run found outbound
-network to Unsplash refused in this sandbox, so nothing here has been
-downloaded from the searches #80's design doc names. Each placeholder has the
-word "Placeholder" rendered directly on the image, plus a second line naming
-what it stands in for, so a reviewer can tell at a glance that it's not the
-real photo.
+Every image the site loads is a committed file under `public/images/`, served
+from the site itself; none is hotlinked. Each one was downloaded from Unsplash
+by the `photos` workflow (`.github/workflows/photos.yml`,
+`scripts/fetch-photos.mjs`) from the search named in its row. Its photographer,
+photo id and licence come from `docs/design/photos.lock.json`, which the
+workflow writes. Rows are rewritten from the lock file by
+`npm run rewrite-photo-credits` (#106).
 
-When a later run has outbound network, replace the file at the same path with
-a licensed download from the search below and update this row's Status —
-nothing importing these paths needs to change.
+To change a photo, edit the row's search (or pin a `photo` id in
+`docs/design/photos.json`) and let the workflow re-fetch it. Never edit an
+image file by hand. `npm run generate-photo-manifest` regenerates
+`photos.json` from this file.
 
 ## City cards (location picker)
 
 | File | Intended Unsplash search | Status |
 |---|---|---|
-| `public/images/cities/sf.svg` | "san francisco street golden gate" | Placeholder — not yet downloaded |
-| `public/images/cities/hcmc.svg` | "ho chi minh city street motorbikes" | Placeholder — not yet downloaded |
+| `public/images/cities/sf.jpg` | "san francisco street golden gate" | [Mauro Lima](https://unsplash.com/@limamauro23) — [photo NwJucjfyEXE](https://unsplash.com/photos/a-large-red-bridge-over-water-with-golden-gate-bridge-in-the-background-NwJucjfyEXE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/cities/hcmc.jpg` | "ho chi minh city street motorbikes" | [Tron Le](https://unsplash.com/@tronle_sg) — [photo aM3KBX6twTI](https://unsplash.com/photos/man-in-yellow-shirt-riding-motorcycle-with-woman-in-yellow-shirt-aM3KBX6twTI) — Unsplash License (https://unsplash.com/license) |
 
 ## Restaurant hero images
 
 | File | Cuisine | Intended Unsplash search | Status |
 |---|---|---|---|
-| `public/images/restaurants/mission-taqueria-hero.svg` | SF, tacos | "street tacos platter spread" | Placeholder — not yet downloaded |
-| `public/images/restaurants/north-beach-pizzeria-hero.svg` | SF, pizza | "wood fired pizza whole" | Placeholder — not yet downloaded |
-| `public/images/restaurants/golden-lotus-dim-sum-hero.svg` | SF, dim sum | "dim sum restaurant interior" | Placeholder — not yet downloaded |
-| `public/images/restaurants/ben-thanh-banh-mi-hero.svg` | HCMC, bánh mì | "banh mi sandwiches platter" | Placeholder — not yet downloaded |
-| `public/images/restaurants/saigon-pho-quan-hero.svg` | HCMC, phở | "vietnamese street food stall" | Placeholder — not yet downloaded |
-| `public/images/restaurants/com-tam-quan-nha-hero.svg` | HCMC, cơm tấm | "com tam restaurant vietnam" | Placeholder — not yet downloaded |
-| `public/images/restaurants/bay-grain-bowls-hero.svg` | SF, grain bowls | "quinoa grain bowl with vegetables" | Placeholder — not yet downloaded |
-| `public/images/restaurants/bun-cha-co-ba-hero.svg` | HCMC, bún | "bun cha vietnam restaurant" | Placeholder — not yet downloaded |
-| `public/images/restaurants/dogpatch-burger-works-hero.svg` | SF, burgers | "gourmet burger restaurant" | Placeholder — not yet downloaded |
-| `public/images/restaurants/noriega-thai-kitchen-hero.svg` | SF, thai | "thai curry noodle dishes" | Placeholder — not yet downloaded |
-| `public/images/restaurants/inner-richmond-sushi-bar-hero.svg` | SF, sushi | "fresh sushi platter" | Placeholder — not yet downloaded |
-| `public/images/restaurants/valencia-street-tandoor-hero.svg` | SF, indian | "indian curry spread" | Placeholder — not yet downloaded |
-| `public/images/restaurants/cole-valley-mezze-hero.svg` | SF, mediterranean | "mediterranean mezze platter" | Placeholder — not yet downloaded |
-| `public/images/restaurants/geary-boulevard-korean-kitchen-hero.svg` | SF, korean | "korean barbecue table spread" | Placeholder — not yet downloaded |
-| `public/images/restaurants/post-street-ramen-bar-hero.svg` | SF, ramen | "bowl of ramen noodles broth" | Placeholder — not yet downloaded |
-| `public/images/restaurants/noe-valley-morning-kitchen-hero.svg` | SF, breakfast | "brunch table pancakes coffee" | Placeholder — not yet downloaded |
-| `public/images/restaurants/hayes-valley-green-table-hero.svg` | SF, vegan | "colorful vegan grain bowl" | Placeholder — not yet downloaded |
-| `public/images/restaurants/ocean-beach-fish-house-hero.svg` | SF, seafood | "seafood platter oysters lemon" | Placeholder — not yet downloaded |
-| `public/images/restaurants/hu-tieu-nam-vang-hoa-phat-hero.svg` | HCMC, hủ tiếu | "vietnamese noodle soup stall" | Placeholder — not yet downloaded |
-| `public/images/restaurants/goi-cuon-co-hai-cho-cu-hero.svg` | HCMC, gỏi cuốn | "vietnamese fresh spring rolls platter" | Placeholder — not yet downloaded |
-| `public/images/restaurants/quan-lau-ut-hanh-hero.svg` | HCMC, lẩu | "vietnamese hotpot table" | Placeholder — not yet downloaded |
-| `public/images/restaurants/ca-phe-nha-go-18-hero.svg` | HCMC, cà phê | "vietnamese coffee phin cafe" | Placeholder — not yet downloaded |
-| `public/images/restaurants/quan-che-di-sau-hero.svg` | HCMC, chè | "vietnamese sweet dessert soup" | Placeholder — not yet downloaded |
-| `public/images/restaurants/com-ga-ba-sau-phu-nhuan-hero.svg` | HCMC, cơm gà | "vietnamese chicken rice plate" | Placeholder — not yet downloaded |
-| `public/images/restaurants/hai-san-kenh-te-quan-7-hero.svg` | HCMC, hải sản | "vietnamese seafood platter table" | Placeholder — not yet downloaded |
-| `public/images/restaurants/banh-xeo-co-nam-tan-dinh-hero.svg` | HCMC, bánh xèo | "vietnamese crispy pancake herbs" | Placeholder — not yet downloaded |
-| `public/images/restaurants/mi-quang-que-son-co-lien-hero.svg` | HCMC, mì quảng | "vietnamese egg noodle soup bowl" | Placeholder — not yet downloaded |
-| `public/images/restaurants/bo-bit-tet-chu-tam-go-vap-hero.svg` | HCMC, bò bít tết | "sizzling beef steak pan" | Placeholder — not yet downloaded |
+| `public/images/restaurants/mission-taqueria-hero.jpg` | SF, tacos | "street tacos platter spread" | [We The Creators](https://unsplash.com/@wethecreators) — [photo 5mpht0M5H0E](https://unsplash.com/photos/three-tacos-are-sitting-on-a-plate-next-to-a-glass-of-beer-5mpht0M5H0E) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/north-beach-pizzeria-hero.jpg` | SF, pizza | "wood fired pizza whole" | [Nik Owens](https://unsplash.com/@nik_owens) — [photo 40OJLYVWeeM](https://unsplash.com/photos/pizza-on-brown-wooden-table-40OJLYVWeeM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/golden-lotus-dim-sum-hero.jpg` | SF, dim sum | "dim sum restaurant interior" | [北美餐饮通](https://unsplash.com/@uscanyin) — [photo hepyY3nHyXg](https://unsplash.com/photos/empty-restaurant-interior-with-traditional-chinese-decor-hepyY3nHyXg) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/ben-thanh-banh-mi-hero.jpg` | HCMC, bánh mì | "banh mi sandwiches platter" | [Maria Klichik](https://unsplash.com/@switchinglanes) — [photo smv9xho-dnE](https://unsplash.com/photos/a-couple-of-sandwiches-sitting-on-top-of-a-cutting-board-smv9xho-dnE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/saigon-pho-quan-hero.jpg` | HCMC, phở | "vietnamese street food stall" | [Maheima Kapur](https://unsplash.com/@maheima_kapur) — [photo f_gf8zh_duA](https://unsplash.com/photos/woman-in-grey-long-sleeved-shirt-holding-knife-f_gf8zh_duA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/com-tam-quan-nha-hero.jpg` | HCMC, cơm tấm | "com tam restaurant vietnam" | [takahiro taguchi](https://unsplash.com/@tak_tag) — [photo 8l_RuuZrOyY](https://unsplash.com/photos/lighted-lamps-in-room-8l_RuuZrOyY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/bay-grain-bowls-hero.jpg` | SF, grain bowls | "quinoa grain bowl with vegetables" | [Clark Douglas](https://unsplash.com/@clark_douglas) — [photo VepJDAuitQ4](https://unsplash.com/photos/a-woman-is-holding-a-bowl-of-food-VepJDAuitQ4) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/bun-cha-co-ba-hero.jpg` | HCMC, bún | "bun cha vietnam restaurant" | [Anh Nguyen](https://unsplash.com/@pwign) — [photo oIHOjwrXVlI](https://unsplash.com/photos/bowls-and-spices-on-top-of-table-oIHOjwrXVlI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/dogpatch-burger-works-hero.jpg` | SF, burgers | "gourmet burger restaurant" | [sk](https://unsplash.com/@rollelflex_graphy726) — [photo uVPV_nV17Tw](https://unsplash.com/photos/hamburger-by-french-fries-on-board-uVPV_nV17Tw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/noriega-thai-kitchen-hero.jpg` | SF, thai | "thai curry noodle dishes" | [Alexandra Tran](https://unsplash.com/@alexgoesglobal) — [photo VW0bzb90oMA](https://unsplash.com/photos/a-wooden-table-topped-with-plates-of-food-VW0bzb90oMA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/inner-richmond-sushi-bar-hero.jpg` | SF, sushi | "fresh sushi platter" | [Riccardo Bergamini](https://unsplash.com/@deram31) — [photo O2yNzXdqOu0](https://unsplash.com/photos/food-photography-of-varieties-of-sushies-O2yNzXdqOu0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/valencia-street-tandoor-hero.jpg` | SF, indian | "indian curry spread" | [LOLA AZIZADA](https://unsplash.com/@kalpa_mahagamage) — [photo LxkWpGMEwlM](https://unsplash.com/photos/a-bowl-of-curry-rice-and-pita-bread-LxkWpGMEwlM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/cole-valley-mezze-hero.jpg` | SF, mediterranean | "mediterranean mezze platter" | [Chez Le Libanais](https://unsplash.com/@chezlelibanais) — [photo dcgMs7GEj2M](https://unsplash.com/photos/middle-eastern-mezze-platter-dcgMs7GEj2M) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/geary-boulevard-korean-kitchen-hero.jpg` | SF, korean | "korean barbecue table spread" | [Edward Lawrence](https://unsplash.com/@edw_lawr) — [photo CKLo-Hw82UA](https://unsplash.com/photos/friends-enjoying-korean-barbecue-with-many-side-dishes-CKLo-Hw82UA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/post-street-ramen-bar-hero.jpg` | SF, ramen | "bowl of ramen noodles broth" | [Cody  Chan](https://unsplash.com/@cceee) — [photo GXhmQt6MFX8](https://unsplash.com/photos/white-ceramic-bowl-with-rice-and-sliced-lemon-GXhmQt6MFX8) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/noe-valley-morning-kitchen-hero.jpg` | SF, breakfast | "brunch table pancakes coffee" | [Colin Michel](https://unsplash.com/@colincyruz) — [photo fKRGi5AnR3Y](https://unsplash.com/photos/brown-and-white-pastry-on-white-ceramic-plate-fKRGi5AnR3Y) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/hayes-valley-green-table-hero.jpg` | SF, vegan | "colorful vegan grain bowl" | [Anna Pelzer](https://unsplash.com/@annapelzer) — [photo IGfIGP5ONV0](https://unsplash.com/photos/bowl-of-vegetable-salads-IGfIGP5ONV0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/ocean-beach-fish-house-hero.jpg` | SF, seafood | "seafood platter oysters lemon" | [Oskar Kadaksoo](https://unsplash.com/@oskark) — [photo hItzuDWSlGM](https://unsplash.com/photos/a-plate-of-oysters-and-lemons-hItzuDWSlGM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/hu-tieu-nam-vang-hoa-phat-hero.jpg` | HCMC, hủ tiếu | "vietnamese noodle soup stall" | [MChe Lee](https://unsplash.com/@mclee) — [photo 8p-X7aJZy3w](https://unsplash.com/photos/people-walking-through-narrow-street-market-8p-X7aJZy3w) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/goi-cuon-co-hai-cho-cu-hero.jpg` | HCMC, gỏi cuốn | "vietnamese fresh spring rolls platter" | [Harry Le](https://unsplash.com/@byharryle) — [photo BiXFsAVlbYU](https://unsplash.com/photos/wooden-box-filled-with-fresh-spring-rolls-and-crispy-crackers-BiXFsAVlbYU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/quan-lau-ut-hanh-hero.jpg` | HCMC, lẩu | "vietnamese hotpot table" | [Cera](https://unsplash.com/@cerachiuu) — [photo muV_8wy4mzw](https://unsplash.com/photos/sliced-vegetables-on-stainless-steel-cooking-pot-muV_8wy4mzw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/ca-phe-nha-go-18-hero.jpg` | HCMC, cà phê | "vietnamese coffee phin cafe" | [Irish83](https://unsplash.com/@irish83) — [photo h0QaLWVOOxA](https://unsplash.com/photos/a-glass-of-water-on-a-table-h0QaLWVOOxA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/quan-che-di-sau-hero.jpg` | HCMC, chè | "vietnamese sweet dessert soup" | [Chris wu](https://unsplash.com/@chrisjorwu) — [photo tHd2eKds0pE](https://unsplash.com/photos/a-bowl-of-soup-with-a-spoon-in-it-tHd2eKds0pE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/com-ga-ba-sau-phu-nhuan-hero.jpg` | HCMC, cơm gà | "vietnamese chicken rice plate" | [You Le](https://unsplash.com/@le_y0u) — [photo g0Xbz3bVrSA](https://unsplash.com/photos/a-plate-of-rice-with-grilled-chicken-and-fried-egg-g0Xbz3bVrSA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/hai-san-kenh-te-quan-7-hero.jpg` | HCMC, hải sản | "vietnamese seafood platter table" | [Vincent Yap](https://unsplash.com/@chonky_films) — [photo GAV2lyGMTr4](https://unsplash.com/photos/shellfish-and-salad-on-blue-table-GAV2lyGMTr4) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/banh-xeo-co-nam-tan-dinh-hero.jpg` | HCMC, bánh xèo | "vietnamese crispy pancake herbs" | [Markus Winkler](https://unsplash.com/@markuswinkler) — [photo _KW74Yat8HY](https://unsplash.com/photos/red-chopsticks-on-white-ceramic-bowl-_KW74Yat8HY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/mi-quang-que-son-co-lien-hero.jpg` | HCMC, mì quảng | "vietnamese egg noodle soup bowl" | [JANG’S 🍂](https://unsplash.com/@xmtnguyen) — [photo OGxO48Zuf8w](https://unsplash.com/photos/pasta-with-green-leaf-vegetable-in-white-ceramic-bowl-OGxO48Zuf8w) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/bo-bit-tet-chu-tam-go-vap-hero.jpg` | HCMC, bò bít tết | "sizzling beef steak pan" | [Nanxi wei](https://unsplash.com/@nanxiwei) — [photo TVzSWDntlOM](https://unsplash.com/photos/person-cooking-meat-on-black-pan-TVzSWDntlOM) — Unsplash License (https://unsplash.com/license) |
 
 ## Dish thumbnails
 
@@ -61,150 +60,148 @@ Every item below shares its restaurant's cuisine-level search from #80's
 
 | File | Search | Status |
 |---|---|---|
-| `public/images/dishes/mission-taqueria-al-pastor.svg` | "pork tacos corn tortillas lime" | Placeholder — not yet downloaded |
-| `public/images/dishes/mission-taqueria-carne-asada.svg` | "carne asada steak tacos" | Placeholder — not yet downloaded |
-| `public/images/dishes/mission-taqueria-chips-guac.svg` | "tortilla chips and guacamole" | Placeholder — not yet downloaded |
-| `public/images/dishes/mission-taqueria-horchata.svg` | "cinnamon rice milk drink" | Placeholder — not yet downloaded |
-| `public/images/dishes/north-beach-pizzeria-margherita.svg` | "margherita pizza whole" | Placeholder — not yet downloaded |
-| `public/images/dishes/north-beach-pizzeria-pepperoni.svg` | "pepperoni pizza slice" | Placeholder — not yet downloaded |
-| `public/images/dishes/north-beach-pizzeria-garlic-knots.svg` | "garlic knots bread rolls" | Placeholder — not yet downloaded |
-| `public/images/dishes/north-beach-pizzeria-caesar.svg` | "caesar salad bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/golden-lotus-dim-sum-har-gow.svg` | "shrimp dumplings steamer" | Placeholder — not yet downloaded |
-| `public/images/dishes/golden-lotus-dim-sum-siu-mai.svg` | "siu mai pork dumplings" | Placeholder — not yet downloaded |
-| `public/images/dishes/golden-lotus-dim-sum-congee.svg` | "plain rice porridge scallions" | Placeholder — not yet downloaded |
-| `public/images/dishes/golden-lotus-dim-sum-noodles.svg` | "chinese stir fried noodles plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/ben-thanh-banh-mi-thit-nuong.svg` | "grilled pork banh mi sandwich" | Placeholder — not yet downloaded |
-| `public/images/dishes/ben-thanh-banh-mi-op-la.svg` | "banh mi fried egg sandwich" | Placeholder — not yet downloaded |
-| `public/images/dishes/ben-thanh-banh-mi-ca-phe-sua-da.svg` | "vietnamese iced milk coffee glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/ben-thanh-banh-mi-tra-da.svg` | "vietnamese iced black tea glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/saigon-pho-quan-bo.svg` | "beef pho noodle soup bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/saigon-pho-quan-ga.svg` | "chicken pho noodle soup" | Placeholder — not yet downloaded |
-| `public/images/dishes/saigon-pho-quan-goi-cuon.svg` | "vietnamese spring rolls with peanut sauce" | Placeholder — not yet downloaded |
-| `public/images/dishes/saigon-pho-quan-cha-gio.svg` | "crispy fried spring rolls pork" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-tam-quan-nha-suon-nuong.svg` | "grilled pork chop rice plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-tam-quan-nha-bi-cha.svg` | "vietnamese broken rice pork plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-tam-quan-nha-nuoc-mia.svg` | "sugarcane juice glass ice" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-tam-quan-nha-sam-lanh.svg` | "herbal iced tea glass ice" | Placeholder — not yet downloaded |
-| `public/images/dishes/bay-grain-bowls-teriyaki-chicken.svg` | "teriyaki chicken rice bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/bay-grain-bowls-tofu-poke.svg` | "tofu poke bowl edamame" | Placeholder — not yet downloaded |
-| `public/images/dishes/bay-grain-bowls-miso-soup.svg` | "japanese miso soup bowl tofu" | Placeholder — not yet downloaded |
-| `public/images/dishes/bay-grain-bowls-iced-green-tea.svg` | "matcha latte iced glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/bun-cha-co-ba-bun-cha-ha-noi.svg` | "bun cha grilled pork vermicelli" | Placeholder — not yet downloaded |
-| `public/images/dishes/bun-cha-co-ba-bun-bo-hue.svg` | "bun bo hue spicy beef soup" | Placeholder — not yet downloaded |
-| `public/images/dishes/bun-cha-co-ba-tra-chanh.svg` | "iced lemon tea glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/bun-cha-co-ba-sinh-to-bo.svg` | "avocado smoothie glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/dogpatch-burger-works-classic-cheeseburger.svg` | "classic cheeseburger" | Placeholder — not yet downloaded |
-| `public/images/dishes/dogpatch-burger-works-mushroom-swiss-burger.svg` | "mushroom swiss burger" | Placeholder — not yet downloaded |
-| `public/images/dishes/dogpatch-burger-works-crispy-chicken-sandwich.svg` | "crispy chicken sandwich" | Placeholder — not yet downloaded |
-| `public/images/dishes/dogpatch-burger-works-garlic-fries.svg` | "garlic fries" | Placeholder — not yet downloaded |
-| `public/images/dishes/dogpatch-burger-works-vanilla-milkshake.svg` | "vanilla milkshake" | Placeholder — not yet downloaded |
-| `public/images/dishes/noriega-thai-kitchen-pad-see-ew.svg` | "pad see ew noodles" | Placeholder — not yet downloaded |
-| `public/images/dishes/noriega-thai-kitchen-green-curry.svg` | "thai green curry" | Placeholder — not yet downloaded |
-| `public/images/dishes/noriega-thai-kitchen-pad-kra-pao.svg` | "pad kra pao basil" | Placeholder — not yet downloaded |
-| `public/images/dishes/noriega-thai-kitchen-khao-soi.svg` | "thai curry noodle soup crispy noodles" | Placeholder — not yet downloaded |
-| `public/images/dishes/noriega-thai-kitchen-fresh-spring-rolls.svg` | "fresh spring rolls" | Placeholder — not yet downloaded |
-| `public/images/dishes/noriega-thai-kitchen-thai-iced-tea.svg` | "thai iced tea" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-spicy-tuna-roll.svg` | "spicy tuna roll" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-salmon-avocado-roll.svg` | "salmon avocado roll" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-chirashi-bowl.svg` | "chirashi sashimi bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-nigiri-set.svg` | "nigiri sushi set" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.svg` | "japanese soup bowl chopsticks" | Placeholder — not yet downloaded |
-| `public/images/dishes/inner-richmond-sushi-bar-seaweed-salad.svg` | "seaweed salad" | Placeholder — not yet downloaded |
-| `public/images/dishes/valencia-street-tandoor-chicken-tikka-masala.svg` | "chicken tikka masala" | Placeholder — not yet downloaded |
-| `public/images/dishes/valencia-street-tandoor-saag-paneer.svg` | "saag paneer" | Placeholder — not yet downloaded |
-| `public/images/dishes/valencia-street-tandoor-lamb-rogan-josh.svg` | "lamb rogan josh curry" | Placeholder — not yet downloaded |
-| `public/images/dishes/valencia-street-tandoor-garlic-naan.svg` | "garlic naan bread basket" | Placeholder — not yet downloaded |
-| `public/images/dishes/valencia-street-tandoor-mango-lassi.svg` | "yellow yogurt smoothie glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/cole-valley-mezze-chicken-shawarma-plate.svg` | "chicken shawarma plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/cole-valley-mezze-falafel-wrap.svg` | "falafel wrap" | Placeholder — not yet downloaded |
-| `public/images/dishes/cole-valley-mezze-lamb-kofta-bowl.svg` | "lamb kofta bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/cole-valley-mezze-hummus-and-pita.svg` | "hummus with pita" | Placeholder — not yet downloaded |
-| `public/images/dishes/cole-valley-mezze-mint-lemonade.svg` | "mint lemonade" | Placeholder — not yet downloaded |
-| `public/images/dishes/geary-boulevard-korean-kitchen-dolsot-bibimbap.svg` | "dolsot bibimbap stone bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/geary-boulevard-korean-kitchen-beef-bulgogi.svg` | "beef bulgogi plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/geary-boulevard-korean-kitchen-kimchi-jjigae.svg` | "kimchi stew pot" | Placeholder — not yet downloaded |
-| `public/images/dishes/geary-boulevard-korean-kitchen-seafood-pancake.svg` | "savory scallion pancake plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/geary-boulevard-korean-kitchen-barley-tea.svg` | "iced barley tea" | Placeholder — not yet downloaded |
-| `public/images/dishes/post-street-ramen-bar-tonkotsu-ramen.svg` | "tonkotsu ramen bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/post-street-ramen-bar-spicy-miso-ramen.svg` | "spicy miso ramen" | Placeholder — not yet downloaded |
-| `public/images/dishes/post-street-ramen-bar-shoyu-chicken-ramen.svg` | "shoyu ramen bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/post-street-ramen-bar-pork-gyoza.svg` | "pan fried gyoza dumplings" | Placeholder — not yet downloaded |
-| `public/images/dishes/post-street-ramen-bar-chicken-karaage.svg` | "chicken karaage plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/noe-valley-morning-kitchen-buttermilk-pancakes.svg` | "buttermilk pancake stack" | Placeholder — not yet downloaded |
-| `public/images/dishes/noe-valley-morning-kitchen-dungeness-crab-benedict.svg` | "crab eggs benedict" | Placeholder — not yet downloaded |
-| `public/images/dishes/noe-valley-morning-kitchen-breakfast-burrito.svg` | "breakfast burrito cut in half" | Placeholder — not yet downloaded |
-| `public/images/dishes/noe-valley-morning-kitchen-avocado-toast.svg` | "avocado toast sourdough" | Placeholder — not yet downloaded |
-| `public/images/dishes/noe-valley-morning-kitchen-fresh-orange-juice.svg` | "fresh orange juice glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/noe-valley-morning-kitchen-oat-milk-latte.svg` | "oat milk latte" | Placeholder — not yet downloaded |
-| `public/images/dishes/hayes-valley-green-table-mushroom-tacos.svg` | "vegan mushroom tacos" | Placeholder — not yet downloaded |
-| `public/images/dishes/hayes-valley-green-table-tofu-banh-mi.svg` | "tofu banh mi sandwich" | Placeholder — not yet downloaded |
-| `public/images/dishes/hayes-valley-green-table-chickpea-curry.svg` | "chickpea coconut curry" | Placeholder — not yet downloaded |
-| `public/images/dishes/hayes-valley-green-table-sweet-potato-fries.svg` | "sweet potato fries" | Placeholder — not yet downloaded |
-| `public/images/dishes/hayes-valley-green-table-green-smoothie.svg` | "green smoothie glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/ocean-beach-fish-house-fish-and-chips.svg` | "fish and chips basket" | Placeholder — not yet downloaded |
-| `public/images/dishes/ocean-beach-fish-house-cioppino.svg` | "tomato seafood stew bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/ocean-beach-fish-house-grilled-salmon-plate.svg` | "grilled salmon plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/ocean-beach-fish-house-clam-chowder.svg` | "clam chowder bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/ocean-beach-fish-house-garlic-sourdough.svg` | "garlic bread sourdough" | Placeholder — not yet downloaded |
-| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-nam-vang.svg` | "hu tieu noodle soup" | Placeholder — not yet downloaded |
-| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-kho.svg` | "dry rice noodles pork" | Placeholder — not yet downloaded |
-| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-muc.svg` | "squid noodle soup" | Placeholder — not yet downloaded |
-| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-mi-hoanh-thanh.svg` | "wonton egg noodle soup" | Placeholder — not yet downloaded |
-| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-tra-tac.svg` | "kumquat honey iced tea" | Placeholder — not yet downloaded |
-| `public/images/dishes/goi-cuon-co-hai-cho-cu-goi-cuon-tom-thit.svg` | "shrimp rice paper rolls" | Placeholder — not yet downloaded |
-| `public/images/dishes/goi-cuon-co-hai-cho-cu-bo-bia.svg` | "jicama spring rolls" | Placeholder — not yet downloaded |
-| `public/images/dishes/goi-cuon-co-hai-cho-cu-bi-cuon.svg` | "rice paper rolls pork herbs" | Placeholder — not yet downloaded |
-| `public/images/dishes/goi-cuon-co-hai-cho-cu-cha-gio.svg` | "vietnamese fried spring rolls" | Placeholder — not yet downloaded |
-| `public/images/dishes/goi-cuon-co-hai-cho-cu-nuoc-mia.svg` | "sugarcane juice" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-lau-ut-hanh-lau-thai-hai-san.svg` | "thai seafood hotpot" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-lau-ut-hanh-lau-mam.svg` | "vietnamese hot pot table" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-lau-ut-hanh-lau-ga-la-e.svg` | "chicken herb hotpot" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-lau-ut-hanh-nam-kim-cham-them.svg` | "enoki mushrooms bundle" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-lau-ut-hanh-tra-chanh.svg` | "iced lime tea" | Placeholder — not yet downloaded |
-| `public/images/dishes/ca-phe-nha-go-18-ca-phe-sua-da.svg` | "vietnamese iced coffee" | Placeholder — not yet downloaded |
-| `public/images/dishes/ca-phe-nha-go-18-ca-phe-den-da.svg` | "black iced coffee" | Placeholder — not yet downloaded |
-| `public/images/dishes/ca-phe-nha-go-18-bac-xiu.svg` | "vietnamese white coffee" | Placeholder — not yet downloaded |
-| `public/images/dishes/ca-phe-nha-go-18-ca-phe-muoi.svg` | "salted cream coffee" | Placeholder — not yet downloaded |
-| `public/images/dishes/ca-phe-nha-go-18-banh-bong-lan-trung-muoi.svg` | "salted egg sponge cake" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-che-thai.svg` | "che thai fruit dessert" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-che-ba-mau.svg` | "layered bean dessert coconut milk glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-che-chuoi-nuong.svg` | "grilled banana coconut dessert" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-suong-sa-hat-luu.svg` | "red ruby water chestnut dessert" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-sua-dau-nanh.svg` | "soy milk glass soybeans" | Placeholder — not yet downloaded |
-| `public/images/dishes/quan-che-di-sau-rau-ma-dau-xanh.svg` | "green herbal juice glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-xoi-mo.svg` | "crispy fried chicken rice" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-hai-nam.svg` | "chicken rice plate cucumber" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-ga-ba-sau-phu-nhuan-goi-ga-bap-cai.svg` | "vietnamese chicken cabbage salad" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-ga-ba-sau-phu-nhuan-canh-bi-dao.svg` | "winter melon soup" | Placeholder — not yet downloaded |
-| `public/images/dishes/com-ga-ba-sau-phu-nhuan-tra-da.svg` | "iced green tea glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-tom-nuong-muoi-ot.svg` | "grilled prawns chili salt" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-muc-xao-sa-te.svg` | "stir fried squid chili" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.svg` | "steamed clams lemongrass bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.svg` | "seafood coconut curry bowl" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-com-chien-hai-san.svg` | "seafood fried rice" | Placeholder — not yet downloaded |
-| `public/images/dishes/hai-san-kenh-te-quan-7-nuoc-dua-tuoi.svg` | "fresh coconut drink" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-tom-thit.svg` | "banh xeo pancake" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.svg` | "savory folded crepe plate" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-khot.svg` | "banh khot mini pancakes" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-nuoc-mia-tac.svg` | "sugarcane juice glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.svg` | "iced kumquat lime tea glass" | Placeholder — not yet downloaded |
-| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-tom-thit.svg` | "turmeric noodles shrimp pork" | Placeholder — not yet downloaded |
-| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.svg` | "chicken noodle bowl herbs peanuts" | Placeholder — not yet downloaded |
-| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ca-loc.svg` | "fish noodle bowl vietnamese" | Placeholder — not yet downloaded |
-| `public/images/dishes/mi-quang-que-son-co-lien-banh-trang-me.svg` | "rice paper tamarind snack" | Placeholder — not yet downloaded |
-| `public/images/dishes/mi-quang-que-son-co-lien-nuoc-sam.svg` | "vietnamese herbal drink" | Placeholder — not yet downloaded |
-| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-bit-tet-op-la.svg` | "vietnamese steak and eggs" | Placeholder — not yet downloaded |
-| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-ne-thap-cam.svg` | "sizzling steak egg skillet" | Placeholder — not yet downloaded |
-| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-than-bo-uc.svg` | "sirloin steak pepper sauce" | Placeholder — not yet downloaded |
-| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-khoai-tay-chien.svg` | "french fries basket" | Placeholder — not yet downloaded |
-| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-soda-chanh.svg` | "sparkling lime drink glass ice" | Placeholder — not yet downloaded |
+| `public/images/dishes/mission-taqueria-al-pastor.jpg` | "pork tacos corn tortillas lime" | [Alma Agencia D](https://unsplash.com/@almaagenciad) — [photo qHstBmpVA-I](https://unsplash.com/photos/a-person-holding-a-piece-of-food-over-a-plate-of-food-qHstBmpVA-I) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mission-taqueria-carne-asada.jpg` | "carne asada steak tacos" | [Jarritos Mexican Soda](https://unsplash.com/@jarritos) — [photo A05ijm09lcI](https://unsplash.com/photos/fried-food-on-white-ceramic-plate-A05ijm09lcI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mission-taqueria-chips-guac.jpg` | "tortilla chips and guacamole" | [Tangerine Newt](https://unsplash.com/@tangerinenewt) — [photo AKH4OVEmILc](https://unsplash.com/photos/a-bowl-of-guacamole-a-slice-of-avocado-and-AKH4OVEmILc) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mission-taqueria-horchata.jpg` | "cinnamon rice milk drink" | [Wil Carranza](https://unsplash.com/@wilcrza) — [photo VeRTm8WMTNM](https://unsplash.com/photos/a-plate-of-food-VeRTm8WMTNM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/north-beach-pizzeria-margherita.jpg` | "margherita pizza whole" | [Narek Petrosyan](https://unsplash.com/@np1991) — [photo -0nj85eRLPk](https://unsplash.com/photos/a-plate-of-food--0nj85eRLPk) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/north-beach-pizzeria-pepperoni.jpg` | "pepperoni pizza slice" | [David Foodphototasty](https://unsplash.com/@phototastyfood) — [photo xIqVfW8XUt4](https://unsplash.com/photos/a-pepperoni-pizza-sitting-on-top-of-a-wooden-cutting-board-xIqVfW8XUt4) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/north-beach-pizzeria-garlic-knots.jpg` | "garlic knots bread rolls" | [Camila Baechli](https://unsplash.com/@camila_baechli) — [photo uqbiRQuuMNE](https://unsplash.com/photos/a-pile-of-food-sitting-on-top-of-a-counter-uqbiRQuuMNE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/north-beach-pizzeria-caesar.jpg` | "caesar salad bowl" | [Alpha Rad](https://unsplash.com/@alpharad) — [photo GP85I92wsrs](https://unsplash.com/photos/a-plate-of-food-that-includes-corn-tomatoes-lettuce-tomatoes-GP85I92wsrs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/golden-lotus-dim-sum-har-gow.jpg` | "shrimp dumplings steamer" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo 4v6tWt8BmNk](https://unsplash.com/photos/a-plate-of-dumplings-with-dipping-sauce-4v6tWt8BmNk) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/golden-lotus-dim-sum-siu-mai.jpg` | "siu mai pork dumplings" | [Wherda Arsianto](https://unsplash.com/@wherda) — [photo CAOq1XrjtDc](https://unsplash.com/photos/a-white-plate-topped-with-dumplings-next-to-a-bowl-of-sauce-CAOq1XrjtDc) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/golden-lotus-dim-sum-congee.jpg` | "plain rice porridge scallions" | [Tati Visual](https://unsplash.com/@tati_visual) — [photo aaxbMvOKWLQ](https://unsplash.com/photos/bowl-of-cereal-beside-spoon-on-wood-slab-aaxbMvOKWLQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/golden-lotus-dim-sum-noodles.jpg` | "chinese stir fried noodles plate" | [Mustafa Fatemi](https://unsplash.com/@solaticace) — [photo vuT3EHWDW5g](https://unsplash.com/photos/a-white-plate-topped-with-noodles-and-meat-vuT3EHWDW5g) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ben-thanh-banh-mi-thit-nuong.jpg` | "grilled pork banh mi sandwich" | [Mustafa Fatemi](https://unsplash.com/@solaticace) — [photo vlZzxU2obGs](https://unsplash.com/photos/a-white-plate-topped-with-a-sandwich-and-french-fries-vlZzxU2obGs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ben-thanh-banh-mi-op-la.jpg` | "banh mi fried egg sandwich" | [Artur Ament](https://unsplash.com/@atyr) — [photo iuA8QY0dp-o](https://unsplash.com/photos/a-delicious-sandwich-is-being-prepared-iuA8QY0dp-o) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ben-thanh-banh-mi-ca-phe-sua-da.jpg` | "vietnamese iced milk coffee glass" | [Youwoon Park](https://unsplash.com/@qqquack_) — [photo aPeyLdY2Pvo](https://unsplash.com/photos/a-couple-of-drinks-sitting-on-top-of-a-table-aPeyLdY2Pvo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ben-thanh-banh-mi-tra-da.jpg` | "vietnamese iced black tea glass" | [Lachlan Wang](https://unsplash.com/@lachlanwang) — [photo ISRg1YMppPo](https://unsplash.com/photos/iced-coffee-in-a-clear-cup-on-a-wooden-table-ISRg1YMppPo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/saigon-pho-quan-bo.jpg` | "beef pho noodle soup bowl" | [Nancy Ingersoll](https://unsplash.com/@thecreativeresource) — [photo J1W-4H9OrH8](https://unsplash.com/photos/a-bowl-filled-with-noodles-meat-and-vegetables-J1W-4H9OrH8) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/saigon-pho-quan-ga.jpg` | "chicken pho noodle soup" | [Yoav Aziz](https://unsplash.com/@yoavaziz) — [photo 1w02z-CdNzQ](https://unsplash.com/photos/vegetable-salad-1w02z-CdNzQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/saigon-pho-quan-goi-cuon.jpg` | "vietnamese spring rolls with peanut sauce" | [le mineral](https://unsplash.com/@leemineral) — [photo ca7FeveF4Ro](https://unsplash.com/photos/a-bowl-of-food-with-chopsticks-and-a-cup-of-tea-ca7FeveF4Ro) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/saigon-pho-quan-cha-gio.jpg` | "crispy fried spring rolls pork" | [Irham Setyaki](https://unsplash.com/@setyaki) — [photo k1WYoE3L6io](https://unsplash.com/photos/a-white-plate-topped-with-a-salad-and-a-cut-in-half-sandwich-k1WYoE3L6io) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-tam-quan-nha-suon-nuong.jpg` | "grilled pork chop rice plate" | [Mutzii](https://unsplash.com/@mutzii) — [photo EH6e_wM52is](https://unsplash.com/photos/cooked-meat-with-rice-EH6e_wM52is) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-tam-quan-nha-bi-cha.jpg` | "vietnamese broken rice pork plate" | [Omar Hakeem](https://unsplash.com/@omarhakeem) — [photo duznT-l3Iuo](https://unsplash.com/photos/a-plate-of-rice-with-stewed-meat-and-vegetables-duznT-l3Iuo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-tam-quan-nha-nuoc-mia.jpg` | "sugarcane juice glass ice" | [Kofi Buckley](https://unsplash.com/@kofi_buckley) — [photo JhxdBUmkqqU](https://unsplash.com/photos/a-glass-filled-with-a-liquid-and-a-green-leaf-JhxdBUmkqqU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-tam-quan-nha-sam-lanh.jpg` | "herbal iced tea glass ice" | [Youwoon Park](https://unsplash.com/@qqquack_) — [photo ZuS3gahdbRw](https://unsplash.com/photos/a-drink-with-a-slice-of-lemon-on-the-rim-ZuS3gahdbRw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bay-grain-bowls-teriyaki-chicken.jpg` | "teriyaki chicken rice bowl" | [Kayl Photo](https://unsplash.com/@kayl_photo) — [photo 5QDPXZ9vtB0](https://unsplash.com/photos/a-black-bowl-filled-with-food-on-top-of-a-table-5QDPXZ9vtB0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bay-grain-bowls-tofu-poke.jpg` | "tofu poke bowl edamame" | [Anh Nguyen](https://unsplash.com/@pwign) — [photo _Uqj5BQb-mw](https://unsplash.com/photos/bowl-of-vegetable-salad-_Uqj5BQb-mw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bay-grain-bowls-miso-soup.jpg` | "japanese miso soup bowl tofu" | [Kouji Tsuru](https://unsplash.com/@pafuxu) — [photo 8itZfTiKDiY](https://unsplash.com/photos/a-bowl-of-soup-on-a-wooden-table-8itZfTiKDiY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bay-grain-bowls-iced-green-tea.jpg` | "matcha latte iced glass" | [Di Weng](https://unsplash.com/@skies457) — [photo Qjz2RJuSFs0](https://unsplash.com/photos/a-glass-of-beer-on-a-coaster-Qjz2RJuSFs0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bun-cha-co-ba-bun-cha-ha-noi.jpg` | "bun cha grilled pork vermicelli" | [R Eris](https://unsplash.com/@eprayatama) — [photo -Hfy68Pbjfs](https://unsplash.com/photos/a-bowl-of-food-sitting-on-top-of-a-wooden-table--Hfy68Pbjfs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bun-cha-co-ba-bun-bo-hue.jpg` | "bun bo hue spicy beef soup" | [Vy Huynh](https://unsplash.com/@thanhvy14) — [photo rcHHKG01IPY](https://unsplash.com/photos/white-ceramic-bowl-with-soup-and-green-leaves-rcHHKG01IPY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bun-cha-co-ba-tra-chanh.jpg` | "iced lemon tea glass" | [Julia D'Alkmin](https://unsplash.com/@jdalkmin) — [photo WKCjwrtjhVg](https://unsplash.com/photos/beverage-with-lemon-WKCjwrtjhVg) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bun-cha-co-ba-sinh-to-bo.jpg` | "avocado smoothie glass" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo LORFhPUzHGo](https://unsplash.com/photos/a-drink-in-a-glass-on-a-tray-next-to-a-spoon-LORFhPUzHGo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/dogpatch-burger-works-classic-cheeseburger.jpg` | "classic cheeseburger" | [David Foodphototasty](https://unsplash.com/@phototastyfood) — [photo E94j3rMcxlw](https://unsplash.com/photos/burger-with-lettuce-and-tomato-E94j3rMcxlw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/dogpatch-burger-works-mushroom-swiss-burger.jpg` | "mushroom swiss burger" | [GoodEats YQR](https://unsplash.com/@goodeats_yqr) — [photo bMvXpKuRN3g](https://unsplash.com/photos/burger-and-potato-fries-on-plate-bMvXpKuRN3g) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/dogpatch-burger-works-crispy-chicken-sandwich.jpg` | "crispy chicken sandwich" | [Deepal Tamang](https://unsplash.com/@deepal_tamang) — [photo tUYEY_iF1PU](https://unsplash.com/photos/a-sandwich-on-a-plate-next-to-a-bottle-of-beer-tUYEY_iF1PU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/dogpatch-burger-works-garlic-fries.jpg` | "garlic fries" | [Jay Gajjar](https://unsplash.com/@jaygajjar) — [photo vsYCZVef28E](https://unsplash.com/photos/a-plate-of-french-fries-with-a-garnish-on-top-vsYCZVef28E) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/dogpatch-burger-works-vanilla-milkshake.jpg` | "vanilla milkshake" | [Israel Piña](https://unsplash.com/@israelpinapol) — [photo 0C2LG8SKhTQ](https://unsplash.com/photos/a-hand-holding-a-cup-of-ice-cream-with-flowers-in-the-background-0C2LG8SKhTQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noriega-thai-kitchen-pad-see-ew.jpg` | "pad see ew noodles" | [Marcelo de la Torre](https://unsplash.com/@marcelodlt) — [photo ZgxSyX5I38c](https://unsplash.com/photos/a-white-plate-topped-with-meat-and-noodles-ZgxSyX5I38c) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noriega-thai-kitchen-green-curry.jpg` | "thai green curry" | [Andrew Relf](https://unsplash.com/@andrew_relf) — [photo qEzLiabQe8M](https://unsplash.com/photos/a-bowl-of-food-qEzLiabQe8M) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noriega-thai-kitchen-pad-kra-pao.jpg` | "pad kra pao basil" | [Inna Safa](https://unsplash.com/@innasafa) — [photo j-SsLyBAkZ8](https://unsplash.com/photos/a-white-plate-topped-with-rice-and-fried-eggs-j-SsLyBAkZ8) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noriega-thai-kitchen-khao-soi.jpg` | "thai curry noodle soup crispy noodles" | [Anthony Espinosa](https://unsplash.com/@thony_espi) — [photo z0B2ewP874g](https://unsplash.com/photos/person-eating-noddles-z0B2ewP874g) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noriega-thai-kitchen-fresh-spring-rolls.jpg` | "fresh spring rolls" | [Alimentos Fotogénicos](https://unsplash.com/@alimentosfotogenicos) — [photo sMIqfhVKLc0](https://unsplash.com/photos/a-sushi-roll-is-on-a-plate-with-chopsticks-and-a-bowl-of-sMIqfhVKLc0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noriega-thai-kitchen-thai-iced-tea.jpg` | "thai iced tea" | [Lachlan Wang](https://unsplash.com/@lachlanwang) — [photo Y_PN-YJQ2DE](https://unsplash.com/photos/iced-orange-drink-in-a-clear-plastic-cup-Y_PN-YJQ2DE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/inner-richmond-sushi-bar-spicy-tuna-roll.jpg` | "spicy tuna roll" | [Frank Zhang](https://unsplash.com/@frankzphoto) — [photo T_JP9lJBPaU](https://unsplash.com/photos/a-hand-holding-a-piece-of-sushi-with-cucumber-and-salmon-T_JP9lJBPaU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/inner-richmond-sushi-bar-salmon-avocado-roll.jpg` | "salmon avocado roll" | [Anna Keibalo](https://unsplash.com/@anyutakejbalo) — [photo mqsv7vM6-XU](https://unsplash.com/photos/a-black-plate-topped-with-sushi-and-sesame-seeds-mqsv7vM6-XU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/inner-richmond-sushi-bar-chirashi-bowl.jpg` | "chirashi sashimi bowl" | [Joshua Ang](https://unsplash.com/@jangus231) — [photo i9TGriScRD8](https://unsplash.com/photos/raw-meat-in-black-bowl-i9TGriScRD8) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/inner-richmond-sushi-bar-nigiri-set.jpg` | "nigiri sushi set" | [Farhad Ibrahimzade](https://unsplash.com/@ferhadd) — [photo lKk2xzM0YFU](https://unsplash.com/photos/brown-and-white-pastries-on-black-tray-lKk2xzM0YFU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/inner-richmond-sushi-bar-miso-soup.jpg` | "japanese soup bowl chopsticks" | [Bayu Prahara](https://unsplash.com/@praharaa) — [photo aaqalI_RTDg](https://unsplash.com/photos/a-bowl-of-soup-with-chopsticks-on-a-wooden-table-aaqalI_RTDg) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/inner-richmond-sushi-bar-seaweed-salad.jpg` | "seaweed salad" | [Lauren Probyn](https://unsplash.com/@laww100) — [photo N4jps_9U0Pc](https://unsplash.com/photos/closeup-photography-of-green-leafed-plant-N4jps_9U0Pc) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/valencia-street-tandoor-chicken-tikka-masala.jpg` | "chicken tikka masala" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo tsQhEvzU6MQ](https://unsplash.com/photos/a-bowl-of-chicken-curry-next-to-a-bowl-of-rice-tsQhEvzU6MQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/valencia-street-tandoor-saag-paneer.jpg` | "saag paneer" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo I4cl2ifMfdw](https://unsplash.com/photos/a-bowl-of-food-on-a-wooden-table-I4cl2ifMfdw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/valencia-street-tandoor-lamb-rogan-josh.jpg` | "lamb rogan josh curry" | [Daily Slowdown](https://unsplash.com/@thedailyslowdown) — [photo 7-TOCB28rms](https://unsplash.com/photos/cooked-food-in-stainless-steel-bowl-7-TOCB28rms) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/valencia-street-tandoor-garlic-naan.jpg` | "garlic naan bread basket" | [Barun Ghosh](https://unsplash.com/@barunghosh) — [photo 7jeiJd1LGiU](https://unsplash.com/photos/a-close-up-of-a-bread-in-a-basket-on-a-table-7jeiJd1LGiU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/valencia-street-tandoor-mango-lassi.jpg` | "yellow yogurt smoothie glass" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo K5RiUMU3q-4](https://unsplash.com/photos/a-glass-of-orange-juice-with-a-straw-K5RiUMU3q-4) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/cole-valley-mezze-chicken-shawarma-plate.jpg` | "chicken shawarma plate" | [aboodi vesakaran](https://unsplash.com/@aboodi_vm) — [photo bW9iU_naYsI](https://unsplash.com/photos/a-plate-of-food-on-a-table-next-to-a-bowl-of-dips-bW9iU_naYsI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/cole-valley-mezze-falafel-wrap.jpg` | "falafel wrap" | [To Uyen](https://unsplash.com/@_uynskypie_) — [photo 1HAQ4vKDDAo](https://unsplash.com/photos/a-plate-of-sushi-1HAQ4vKDDAo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/cole-valley-mezze-lamb-kofta-bowl.jpg` | "lamb kofta bowl" | [aboodi vesakaran](https://unsplash.com/@aboodi_vm) — [photo rWbSaPzV_7k](https://unsplash.com/photos/a-bowl-of-food-on-a-table-next-to-bowls-of-food-rWbSaPzV_7k) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/cole-valley-mezze-hummus-and-pita.jpg` | "hummus with pita" | [Paréj Richárd](https://unsplash.com/@prics) — [photo xnE-yqiCKdc](https://unsplash.com/photos/brown-and-white-food-in-box-xnE-yqiCKdc) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/cole-valley-mezze-mint-lemonade.jpg` | "mint lemonade" | [Paola F](https://unsplash.com/@paolaeffe) — [photo qVzltpzdJKQ](https://unsplash.com/photos/a-green-drink-with-a-lime-and-a-straw-qVzltpzdJKQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/geary-boulevard-korean-kitchen-dolsot-bibimbap.jpg` | "dolsot bibimbap stone bowl" | [Christian Dala](https://unsplash.com/@kurisuchanxx) — [photo Vj4hcVPI_C0](https://unsplash.com/photos/a-person-holding-two-bowls-of-food-in-their-hands-Vj4hcVPI_C0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/geary-boulevard-korean-kitchen-beef-bulgogi.jpg` | "beef bulgogi plate" | [Chloe Lee](https://unsplash.com/@andtilltheend) — [photo ryZhvw7EDEs](https://unsplash.com/photos/a-bowl-of-lettuce-and-other-vegetables-on-a-white-surface-ryZhvw7EDEs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/geary-boulevard-korean-kitchen-kimchi-jjigae.jpg` | "kimchi stew pot" | [Xiong Gordon](https://unsplash.com/@gordonxiong) — [photo kpC36hIsODQ](https://unsplash.com/photos/vegetable-dish-on-brown-ceramic-bowl-kpC36hIsODQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/geary-boulevard-korean-kitchen-seafood-pancake.jpg` | "savory scallion pancake plate" | [Vivekarasan M](https://unsplash.com/@vivekarasan) — [photo WK6N0tGbkbo](https://unsplash.com/photos/a-plate-of-food-and-a-glass-of-beer-WK6N0tGbkbo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/geary-boulevard-korean-kitchen-barley-tea.jpg` | "iced barley tea" | [Lachlan Wang](https://unsplash.com/@lachlanwang) — [photo jdvoYlzlYyw](https://unsplash.com/photos/iced-orange-beverage-in-a-plastic-cup-jdvoYlzlYyw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/post-street-ramen-bar-tonkotsu-ramen.jpg` | "tonkotsu ramen bowl" | [Frank from 5 AM Ramen](https://unsplash.com/@5amramen) — [photo vPMQl71yFDI](https://unsplash.com/photos/a-bowl-of-soup-with-meat-and-vegetables-vPMQl71yFDI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/post-street-ramen-bar-spicy-miso-ramen.jpg` | "spicy miso ramen" | [Michele Blackwell](https://unsplash.com/@mab_studio) — [photo rAyCBQTH7ws](https://unsplash.com/photos/round-white-bowl-with-ramen-and-egg-rAyCBQTH7ws) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/post-street-ramen-bar-shoyu-chicken-ramen.jpg` | "shoyu ramen bowl" | [Poul Hoang](https://unsplash.com/@poulhoang) — [photo OnfxSQPREcs](https://unsplash.com/photos/a-bowl-of-food-with-chopsticks-on-a-table-OnfxSQPREcs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/post-street-ramen-bar-pork-gyoza.jpg` | "pan fried gyoza dumplings" | [Alimentos Fotogénicos](https://unsplash.com/@alimentosfotogenicos) — [photo a98Hvu19nQk](https://unsplash.com/photos/a-plate-of-food-with-chopsticks-next-to-it-a98Hvu19nQk) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/post-street-ramen-bar-chicken-karaage.jpg` | "chicken karaage plate" | [Huynh Quyet](https://unsplash.com/@huynhquyet9682) — [photo YgirePmHPZU](https://unsplash.com/photos/fried-chicken-YgirePmHPZU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noe-valley-morning-kitchen-buttermilk-pancakes.jpg` | "buttermilk pancake stack" | [Joshua Ryder](https://unsplash.com/@photos_by_ryder) — [photo y4K7Ydp2z3Y](https://unsplash.com/photos/brown-and-red-strawberry-cake-on-white-ceramic-plate-y4K7Ydp2z3Y) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noe-valley-morning-kitchen-dungeness-crab-benedict.jpg` | "crab eggs benedict" | [DL314 Lin](https://unsplash.com/@dickenslin76) — [photo Ci2BQC4M99M](https://unsplash.com/photos/breakfast-eggs-benedict-with-hash-browns-Ci2BQC4M99M) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noe-valley-morning-kitchen-breakfast-burrito.jpg` | "breakfast burrito cut in half" | [Rudra pratap singh](https://unsplash.com/@rudracreates) — [photo 1PfUv3kOlmw](https://unsplash.com/photos/a-white-plate-topped-with-a-burrito-and-a-bowl-of-salsa-1PfUv3kOlmw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noe-valley-morning-kitchen-avocado-toast.jpg` | "avocado toast sourdough" | [Ben Kolde](https://unsplash.com/@benkolde) — [photo FFqNATH27EM](https://unsplash.com/photos/bread-with-sunny-side-up-egg-served-on-white-ceramic-plate-FFqNATH27EM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noe-valley-morning-kitchen-fresh-orange-juice.jpg` | "fresh orange juice glass" | [volant](https://unsplash.com/@volantaroma) — [photo 6Ja6TLBrw4Y](https://unsplash.com/photos/a-bowl-of-oranges-next-to-a-glass-of-orange-juice-6Ja6TLBrw4Y) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/noe-valley-morning-kitchen-oat-milk-latte.jpg` | "oat milk latte" | [OhTilly](https://unsplash.com/@ohtilly) — [photo WvMQiUPCu5w](https://unsplash.com/photos/white-ceramic-coffee-cup-with-coffee-WvMQiUPCu5w) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hayes-valley-green-table-mushroom-tacos.jpg` | "vegan mushroom tacos" | [Alma Agencia D](https://unsplash.com/@almaagenciad) — [photo n5jDzmKMT8w](https://unsplash.com/photos/two-tacos-on-a-plate-with-a-lime-wedge-n5jDzmKMT8w) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hayes-valley-green-table-tofu-banh-mi.jpg` | "tofu banh mi sandwich" | [marke](https://unsplash.com/@sabinajeinku) — [photo kp-PHe5Ou1A](https://unsplash.com/photos/a-sandwich-cut-in-half-sitting-on-top-of-a-table-kp-PHe5Ou1A) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hayes-valley-green-table-chickpea-curry.jpg` | "chickpea coconut curry" | [Dragne Marius](https://unsplash.com/@marius_dragne) — [photo EdzsUFqHbaY](https://unsplash.com/photos/steamed-rice-and-meat-dish-EdzsUFqHbaY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hayes-valley-green-table-sweet-potato-fries.jpg` | "sweet potato fries" | [Mustafa Fatemi](https://unsplash.com/@solaticace) — [photo CeAt7ay50BE](https://unsplash.com/photos/a-plate-of-food-that-is-on-a-table-CeAt7ay50BE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hayes-valley-green-table-green-smoothie.jpg` | "green smoothie glass" | [Penfer](https://unsplash.com/@penfer) — [photo lcDArMriLWU](https://unsplash.com/photos/a-purple-drink-with-white-foam-on-a-green-background-lcDArMriLWU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ocean-beach-fish-house-fish-and-chips.jpg` | "fish and chips basket" | [Vladislav Anchuk](https://unsplash.com/@benjirokaneki) — [photo sludCES9S0g](https://unsplash.com/photos/a-plate-of-fish-and-fries-on-a-table-sludCES9S0g) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ocean-beach-fish-house-cioppino.jpg` | "tomato seafood stew bowl" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo y_xypS3pRYA](https://unsplash.com/photos/a-bowl-of-soup-with-meat-in-it-on-a-table-y_xypS3pRYA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ocean-beach-fish-house-grilled-salmon-plate.jpg` | "grilled salmon plate" | [To Uyen](https://unsplash.com/@_uynskypie_) — [photo -Pct-IEaRX0](https://unsplash.com/photos/a-plate-of-fish-and-lemon--Pct-IEaRX0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ocean-beach-fish-house-clam-chowder.jpg` | "clam chowder bowl" | [Do mee](https://unsplash.com/@meemeeno) — [photo SH8_JmrsQcw](https://unsplash.com/photos/clam-and-vegetable-soup-in-white-ceramic-bowl-SH8_JmrsQcw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ocean-beach-fish-house-garlic-sourdough.jpg` | "garlic bread sourdough" | [Caramel](https://unsplash.com/@caramel_works) — [photo U9-0JVdjCVo](https://unsplash.com/photos/a-stack-of-four-pieces-of-bread-sitting-on-top-of-a-table-U9-0JVdjCVo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-nam-vang.jpg` | "hu tieu noodle soup" | [Roni Herdyanzah](https://unsplash.com/@roniherdyanzah) — [photo veHBwTsaPSs](https://unsplash.com/photos/bowl-of-cooked-food-veHBwTsaPSs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-kho.jpg` | "dry rice noodles pork" | [Markus Tourunen](https://unsplash.com/@maladesign) — [photo MGFPFWSZfgM](https://unsplash.com/photos/brown-wooden-chopsticks-MGFPFWSZfgM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-hu-tieu-muc.jpg` | "squid noodle soup" | [Yoav Aziz](https://unsplash.com/@yoavaziz) — [photo numWCxGQu0E](https://unsplash.com/photos/vegetable-salad-in-bowl-numWCxGQu0E) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-mi-hoanh-thanh.jpg` | "wonton egg noodle soup" | [martin becker](https://unsplash.com/@martinb26) — [photo eHrypVnkpI0](https://unsplash.com/photos/three-bowls-of-food-on-a-table-with-a-red-packet-eHrypVnkpI0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hu-tieu-nam-vang-hoa-phat-tra-tac.jpg` | "kumquat honey iced tea" | [Vivian Elebiyo](https://unsplash.com/@vivianelebiyo) — [photo d_QmYZDKwwE](https://unsplash.com/photos/person-holding-clear-glass-jar-with-orange-juice-d_QmYZDKwwE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-goi-cuon-tom-thit.jpg` | "shrimp rice paper rolls" | [Jasbir S Bhatia](https://unsplash.com/@jasbir1612) — [photo ZHCn1GBpczc](https://unsplash.com/photos/six-cupcakes-on-red-round-plate-ZHCn1GBpczc) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-bo-bia.jpg` | "jicama spring rolls" | [You Le](https://unsplash.com/@le_y0u) — [photo lRHVnuO7x2s](https://unsplash.com/photos/a-bowl-of-food-with-chopsticks-on-a-table-lRHVnuO7x2s) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-bi-cuon.jpg` | "rice paper rolls pork herbs" | [Alma Agencia D](https://unsplash.com/@almaagenciad) — [photo qnDrJ3QXVbw](https://unsplash.com/photos/a-black-plate-topped-with-food-on-top-of-a-table-qnDrJ3QXVbw) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-cha-gio.jpg` | "vietnamese fried spring rolls" | [Jon Handley](https://unsplash.com/@handley4eu) — [photo 0hfmzgZklGI](https://unsplash.com/photos/a-row-of-food-items-sitting-on-top-of-a-black-plate-0hfmzgZklGI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/goi-cuon-co-hai-cho-cu-nuoc-mia.jpg` | "sugarcane juice" | [Lachlan Wang](https://unsplash.com/@lachlanwang) — [photo MkRJhzqNQkE](https://unsplash.com/photos/iced-green-beverage-in-a-plastic-cup-MkRJhzqNQkE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-lau-ut-hanh-lau-thai-hai-san.jpg` | "thai seafood hotpot" | [Roni Herdyanzah](https://unsplash.com/@roniherdyanzah) — [photo vrX8M4Plu8U](https://unsplash.com/photos/crab-soup-on-white-ceramic-bowl-vrX8M4Plu8U) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-lau-ut-hanh-lau-mam.jpg` | "vietnamese hot pot table" | [Sean Lee](https://unsplash.com/@seontudio) — [photo BlUxJx3eNp0](https://unsplash.com/photos/brown-wooden-bowl-with-soup-BlUxJx3eNp0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-lau-ut-hanh-lau-ga-la-e.jpg` | "chicken herb hotpot" | [Bayu Syaits](https://unsplash.com/@bayusyaits) — [photo DKoPFGp5Ds4](https://unsplash.com/photos/grilled-chicken-lunch-bowl-with-corn-DKoPFGp5Ds4) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-lau-ut-hanh-nam-kim-cham-them.jpg` | "enoki mushrooms bundle" | [Ashleigh Shea](https://unsplash.com/@ashleigh86) — [photo otVUcXqwqGM](https://unsplash.com/photos/white-and-brown-mushrooms-on-black-and-white-surface-otVUcXqwqGM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-lau-ut-hanh-tra-chanh.jpg` | "iced lime tea" | [Upin](https://unsplash.com/@upin1501) — [photo QBTNFWnyxKg](https://unsplash.com/photos/clear-drinking-glass-with-water-and-sliced-lemon-QBTNFWnyxKg) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ca-phe-nha-go-18-ca-phe-sua-da.jpg` | "vietnamese iced coffee" | [marke](https://unsplash.com/@sabinajeinku) — [photo f_Fpa1EnDh0](https://unsplash.com/photos/a-glass-of-coffee-sitting-on-top-of-a-wooden-table-f_Fpa1EnDh0) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ca-phe-nha-go-18-ca-phe-den-da.jpg` | "black iced coffee" | [Matt Hoffman](https://unsplash.com/@__matthoffman__) — [photo 0iYgMT7lH7E](https://unsplash.com/photos/iced-cold-drinks-in-drinking-glass-0iYgMT7lH7E) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ca-phe-nha-go-18-bac-xiu.jpg` | "vietnamese white coffee" | [One Zen](https://unsplash.com/@onezen) — [photo SKoZa7rcLlU](https://unsplash.com/photos/black-ceramic-teacup-with-saucer-close-up-photography-SKoZa7rcLlU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ca-phe-nha-go-18-ca-phe-muoi.jpg` | "salted cream coffee" | [Aditya Saxena](https://unsplash.com/@adityaries) — [photo 2ZCu4wC-mW8](https://unsplash.com/photos/a-cup-of-coffee-with-whipped-cream-on-top-2ZCu4wC-mW8) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/ca-phe-nha-go-18-banh-bong-lan-trung-muoi.jpg` | "salted egg sponge cake" | [Keriliwi](https://unsplash.com/@keriliwi) — [photo nHO7hvHjPFQ](https://unsplash.com/photos/a-piece-of-cake-on-a-plate-on-a-table-nHO7hvHjPFQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-che-di-sau-che-thai.jpg` | "che thai fruit dessert" | [Vitalii Kyktov](https://unsplash.com/@i_am_vitality) — [photo aUr_0I-HfGA](https://unsplash.com/photos/dessert-with-strawberry-and-edible-flower-garnish-aUr_0I-HfGA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-che-di-sau-che-ba-mau.jpg` | "layered bean dessert coconut milk glass" | [Jennifer Burk](https://unsplash.com/@jenandjoon) — [photo kA1lumyOPmI](https://unsplash.com/photos/ice-cream-in-clear-drinking-glass-kA1lumyOPmI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-che-di-sau-che-chuoi-nuong.jpg` | "grilled banana coconut dessert" | [Virgil Cayasa](https://unsplash.com/@virgilcayasa) — [photo SQbKSD2qefk](https://unsplash.com/photos/grilled-banana-on-green-leaf-SQbKSD2qefk) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-che-di-sau-suong-sa-hat-luu.jpg` | "red ruby water chestnut dessert" | [Rimsha Noor](https://unsplash.com/@rimshaj123) — [photo h5Gm4VjqPt8](https://unsplash.com/photos/a-bowl-of-food-sitting-on-top-of-a-table-next-to-a-glass-of-wine-h5Gm4VjqPt8) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-che-di-sau-sua-dau-nanh.jpg` | "soy milk glass soybeans" | [Mark Wong](https://unsplash.com/@juz4mark) — [photo f_1c66S0L9I](https://unsplash.com/photos/clear-drinking-glass-with-white-liquid-and-silver-spoon-f_1c66S0L9I) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/quan-che-di-sau-rau-ma-dau-xanh.jpg` | "green herbal juice glass" | [quokkabottles](https://unsplash.com/@quokkabottle) — [photo TcSuJ29RkWY](https://unsplash.com/photos/green-and-white-labeled-glass-jar-TcSuJ29RkWY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-xoi-mo.jpg` | "crispy fried chicken rice" | [Omar Hakeem](https://unsplash.com/@omarhakeem) — [photo u1RYfBGbtCo](https://unsplash.com/photos/fried-chicken-with-rice-vegetables-and-tomato-u1RYfBGbtCo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-com-ga-hai-nam.jpg` | "chicken rice plate cucumber" | [Djibril Diallo](https://unsplash.com/@djibrilus) — [photo orZh25cFY5s](https://unsplash.com/photos/sliced-of-pizza-on-white-ceramic-plate-orZh25cFY5s) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-goi-ga-bap-cai.jpg` | "vietnamese chicken cabbage salad" | [Mr Catographer](https://unsplash.com/@mrcato) — [photo b_zDR-OuCcQ](https://unsplash.com/photos/a-bowl-of-stir-fried-noodles-and-a-chocolate-milkshake-b_zDR-OuCcQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-canh-bi-dao.jpg` | "winter melon soup" | [Ryutaro Uozumi](https://unsplash.com/@ryutarouozumi) — [photo bzsXHiw6O6g](https://unsplash.com/photos/soup-in-white-ceramic-bowl-bzsXHiw6O6g) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/com-ga-ba-sau-phu-nhuan-tra-da.jpg` | "iced green tea glass" | [wang binghua](https://unsplash.com/@wangbinghua) — [photo 25id-dJMxkg](https://unsplash.com/photos/a-glass-of-beer-on-a-countertop-25id-dJMxkg) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hai-san-kenh-te-quan-7-tom-nuong-muoi-ot.jpg` | "grilled prawns chili salt" | [Farhad Ibrahimzade](https://unsplash.com/@ferhadd) — [photo JocD18QpAkY](https://unsplash.com/photos/cooked-food-on-brown-wooden-bowl-JocD18QpAkY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hai-san-kenh-te-quan-7-muc-xao-sa-te.jpg` | "stir fried squid chili" | [Anthony Espinosa](https://unsplash.com/@thony_espi) — [photo zXIqTyg0qGE](https://unsplash.com/photos/person-holding-plate-with-food-zXIqTyg0qGE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hai-san-kenh-te-quan-7-ngheu-hap-sa.jpg` | "steamed clams lemongrass bowl" | [Nuraini Arsad](https://unsplash.com/@tejaonthehorizon) — [photo JmXdBFoEB2E](https://unsplash.com/photos/a-plate-of-steamed-mussels-with-cilantro-and-parsley-JmXdBFoEB2E) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hai-san-kenh-te-quan-7-oc-len-xao-dua.jpg` | "seafood coconut curry bowl" | [David Foodphototasty](https://unsplash.com/@phototastyfood) — [photo FtpgFeUQuAY](https://unsplash.com/photos/vegetable-salad-in-white-ceramic-bowl-FtpgFeUQuAY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hai-san-kenh-te-quan-7-com-chien-hai-san.jpg` | "seafood fried rice" | [Markus Winkler](https://unsplash.com/@markuswinkler) — [photo dRBVOr5vDEk](https://unsplash.com/photos/a-white-plate-topped-with-rice-and-vegetables-dRBVOr5vDEk) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/hai-san-kenh-te-quan-7-nuoc-dua-tuoi.jpg` | "fresh coconut drink" | [Kimberly Betham](https://unsplash.com/@deuxtrois) — [photo FxrZfrz6Neo](https://unsplash.com/photos/person-holding-coconut-fruit-with-black-straw-FxrZfrz6Neo) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-tom-thit.jpg` | "banh xeo pancake" | [Vincent Yap](https://unsplash.com/@chonky_films) — [photo fh22kPiZobM](https://unsplash.com/photos/vietnamese-crepe-with-fresh-herbs-fh22kPiZobM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-xeo-nam-chay.jpg` | "savory folded crepe plate" | [mk. s](https://unsplash.com/@mk__s) — [photo SYkiVvQcSYE](https://unsplash.com/photos/a-white-plate-topped-with-a-piece-of-toast-and-an-egg-SYkiVvQcSYE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-banh-khot.jpg` | "banh khot mini pancakes" | [nour tayeh](https://unsplash.com/@nourtayeh) — [photo cSXr5Lz_LPA](https://unsplash.com/photos/brown-and-white-wicker-basket-cSXr5Lz_LPA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-nuoc-mia-tac.jpg` | "sugarcane juice glass" | [de___ch](https://unsplash.com/@de___ch) — [photo oQS9FOKgGNs](https://unsplash.com/photos/a-hand-holding-a-glass-of-liquid-oQS9FOKgGNs) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/banh-xeo-co-nam-tan-dinh-tra-tac.jpg` | "iced kumquat lime tea glass" | [Kofi Buckley](https://unsplash.com/@kofi_buckley) — [photo o5X6yaiJLqE](https://unsplash.com/photos/a-glass-of-lemonade-with-a-lime-slice-on-the-rim-o5X6yaiJLqE) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-tom-thit.jpg` | "turmeric noodles shrimp pork" | [Hiang Kanjinna](https://unsplash.com/@hiangg) — [photo yssziAUlLZM](https://unsplash.com/photos/pasta-dish-on-white-ceramic-plate-yssziAUlLZM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ga.jpg` | "chicken noodle bowl herbs peanuts" | [No Revisions](https://unsplash.com/@norevisions) — [photo oO3sXE73unQ](https://unsplash.com/photos/cooked-food-served-on-platter-with-ginger-and-lemon-oO3sXE73unQ) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mi-quang-que-son-co-lien-mi-quang-ca-loc.jpg` | "fish noodle bowl vietnamese" | [Ioannis Sarantis](https://unsplash.com/@die_griechen) — [photo Y11iTVE2DFA](https://unsplash.com/photos/brown-peanuts-on-brown-wooden-bowl-Y11iTVE2DFA) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mi-quang-que-son-co-lien-banh-trang-me.jpg` | "rice paper tamarind snack" | [Upin](https://unsplash.com/@upin1501) — [photo UnOIZSY0hWY](https://unsplash.com/photos/brown-and-white-book-page-with-orange-round-fruit-on-white-table-UnOIZSY0hWY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/mi-quang-que-son-co-lien-nuoc-sam.jpg` | "vietnamese herbal drink" | [Pranjall Kumar](https://unsplash.com/@pranjallk1995) — [photo 7Bywrek4tFY](https://unsplash.com/photos/clear-drinking-glass-with-lemon-juice-7Bywrek4tFY) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-bit-tet-op-la.jpg` | "vietnamese steak and eggs" | [Krisna Putra Pratama](https://unsplash.com/@krisnapepe) — [photo PHZ1ohbpJ3U](https://unsplash.com/photos/a-bowl-of-food-with-an-egg-on-top-of-it-PHZ1ohbpJ3U) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-bo-ne-thap-cam.jpg` | "sizzling steak egg skillet" | [eduardo froza](https://unsplash.com/@eduardofroza) — [photo VJrg-CtfDE4](https://unsplash.com/photos/cooked-food-on-black-pan-VJrg-CtfDE4) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-than-bo-uc.jpg` | "sirloin steak pepper sauce" | [behrouz sasani](https://unsplash.com/@behrouzsasani) — [photo RZoNMrC13KU](https://unsplash.com/photos/a-plate-of-meat-and-vegetables-on-a-table-RZoNMrC13KU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-khoai-tay-chien.jpg` | "french fries basket" | [Fernando Andrade](https://unsplash.com/@thisisnando) — [photo R3f2emOt1bU](https://unsplash.com/photos/fried-fries-in-white-pack-beside-red-squeeze-bottle-R3f2emOt1bU) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/bo-bit-tet-chu-tam-go-vap-soda-chanh.jpg` | "sparkling lime drink glass ice" | [Mahdi Kordi](https://unsplash.com/@mahdikordi_ir) — [photo DSuiziv7r8o](https://unsplash.com/photos/a-lemon-slice-in-a-glass-of-water-DSuiziv7r8o) — Unsplash License (https://unsplash.com/license) |
 
-## Weight budget (#80: home feed first paint ≤ 900KB total, each restaurant thumbnail ≤ 40KB)
+## Weight budget (#80: home feed first paint ≤ 900KB total)
 
-Every placeholder above is a small text-on-solid-color SVG, each under 1KB —
-`src/lib/image-budget.test.ts` asserts this against the committed files
-directly, both per-thumbnail and for the feed's first-paint set (up to six
-restaurant hero thumbnails; the promo banner is text-only, #104 round 1, item
-1). Replacing a placeholder with a real compressed WebP/AVIF download will
-need re-checking against the same budget; the test is what re-proves it, not
-this table.
+`scripts/fetch-photos.mjs` refuses any file over 180KB, and
+`src/lib/image-budget.test.ts` re-checks the committed files: each restaurant
+hero is at most 180KB, and the home feed's first paint (up to six hero
+thumbnails; the promo banner is text-only) totals at most 900KB. The test is
+what proves the budget, not this table.
