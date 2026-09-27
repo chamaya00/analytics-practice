@@ -64,8 +64,24 @@ export interface PlacedOrder {
   viewCount: number;
   /** Whether `order_delivered` has already fired for this order — the client's own idempotency guard, since the store enforces no such constraint (contract §10). */
   deliveredEventFired: boolean;
-  /** The rating submitted on the tracker's Delivered state, or `null` before "Submit" is tapped — also what makes that state render as already-rated on a later visit (contract §7's `rating_submitted` invariant). */
+  /** The restaurant rating submitted from either the Delivered-state inline
+   * prompt or the rating sheet's restaurant step, or `null` before either
+   * submits — also what makes that state render as already-rated on a later
+   * visit (contract §7's `rating_submitted` invariant). Its shape and guard
+   * are unchanged by #163; it now represents the restaurant step only, since
+   * the driver gets its own field below (docs/design/162-*, "Storage"). */
   rating: { stars: number; tags: RatingTag[] } | null;
+  /** The rating sheet's driver step, or `null` before it is submitted or when
+   * skipped — #163, docs/design/162-*, "Storage". Fires no event: only the
+   * restaurant step's `rating_submitted` does. */
+  driverRating: { stars: number } | null;
+  /** Set the moment the rating sheet auto-opens for this order, or the moment
+   * it is deliberately passed over by the multi-order rule — never cleared,
+   * and never set by a manual open (docs/design/162-*, "The multi-order
+   * rule"). `null` for an order the sheet has never considered, including
+   * every legacy order (`withLegacyDefaults`), which the 24-hour rule then
+   * marks prompted on first sight rather than opening for. */
+  ratingPromptedAt: string | null;
 }
 
 /** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
@@ -344,6 +360,8 @@ function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => 
     deliveryMs: order.deliveryMs ?? LEGACY_DELIVERY_MS,
     totalMinor: order.totalMinor ?? null,
     driver: order.driver ?? pickDriver(city, random),
+    driverRating: order.driverRating ?? null,
+    ratingPromptedAt: order.ratingPromptedAt ?? null,
   };
 }
 
@@ -369,6 +387,22 @@ function setOrders(storage: Storage, orders: PlacedOrder[]): void {
   storage.setItem(ORDERS_KEY, JSON.stringify(orders));
 }
 
+/** Backfills `driverRating`/`ratingPromptedAt` (#163) on an order already
+ * stored under `ORDERS_KEY` from before those fields existed — unlike
+ * `etaMinutes`/`totalMinor`/`driver`, which only ever needed backfilling on
+ * the one-time `ORDER_KEY` migration, `ORDERS_KEY` itself predates this pair,
+ * so a real stored array can be missing them without going through
+ * `withLegacyDefaults` at all. `undefined` here reads exactly as `null`
+ * (docs/design/162-*, "Storage": "Legacy orders read as unrated" /
+ * "count as null"). */
+function withRatingDefaults(order: PlacedOrder): PlacedOrder {
+  return {
+    ...order,
+    driverRating: order.driverRating ?? null,
+    ratingPromptedAt: order.ratingPromptedAt ?? null,
+  };
+}
+
 /**
  * Every stored order, oldest first, migrating the legacy single-order key
  * exactly once. Once `ORDERS_KEY` exists (even as `[]`), the legacy key is
@@ -384,7 +418,7 @@ export function getOrders(storage: Storage, random: () => number = Math.random):
   if (raw !== null) {
     try {
       const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? (parsed as PlacedOrder[]) : [];
+      return Array.isArray(parsed) ? (parsed as PlacedOrder[]).map(withRatingDefaults) : [];
     } catch {
       return [];
     }
@@ -493,6 +527,8 @@ export function placeOrder(
     viewCount: 0,
     deliveredEventFired: false,
     rating: null,
+    driverRating: null,
+    ratingPromptedAt: null,
   };
   const orders = getOrders(storage, random);
   orders.push(order);
@@ -533,6 +569,31 @@ export function submitRating(storage: Storage, orderId: string, stars: number, t
   const order = orders.find((candidate) => candidate.orderId === orderId);
   if (!order || order.rating) return null;
   order.rating = { stars, tags };
+  setOrders(storage, orders);
+  return order;
+}
+
+/** The rating sheet's driver step (#163) — the same "null if already rated"
+ * guard as `submitRating`, and no event: only the restaurant step's Submit
+ * fires `rating_submitted` (docs/design/162-*, "Events"). */
+export function submitDriverRating(storage: Storage, orderId: string, stars: number): PlacedOrder | null {
+  const orders = getOrders(storage);
+  const order = orders.find((candidate) => candidate.orderId === orderId);
+  if (!order || order.driverRating) return null;
+  order.driverRating = { stars };
+  setOrders(storage, orders);
+  return order;
+}
+
+/** Marks the moment the rating sheet auto-opened for `orderId`, or the moment
+ * it was deliberately passed over — `null` (a no-op) if that id isn't stored
+ * or is already marked, since it is set once and never cleared (docs/design/
+ * 162-*, "The multi-order rule"). */
+export function markRatingPrompted(storage: Storage, orderId: string, now: number = Date.now()): PlacedOrder | null {
+  const orders = getOrders(storage);
+  const order = orders.find((candidate) => candidate.orderId === orderId);
+  if (!order || order.ratingPromptedAt) return null;
+  order.ratingPromptedAt = new Date(now).toISOString();
   setOrders(storage, orders);
   return order;
 }

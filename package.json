@@ -27,7 +27,8 @@
   "homepage": "https://github.com/chamaya00/analytics-practice#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
-    "astro": "^7.3.3"
+    "astro": "^7.3.3",
+    "canvas-confetti": "1.9.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

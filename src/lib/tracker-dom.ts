@@ -10,16 +10,28 @@
 // and fires rating_submitted once, against the order currently open, when
 // "Submit" is tapped.
 
-import { findOrder, getOrders, minutesSinceOrder, recordTrackerView, submitRating, type PlacedOrder } from './order-store';
+import {
+  findOrder,
+  getOrders,
+  markRatingPrompted,
+  minutesSinceOrder,
+  recordTrackerView,
+  submitDriverRating,
+  submitRating,
+  type PlacedOrder,
+} from './order-store';
 import {
   computeOrderStack,
   computeTrackerView,
+  decideRatingPrompt,
   defaultOpenOrderId,
+  isDelivered,
   STEPS,
   type TrackerView,
 } from './tracker-state';
 import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
+import { openRatingSheet } from './rating-sheet-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
 import { formatMoney } from './money';
@@ -529,11 +541,12 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
   // notes, D11).
   const hashMatch = /^#order-(.+)$/.exec(window.location.hash);
   const hashOrderId = hashMatch ? hashMatch[1] : null;
+  const pageLoadNow = Date.now();
   const initialOrders = getOrders(storage);
   let openOrderId =
     hashOrderId && initialOrders.some((order) => order.orderId === hashOrderId)
       ? hashOrderId
-      : defaultOpenOrderId(initialOrders, Date.now());
+      : defaultOpenOrderId(initialOrders, pageLoadNow);
 
   if (openOrderId) {
     const opened = findOrder(storage, openOrderId);
@@ -568,10 +581,83 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
     renderTrackerView(root, orders, openOrderId, onSubmitRating, onSelectOrder);
   }
 
-  render();
+  // #163's multi-order rule (docs/design/162-*, "Two orders landing together"
+  // / "Timing"): re-decided on every render tick, not just at load, so an
+  // order that reaches Delivered while the tracker is already open (the
+  // watched-landing case) is caught the moment it qualifies rather than only
+  // on the next reload. `ratingSheetClaimed` is set the instant an order is
+  // chosen — before its delay even starts — and never cleared, which is what
+  // stops a second qualifying order from ever queuing or chaining behind the
+  // first: once claimed, every further qualifying order (including the
+  // claimed one re-selected on a later tick, before its own prompted flag is
+  // written) is only marked prompted here, and this module never opens a
+  // second sheet for the rest of this page load, open or already closed.
+  let ratingSheetClaimed = false;
+  let ratingSheetOpen = false;
+
+  function evaluateRatingPrompt(now: number): void {
+    const decision = decideRatingPrompt(getOrders(storage), openOrderId, now);
+    for (const passedOverId of decision.passedOverOrderIds) {
+      markRatingPrompted(storage, passedOverId);
+    }
+    if (!decision.openOrderId) return;
+    if (ratingSheetClaimed) {
+      markRatingPrompted(storage, decision.openOrderId);
+      return;
+    }
+
+    const target = findOrder(storage, decision.openOrderId);
+    if (!target) return;
+    ratingSheetClaimed = true;
+    const orderId = decision.openOrderId;
+    // Watched it land: not yet Delivered when the page first loaded, so the
+    // visitor saw the stepper finish live — 1.4s, so the Delivered stamp is
+    // seen first. Otherwise it was already Delivered at load (a return
+    // visit) — 600ms (docs/design/162-*, "Timing").
+    const watchedItLand = !isDelivered(target, pageLoadNow);
+    window.setTimeout(
+      () => {
+        if (ratingSheetOpen) return; // re-check nothing else opened meanwhile
+        openRatingSheetFor(orderId);
+      },
+      watchedItLand ? 1400 : 600,
+    );
+  }
+
+  function openRatingSheetFor(orderId: string): void {
+    const target = findOrder(storage, orderId);
+    if (!target) return;
+    markRatingPrompted(storage, orderId);
+    ratingSheetOpen = true;
+    openRatingSheet({
+      order: target,
+      onSubmitDriverRating: (stars) => {
+        submitDriverRating(storage, orderId, stars);
+        render();
+      },
+      onSubmitRestaurant: (stars, tags) => {
+        const updated = submitRating(storage, orderId, stars, tags);
+        if (!updated) return;
+        track('rating_submitted', { order_id: orderId, stars, tags });
+        render();
+      },
+      onClose: () => {
+        ratingSheetOpen = false;
+        render();
+      },
+    });
+  }
+
+  function tick(): void {
+    render();
+    evaluateRatingPrompt(Date.now());
+  }
+
+  tick();
 
   // Ticks every second (#121 AC4) — the live countdown depends on it, not
-  // just the stepper advancing.
-  const intervalId = window.setInterval(render, 1000);
+  // just the stepper advancing, and it's what lets the rating prompt above
+  // catch an order the moment it reaches Delivered rather than only at load.
+  const intervalId = window.setInterval(tick, 1000);
   return () => window.clearInterval(intervalId);
 }

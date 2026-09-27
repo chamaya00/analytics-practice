@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { computeOrderStack, computeTrackerView, defaultOpenOrderId, isDelivered } from './tracker-state';
+import {
+  computeOrderStack,
+  computeTrackerView,
+  decideRatingPrompt,
+  defaultOpenOrderId,
+  isDelivered,
+  isRatingFullyDone,
+  RATING_PROMPT_WINDOW_MS,
+} from './tracker-state';
 import type { PlacedOrder } from './order-store';
 
 // One fixed "now" for both the order's timestamp and the view computed from it.
@@ -21,6 +29,8 @@ function orderPlacedAt(
   etaMinutes = ETA_MINUTES,
   deliveryMs = DELIVERY_MS,
   orderId = 'order-1',
+  driverRating: PlacedOrder['driverRating'] = null,
+  ratingPromptedAt: PlacedOrder['ratingPromptedAt'] = null,
 ): PlacedOrder {
   return {
     orderId,
@@ -41,6 +51,8 @@ function orderPlacedAt(
     viewCount: 0,
     deliveredEventFired: false,
     rating,
+    driverRating,
+    ratingPromptedAt,
   };
 }
 
@@ -186,5 +198,109 @@ describe('defaultOpenOrderId (#148, "Which order is open by default")', () => {
     const older = orderPlacedAt(DELIVERY_MS + 60_000, null, 20, DELIVERY_MS, 'older');
     const newer = orderPlacedAt(DELIVERY_MS, null, 20, DELIVERY_MS, 'newer');
     expect(defaultOpenOrderId([older, newer], NOW)).toBe('newer');
+  });
+});
+
+describe('isRatingFullyDone (#163, docs/design/162-*, "Storage")', () => {
+  it('is false until both steps are stored, true once both are — a skipped step stays null forever', () => {
+    expect(isRatingFullyDone(orderPlacedAt(DELIVERY_MS))).toBe(false);
+    expect(isRatingFullyDone(orderPlacedAt(DELIVERY_MS, { stars: 5, tags: [] }))).toBe(false);
+    expect(
+      isRatingFullyDone(orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'order-1', { stars: 4 })),
+    ).toBe(false);
+    expect(
+      isRatingFullyDone(
+        orderPlacedAt(DELIVERY_MS, { stars: 5, tags: [] }, ETA_MINUTES, DELIVERY_MS, 'order-1', { stars: 4 }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('decideRatingPrompt (#163, docs/design/162-*, "The multi-order rule")', () => {
+  it('opens nothing with no stored orders', () => {
+    expect(decideRatingPrompt([], null, NOW)).toEqual({ openOrderId: null, passedOverOrderIds: [] });
+  });
+
+  it('opens a single order delivered, unprompted, unrated order and passes over nothing', () => {
+    const order = orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'a');
+    expect(decideRatingPrompt([order], null, NOW)).toEqual({ openOrderId: 'a', passedOverOrderIds: [] });
+  });
+
+  it('never opens for an order still active (not yet delivered)', () => {
+    const order = orderPlacedAt(DELIVERY_MS - 1, null, ETA_MINUTES, DELIVERY_MS, 'a');
+    expect(decideRatingPrompt([order], null, NOW).openOrderId).toBeNull();
+  });
+
+  it('never opens for an order already marked prompted, whether or not it is rated', () => {
+    const order = orderPlacedAt(
+      DELIVERY_MS,
+      null,
+      ETA_MINUTES,
+      DELIVERY_MS,
+      'a',
+      null,
+      new Date(NOW - DELIVERY_MS).toISOString(),
+    );
+    expect(decideRatingPrompt([order], null, NOW)).toEqual({ openOrderId: null, passedOverOrderIds: [] });
+  });
+
+  it('never opens for an order both steps of which are already stored', () => {
+    const order = orderPlacedAt(DELIVERY_MS, { stars: 5, tags: [] }, ETA_MINUTES, DELIVERY_MS, 'a', { stars: 4 });
+    expect(decideRatingPrompt([order], null, NOW).openOrderId).toBeNull();
+  });
+
+  it('never opens for an order delivered more than 24 hours ago', () => {
+    const justOutside = orderPlacedAt(DELIVERY_MS + RATING_PROMPT_WINDOW_MS + 1, null, ETA_MINUTES, DELIVERY_MS, 'a');
+    expect(decideRatingPrompt([justOutside], null, NOW).openOrderId).toBeNull();
+  });
+
+  it('still opens for an order delivered exactly 24 hours ago (the window is inclusive)', () => {
+    const atTheEdge = orderPlacedAt(DELIVERY_MS + RATING_PROMPT_WINDOW_MS, null, ETA_MINUTES, DELIVERY_MS, 'a');
+    expect(decideRatingPrompt([atTheEdge], null, NOW).openOrderId).toBe('a');
+  });
+
+  it('two orders landing together: the tie goes to the open card, and the other is passed over', () => {
+    const first = orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'first');
+    const second = orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'second');
+    const decision = decideRatingPrompt([first, second], 'second', NOW);
+    expect(decision).toEqual({ openOrderId: 'second', passedOverOrderIds: ['first'] });
+  });
+
+  it('the sheet never chains: an order landing while another qualifies but isn’t the open card is passed over, not queued', () => {
+    const openCard = orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'open');
+    const other = orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'other');
+    const decision = decideRatingPrompt([openCard, other], 'open', NOW);
+    expect(decision).toEqual({ openOrderId: 'open', passedOverOrderIds: ['other'] });
+  });
+
+  it('returning to three delivered, unrated orders: opens once for the most recently delivered, the other two are passed over', () => {
+    const oldest = orderPlacedAt(DELIVERY_MS + 3 * 60 * 60_000, null, ETA_MINUTES, DELIVERY_MS, 'oldest');
+    const middle = orderPlacedAt(DELIVERY_MS + 2 * 60 * 60_000, null, ETA_MINUTES, DELIVERY_MS, 'middle');
+    const newest = orderPlacedAt(DELIVERY_MS + 60 * 60_000, null, ETA_MINUTES, DELIVERY_MS, 'newest');
+    const decision = decideRatingPrompt([oldest, middle, newest], null, NOW);
+    expect(decision.openOrderId).toBe('newest');
+    expect(decision.passedOverOrderIds.sort()).toEqual(['middle', 'oldest']);
+  });
+
+  it('prefers the open card over the most recently delivered order when both qualify', () => {
+    const olderOpenCard = orderPlacedAt(DELIVERY_MS + 60 * 60_000, null, ETA_MINUTES, DELIVERY_MS, 'open');
+    const newerOther = orderPlacedAt(DELIVERY_MS, null, ETA_MINUTES, DELIVERY_MS, 'other');
+    const decision = decideRatingPrompt([olderOpenCard, newerOther], 'open', NOW);
+    expect(decision).toEqual({ openOrderId: 'open', passedOverOrderIds: ['other'] });
+  });
+
+  it('falls back to the most recently delivered order when the open card does not qualify (already prompted)', () => {
+    const openCard = orderPlacedAt(
+      DELIVERY_MS,
+      null,
+      ETA_MINUTES,
+      DELIVERY_MS,
+      'open',
+      null,
+      new Date(NOW - DELIVERY_MS).toISOString(),
+    );
+    const other = orderPlacedAt(DELIVERY_MS + 60_000, null, ETA_MINUTES, DELIVERY_MS, 'other');
+    const decision = decideRatingPrompt([openCard, other], 'open', NOW);
+    expect(decision).toEqual({ openOrderId: 'other', passedOverOrderIds: [] });
   });
 });
