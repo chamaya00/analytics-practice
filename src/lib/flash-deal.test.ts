@@ -18,6 +18,7 @@ import {
   setFlashDrawState,
   type FlashDraw,
 } from './flash-deal';
+import type { City } from './money';
 
 /** Returns 0, then the next value, ... cycling — lets a test predict exactly which array index `pickIndex`/the fee-mode coin flip lands on. */
 function seededRandom(sequence: number[]): () => number {
@@ -221,14 +222,23 @@ describe('flashFeeForRestaurant — the effective delivery fee ordering (AC4)', 
   });
 });
 
-describe('drawFlashDeal never labels an already-free restaurant "free" (#126 AC4)', () => {
-  it('a restaurant whose catalogue delivery fee is 0 is drawn as "reduced", never "free", even when the fee-mode coin flip would have said free', () => {
-    // hcmc's pool (restaurants.ts + catalogue-more.ts) has 'ca-phe-nha-go-18'
-    // at index 7 of 14 — pickIndex(14, 0.5) = floor(7) = 7. The very next
-    // random() call (its fee-mode coin flip) is 0, which reads as "free"
-    // for any restaurant whose normal fee is above 0.
-    const draw = drawFlashDeal('hcmc', 0, seededRandom([0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0]));
-    const zeroFeeRestaurant = draw.restaurants.find((restaurant) => restaurant.slug === 'ca-phe-nha-go-18');
-    expect(zeroFeeRestaurant?.feeMode).toBe('reduced');
+describe('drawFlashDeal never draws an already-free restaurant at all (#126 AC4, review round 1)', () => {
+  const ZERO_FEE_SLUGS: Record<City, string[]> = {
+    hcmc: ['ca-phe-nha-go-18', 'banh-xeo-co-nam-tan-dinh'],
+    sf: ['valencia-street-tandoor', 'noe-valley-morning-kitchen'],
+  };
+
+  it.each(['hcmc', 'sf'] as City[])('%s: no zero-delivery-fee restaurant is ever drawn, across many seeded draws', (city) => {
+    for (let seed = 0; seed < 50; seed++) {
+      // A long, varied sequence so the amount step, the size pick, every
+      // pool-index pick, and every fee-mode coin flip all land somewhere
+      // different across the 50 runs, rather than retracing one path.
+      const sequence = Array.from({ length: 20 }, (_, i) => ((seed + 1) * (i + 1) * 0.037) % 1);
+      const draw = drawFlashDeal(city, 0, seededRandom(sequence));
+      const slugs = draw.restaurants.map((restaurant) => restaurant.slug);
+      for (const zeroFeeSlug of ZERO_FEE_SLUGS[city]) {
+        expect(slugs).not.toContain(zeroFeeSlug);
+      }
+    }
   });
 });

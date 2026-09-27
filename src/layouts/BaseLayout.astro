@@ -1582,10 +1582,17 @@ const { title } = Astro.props;
   }
 
   .reopen-bar .label {
+    display: flex;
     font-weight: 800;
     font-size: var(--font-size-body);
     text-align: left;
     color: inherit;
+    min-width: 0;
+  }
+
+  .reopen-bar .label-deals,
+  .reopen-bar .label-off {
+    white-space: nowrap;
   }
 
   .reopen-bar .right {
@@ -1631,11 +1638,25 @@ const { title } = Astro.props;
     color: inherit;
     font-weight: 800;
     font-size: 0.8125rem;
+    align-self: center;
   }
 
   @media (max-width: 480px) {
     .reopen-bar {
       bottom: calc(56px + env(safe-area-inset-bottom));
+    }
+
+    /* "Flash deals · 25.000 ₫ off" wraps into a dangling "·" on its own line
+       at this width (review round 1 on #126). Two deliberate lines instead,
+       with the separator hidden — it only makes sense read inline. The wider
+       single-line form above keeps the separator. */
+    .reopen-bar .label {
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .reopen-bar .label-sep {
+      display: none;
     }
   }
 

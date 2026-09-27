@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initHomePage } from './home-dom';
 import { getStoredCity } from './location';
-import { getRestaurant, restaurantsForCity } from './restaurants';
+import { restaurantsForCity } from './restaurants';
 import { resetTrack, setTrack } from './tracking';
 
 beforeEach(() => {
@@ -239,7 +239,7 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
     expect(badge?.parentElement).toBe(el.querySelector(`[data-testid="restaurant-card-${flashSlug}"] .restaurant-card-meta`));
   });
 
-  it('every one of the drawn 5-6 restaurants gets the Flash badge, not just the first — except one whose delivery is already free, which has no flash fee to badge (#120 AC4, #126 AC4)', () => {
+  it('every one of the drawn 5-6 restaurants gets the Flash badge, not just the first (#120 AC4)', () => {
     window.localStorage.setItem('parody.city', 'sf');
     const el = root();
 
@@ -249,8 +249,7 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
     expect(draw.restaurants.length).toBeGreaterThanOrEqual(5);
     expect(draw.restaurants.length).toBeLessThanOrEqual(6);
     for (const restaurant of draw.restaurants) {
-      const alreadyFree = getRestaurant(restaurant.slug)?.deliveryFeeMinor === 0;
-      expect(el.querySelector(`[data-testid="flash-badge-${restaurant.slug}"]`) !== null).toBe(!alreadyFree);
+      expect(el.querySelector(`[data-testid="flash-badge-${restaurant.slug}"]`)).not.toBeNull();
     }
   });
 });

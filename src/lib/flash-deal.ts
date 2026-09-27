@@ -59,19 +59,21 @@ export function drawFlashDeal(city: City, now: number, random: () => number = Ma
   const amountMinor = AMOUNT_STEPS_MINOR[city][pickIndex(AMOUNT_STEPS_MINOR[city].length, random)];
 
   const size = FLASH_DRAW_SIZE_MIN + pickIndex(FLASH_DRAW_SIZE_MAX - FLASH_DRAW_SIZE_MIN + 1, random);
-  // A restaurant whose delivery is already free has nothing for "free" to
-  // waive — drawing it into that mode is what produced the struck-through
-  // ₫0 the owner saw (#126). It can still be drawn at all, just never
-  // labelled "free"; `flashFeeForRestaurant` below makes the reduced label
-  // a no-op for it too, since there's nothing to reduce either.
-  const drawFeeMode = (normalFeeMinor: number): FlashFeeMode =>
-    normalFeeMinor > 0 && random() < 0.5 ? 'free' : 'reduced';
+  const drawFeeMode = (): FlashFeeMode => (random() < 0.5 ? 'free' : 'reduced');
 
-  const pool = [...restaurantsForCity(city)];
+  // A restaurant whose delivery is already free has nothing for "free" to
+  // waive or "reduced" to reduce — excluded from the pool outright, at the
+  // source, rather than drawn and merely relabelled. That relabelling was
+  // #126's first pass and it still left the restaurant sitting in the sheet
+  // as a "deal" with no matching Flash badge on the feed, since
+  // `flashFeeForRestaurant`'s null guard (below) also hides its badge — the
+  // same non-deal the owner reported, one layer down. Each city keeps
+  // enough non-zero-fee restaurants for a 5–6 draw either way.
+  const pool = restaurantsForCity(city).filter((restaurant) => restaurant.deliveryFeeMinor > 0);
   const restaurants: FlashRestaurantDraw[] = [];
   for (let i = 0; i < size && pool.length > 0; i++) {
     const picked = pool.splice(pickIndex(pool.length, random), 1)[0];
-    restaurants.push({ slug: picked.slug, feeMode: drawFeeMode(picked.deliveryFeeMinor) });
+    restaurants.push({ slug: picked.slug, feeMode: drawFeeMode() });
   }
 
   return {
@@ -180,7 +182,9 @@ export function flashSecondsRemaining(draw: FlashDraw, now: number): number {
  * number. A restaurant with no delivery fee to begin with has nothing for
  * either mode to change, so this returns `null` rather than 0 — the same
  * "no effective flash price here" signal as an ended window, which is what
- * lets the caller skip the struck-through-₫0 line entirely (#126).
+ * lets the caller skip the struck-through-₫0 line entirely (#126). `drawFlashDeal`
+ * no longer puts such a restaurant in the draw at all, so this guard now only
+ * matters for a draw already stored in a visitor's session from before that fix.
  */
 export function flashFeeForRestaurant(
   draw: FlashDraw,

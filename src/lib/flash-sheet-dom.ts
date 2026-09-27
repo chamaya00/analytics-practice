@@ -393,7 +393,17 @@ export function renderFlashReopenBar(
 
   const label = document.createElement('span');
   label.className = 'label';
-  label.textContent = `Flash deals · ${formatMoneyForCity(draw.amountMinor, city)} off`;
+  const labelDeals = document.createElement('span');
+  labelDeals.className = 'label-deals';
+  labelDeals.textContent = 'Flash deals';
+  const labelSep = document.createElement('span');
+  labelSep.className = 'label-sep';
+  labelSep.setAttribute('aria-hidden', 'true');
+  labelSep.textContent = ' · ';
+  const labelOff = document.createElement('span');
+  labelOff.className = 'label-off';
+  labelOff.textContent = `${formatMoneyForCity(draw.amountMinor, city)} off`;
+  label.append(labelDeals, labelSep, labelOff);
 
   const right = document.createElement('span');
   right.className = 'right';
