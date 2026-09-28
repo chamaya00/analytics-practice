@@ -9,25 +9,27 @@ import { deliveredCss } from '../../test-support/dist-css';
 // test run in vitest.global-setup.ts, not here - see that file for why.
 const css = deliveredCss('dist/index.html');
 
-describe('dark theme palette (#82 review round 1: #80\'s chosen violet direction)', () => {
-  it('a prefers-color-scheme: dark block re-declares #80\'s dark hex values, including the tab-active-bg and badge-ink tokens the spec leaves to the engineer', () => {
-    const start = css.indexOf('@media (prefers-color-scheme:dark)');
-    expect(start).toBeGreaterThan(-1);
-    const block = css.slice(start, css.indexOf('}}', start) + 2);
-    expect(block).toContain('--color-bg:#16101f');
-    expect(block).toContain('--color-surface:#1e1730');
-    expect(block).toContain('--color-text:#f1e9ff');
-    expect(block).toContain('--color-text-muted:#b7a6d9');
-    expect(block).toContain('--color-border:#3a2e52');
-    expect(block).toContain('--color-tab-active-bg:#2e2444');
-    expect(block).toContain('--color-badge-ink:#16101f');
+describe('the site is always dark: one palette, no OS-follows toggle (#194: #181-green, section 2a)', () => {
+  it(':root declares #181-green\'s dark values directly, including the tab-active-bg and badge-ink tokens the spec leaves to the engineer', () => {
+    const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
+    expect(rootBlock).toContain('color-scheme:dark');
+    expect(rootBlock).toContain('--color-bg:#0b0f0c');
+    expect(rootBlock).toContain('--color-surface:#121712');
+    expect(rootBlock).toContain('--color-text:#edf5ee');
+    expect(rootBlock).toContain('--color-text-muted:#9fb3a2');
+    expect(rootBlock).toContain('--color-border:#243328');
+    expect(rootBlock).toContain('--color-tab-active-bg:#1b2a1e');
+    expect(rootBlock).toContain('--color-badge-ink:#0b0f0c');
   });
 
-  it('both accents resolve to #80\'s chosen-direction dark values', () => {
-    const start = css.indexOf('@media (prefers-color-scheme:dark)');
-    const block = css.slice(start, css.indexOf('}}', start) + 2);
-    expect(block).toContain('--color-accent-a:#b79cff');
-    expect(block).toContain('--color-accent-b:#ffa36b');
+  it('both accents resolve to #181-green\'s dark values', () => {
+    const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
+    expect(rootBlock).toContain('--color-accent-a:#14b8a6');
+    expect(rootBlock).toContain('--color-accent-b:#ffb84d');
+  });
+
+  it('no prefers-color-scheme block redeclares a palette token — there is only one theme', () => {
+    expect(css).not.toContain('prefers-color-scheme');
   });
 });
 
@@ -403,13 +405,9 @@ describe('cart swipe-to-remove row and remove-confirm dialog fit at 375px (polis
     expect(block).toContain('animation:none');
   });
 
-  it('--color-danger is defined for both themes', () => {
+  it('--color-danger is defined', () => {
     const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
-    expect(rootBlock).toContain('--color-danger:#c4213a');
-    const start = css.indexOf('@media (prefers-color-scheme:dark)');
-    expect(start).toBeGreaterThan(-1);
-    const darkBlock = css.slice(start, css.indexOf('}}', start) + 2);
-    expect(darkBlock).toContain('--color-danger:#ff8a9b');
+    expect(rootBlock).toContain('--color-danger:#ff6b6b');
   });
 });
 

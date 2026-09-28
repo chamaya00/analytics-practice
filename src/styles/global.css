@@ -1,15 +1,21 @@
 /* Global stylesheet. Type scale and spacing scale are the site's own,
    unchanged since Direction 4 (docs/design/5-second-pass-directions.md).
-   The color palette is docs/design/80-two-city-brand-and-flow.md's chosen
-   direction ("Direction A"): violet, replacing the earlier Signal/Field
-   Notebook palette entirely, kept under the same token names
-   (--color-accent-a/-b) so every existing consumer of them repaints
-   without a rename. --color-accent-a is that document's --color-accent
-   (primary, also the discount/success color); --color-accent-b is its
-   --color-accent-secondary (badge fill only, never text-on-background —
-   see --color-badge-ink below). Applied via BaseLayout to every page. */
+   The color palette is docs/design/181-color-scheme-proposals.md's chosen
+   direction ("#181-green", section 2a's dark column) — black-and-green,
+   teal-leaning, replacing #80's violet entirely (#194). Kept under the
+   same token names (--color-accent-a/-b) so every existing consumer of
+   them repaints without a rename. --color-accent-a is the primary accent,
+   also the discount/success color; --color-accent-b is badge fill only,
+   never text-on-background (see --color-badge-ink below).
+
+   The site is always dark (#194, the owner's decision on #181): there is
+   no light theme and no OS-follows toggle. This is the one and only
+   palette, and color-scheme below tells native form controls and
+   scrollbars to render dark too. Applied via BaseLayout to every page. */
 
 :root {
+  color-scheme: dark;
+
   --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial,
     sans-serif;
 
@@ -31,77 +37,44 @@
   --space-xl: 1.75rem;
   --space-xxl: 2.5rem;
 
-  --color-bg: #fbf7ff;
-  --color-surface: #f7f1ff;
-  --color-text: #241b33;
-  --color-text-muted: #6b5d85;
-  --color-border: #e3d6fa;
+  --color-bg: #0b0f0c;
+  --color-surface: #121712;
+  --color-text: #edf5ee;
+  --color-text-muted: #9fb3a2;
+  --color-border: #243328;
 
-  --color-accent-a: #6c3ce0;
-  --color-accent-b: #ff7a45;
-  /* Surface tinted one step warmer, per #80's "an implementation detail
-     for the engineer, not a new value this document needs to separately
-     contrast-check, since the pill only ever holds --color-text at full
-     weight, already checked against --color-surface above" — taken
-     directly from the document's own rendered mock (docs/design/
-     80-home-sf.html). */
-  --color-tab-active-bg: #ede1ff;
+  --color-accent-a: #14b8a6;
+  --color-accent-b: #ffb84d;
+  /* #181-green's own token table (docs/design/181-color-scheme-proposals.md,
+     section 2a). */
+  --color-tab-active-bg: #1b2a1e;
   /* The "dark ink on the fill, never white" rule #80's contrast section
-     establishes for --color-accent-b used as a badge background: white
-     text fails outright (2.59:1) in this direction, so the badge's own
-     text color is this token rather than --color-text, which swaps to a
-     near-white value in dark mode and would fail the same way. */
-  --color-badge-ink: #241b33;
+     establishes for --color-accent-b used as a badge background carries
+     forward unchanged: badge-ink is this token rather than --color-text,
+     which is near-white here and would fail the same way. */
+  --color-badge-ink: #0b0f0c;
   /* Destructive actions only — the cart row's swipe-revealed "Remove" and
      the remove-confirm dialog's "Remove". Always a fill carrying
      --color-bg as its text (the same pairing .place-order uses on
-     --color-accent-a), checked at 4.5:1+ in both themes in
-     contrast.test.ts. */
-  --color-danger: #c4213a;
+     --color-accent-a), checked at 4.5:1+ in contrast.test.ts. Pulled hard
+     toward red, not green-adjacent at all, so it reads unambiguously
+     distinct from the teal accent (#181-green's own "Collision called
+     out"). */
+  --color-danger: #ff6b6b;
   /* The flash sheet's own countdown tile (both the open sheet and the
-     collapsed bar): always a dark tile with light digits, in both themes
-     (#126 AC3) — deliberately *not* redeclared in the dark-mode block
-     below, unlike every other --color-* token here. Reusing --color-text
-     for this, as before, meant the tile went light in dark mode (light
-     digits on a light tile), which is the bug this fixes. Checked against
-     white in contrast.test.ts, once, since the pairing never changes. */
-  --color-flash-tile-bg: #241b33;
+     collapsed bar): always a dark tile with light digits (#126 AC3).
+     Reusing --color-text for this meant the tile went light in dark mode
+     (light digits on a light tile), which is the bug this fixes. Checked
+     against white in contrast.test.ts, once, since the pairing never
+     changes now that there is only one theme. */
+  --color-flash-tile-bg: #12261a;
 
   /* VIP levels (#174, docs/design/162-*, "Contrast"): full ink only on these
-     fills, in pills and stamps, never muted text — the one failure the
-     design doc found (#6b5d85 on #f3d27a, 4.05:1) and designed out. */
-  --color-vip-gold: #f3d27a;
-  --color-vip-gold-ink: #241b33;
-  --color-vip-platinum: #d9d3ea;
-  --color-vip-platinum-ink: #241b33;
-}
-
-/* #80's chosen direction, dark values — same token roles, same reasoning
-   as the light block above. Follows the OS setting with no manual toggle.
-   Contrast against the dark surface is checked in contrast.test.ts. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #16101f;
-    --color-surface: #1e1730;
-    --color-text: #f1e9ff;
-    --color-text-muted: #b7a6d9;
-    --color-border: #3a2e52;
-    --color-accent-a: #b79cff;
-    --color-accent-b: #ffa36b;
-    /* Not in #80's own token table (light-only mock) — a step warmer than
-       this block's own --color-surface, the same relationship the light
-       value above has to its surface. */
-    --color-tab-active-bg: #2e2444;
-    --color-badge-ink: #16101f;
-    /* Lighter here so the dark --color-bg reads on it, same as the dark
-       accent-a above. */
-    --color-danger: #ff8a9b;
-
-    --color-vip-gold: #e0b95a;
-    --color-vip-gold-ink: #16101f;
-    --color-vip-platinum: #cbc3e3;
-    --color-vip-platinum-ink: #16101f;
-  }
+     fills, in pills and stamps, never muted text. */
+  --color-vip-gold: #e0b95a;
+  --color-vip-gold-ink: #0b0f0c;
+  --color-vip-platinum: #c9c9d1;
+  --color-vip-platinum-ink: #0b0f0c;
 }
 
 *,
