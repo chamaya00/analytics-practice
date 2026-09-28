@@ -103,12 +103,13 @@ every SQL statement below — nothing here duplicates it, only sequences it.
    Project Settings → API page shows a Project URL
    (`https://<ref>.supabase.co`) and, under API keys, a publishable key
    (`sb_publishable_…`) — both are needed for step 3.
-2. **Apply exactly three migrations, in this order**, in the dashboard's SQL
+2. **Apply exactly four migrations, in this order**, in the dashboard's SQL
    Editor — paste each file's contents as its own run, and run each file
    **once**:
    1. `20260925000000_events.sql`
    2. `20260926000000_two_city_event_contract.sql`
    3. `20260930000000_rate_limit_search_path.sql` (#222)
+   4. `20261001000000_analytics_readiness_event_contract.sql` (#224)
 
    The three wallet migrations (`20260927000000_wallet.sql`,
    `20260928000000_wallet_tip.sql`,
@@ -140,6 +141,11 @@ every SQL statement below — nothing here duplicates it, only sequences it.
    - After file 3: `proconfig` includes `extensions` in its `search_path`.
      ```sql
      select proconfig from pg_proc where proname = 'enforce_write_rate_limit';
+     ```
+   - After file 4: returns `true`.
+     ```sql
+     select pg_get_functiondef('public.event_is_valid(text, jsonb)'::regprocedure)
+       like '%driver_rating_submitted%';
      ```
 3. **Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY`** in the
    Vercel project's Environment Variables (Settings → Environment Variables),
