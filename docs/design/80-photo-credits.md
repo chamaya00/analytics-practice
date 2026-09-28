@@ -268,7 +268,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/leimert-park-soul-kitchen-collard-greens.svg` | "collard greens bowl" | Pending fetch (#231, batch 5) |
 | `public/images/dishes/leimert-park-soul-kitchen-peach-cobbler.svg` | "peach cobbler" | Pending fetch (#231, batch 5) |
 | `public/images/dishes/westwood-persian-grill-chicken-koobideh-plate.svg` | "koobideh kebab saffron rice" | Pending fetch (#231, batch 5) |
-| `public/images/dishes/westwood-persian-grill-barg-kebab-plate.svg` | "barg kebab beef rice" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/westwood-persian-grill-barg-kebab-plate.svg` | "beef kebab rice" | Pending fetch (#231, batch 5) |
 | `public/images/dishes/westwood-persian-grill-ghormeh-sabzi.svg` | "ghormeh sabzi stew" | Pending fetch (#231, batch 5) |
 | `public/images/dishes/westwood-persian-grill-tahdig.svg` | "tahdig crispy rice" | Pending fetch (#231, batch 5) |
 | `public/images/dishes/westwood-persian-grill-doogh.svg` | "doogh yogurt drink mint" | Pending fetch (#231, batch 5) |
