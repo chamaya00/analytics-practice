@@ -1155,6 +1155,43 @@ widening the ticket and re-rendering all eight PNGs a third time:**
   doesn't change a ratio), and the reading-order/DOM-order reasoning from the
   round above, which doesn't depend on the ticket's exact pixel width.
 
+**Revision round (2026-09-28, #214), after adding the paid-ad-slide
+reference row to all four mocks and rendering all eight PNGs again:**
+
+- **Legibility, this issue's own AC4:** in all eight renders (both cities,
+  both themes, both widths) the "TEST AD" placeholder text, the "placeholder
+  creative" subline, and the "Ad" label sitting over the violet card are all
+  clearly legible — the label reads exactly as it does over a real photo two
+  cards to its left, no scrim adjustment needed. The fallback card (Mission
+  Taqueria / Bến Thành Bánh Mì) reads identically to the existing ad-slide
+  reference card one row up, which is the point: nothing distinguishes it
+  from `ad1`'s pre-#214 rendering, because nothing about it changed.
+- **First look, narrow width, re-checked:** the eye still lands on the
+  first-order banner first — the new row sits below two existing reference
+  rows and doesn't compete with the live carousel, same as the original
+  ad/promo reference row already didn't.
+- **Cover the accent with your hand:** covering the "TEST AD" card's violet
+  fill, it becomes a blank rectangle with invisible white text — same
+  "reads as broken, not designed" result the first-order banner's own
+  critique found for its gradient, and for the same reason: the color was
+  never decoration here either, since there's no photo standing in for it.
+  This is expected and consistent with why the fixed accent was chosen
+  rather than a truly blank placeholder box.
+- **Blur test:** at a squint, the new row reads as one more pair of small
+  labelled cards under the two already there — same rhythm, not a third,
+  visually distinct block competing for attention.
+- **What I considered removing:** the "placeholder creative" subline inside
+  the TEST AD card. Kept — without it, a reviewer glancing only at the wide
+  render could mistake violet-plus-white-text for an intentional creative
+  direction rather than a stand-in; the subline is what makes "this isn't
+  the real thing" legible in the picture itself, not just in this document's
+  prose.
+- **Consistency check against the existing reference row, read side by
+  side:** same card size, same dashed border, same caption typography, same
+  "Ad" label position and scrim — a reviewer's eye treats the new row as
+  more of the established convention on first look, in all eight renders,
+  not a new one to learn.
+
 ## For the engineer
 
 - `.tile-card` is a new class; `.restaurant-card` is untouched by this
