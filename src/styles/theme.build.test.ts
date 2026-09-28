@@ -468,3 +468,14 @@ describe('menu\'s "View cart" bar sits above the tab bar, not flush on top of it
     expect(footerRule).toContain('bottom:calc(56px + env(safe-area-inset-bottom))');
   });
 });
+
+describe('rating win confetti actually paints in front of the sheet, not behind it (#213)', () => {
+  it('.rating-sheet-win forms its own stacking context, so its z-index:-1 canvas paints behind the win\'s own content instead of behind the sheet', () => {
+    const winRule = css.match(/\.rating-sheet-win\{[^}]*\}/)?.[0] ?? '';
+    expect(winRule).toContain('position:relative');
+    expect(winRule).toMatch(/z-index:0|isolation:isolate/);
+
+    const confettiRule = css.match(/\.rating-sheet-confetti\{[^}]*\}/)?.[0] ?? '';
+    expect(confettiRule).toContain('z-index:-1');
+  });
+});

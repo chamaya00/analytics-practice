@@ -8,6 +8,7 @@ import { getLatestOrder } from './order-store';
 import { formatMoney } from './money';
 import { getRestaurant } from './restaurants';
 import { createVehicleIcon } from './vehicle-icon';
+import { loadConfettiCannon } from './confetti-loader';
 
 export interface OrderPlacedView {
   redirectedToRestaurants: boolean;
@@ -17,6 +18,51 @@ export interface OrderPlacedView {
 // replacing the earlier droplet mark, which sat outside any centered wrapper.
 const CHECK_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// #213: which order's badge has already burst, so a reload or back/forward
+// onto the same order shows the static page rather than replaying it — the
+// same "once per order" shape as tracker-dom.ts's own
+// `deliveredHeroResolved`, kept here as a plain stored id since this page
+// renders once and never loops the way the tracker's does.
+const ORDER_PLACED_CELEBRATED_KEY = 'parody.orderPlacedCelebrated';
+
+/** #163's own reduced-motion check — the same `matchMedia` guard
+ * rating-sheet-dom.ts and tracker-dom.ts each already use, kept local rather
+ * than shared since neither of those imports this module or vice versa. */
+function prefersReducedMotion(): boolean {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** One burst from the badge's own position (never the library's default
+ * full-page canvas or a fixed centre origin), loaded through the same
+ * shared loader tracker-dom.ts's Delivered burst and rating-sheet-dom.ts's
+ * win burst already use (#189 AC4) — so the module is fetched at most once
+ * per page load however many bursts actually play. Never reached at all
+ * under reduced motion (no dynamic import), and never replayed for an order
+ * already recorded as celebrated. A failed import is swallowed: the
+ * confirmation itself has already rendered without it. */
+function celebrateOrder(storage: Storage, orderId: string, badge: HTMLElement): void {
+  if (prefersReducedMotion()) return;
+  if (storage.getItem(ORDER_PLACED_CELEBRATED_KEY) === orderId) return;
+  storage.setItem(ORDER_PLACED_CELEBRATED_KEY, orderId);
+
+  loadConfettiCannon()
+    .then((cannon) => {
+      if (!badge.isConnected) return;
+      const rect = badge.getBoundingClientRect();
+      cannon({
+        particleCount: 40,
+        spread: 70,
+        startVelocity: 30,
+        ticks: 120,
+        origin: {
+          x: (rect.left + rect.width / 2) / window.innerWidth,
+          y: (rect.top + rect.height / 2) / window.innerHeight,
+        },
+      });
+    })
+    .catch(() => {});
+}
 
 export function renderOrderPlaced(
   root: HTMLElement,
@@ -72,6 +118,9 @@ export function renderOrderPlaced(
 
   wrap.append(badge, heading, summary, eta, trackLink);
   root.append(wrap);
+
+  celebrateOrder(storage, order.orderId, badge);
+
   return { redirectedToRestaurants: false };
 }
 
