@@ -54,6 +54,7 @@ function orderPlacedAt(
     driverRating,
     ratingPromptedAt,
     walletPaid: false,
+    thanksVoucherMinor: 0,
   };
 }
 

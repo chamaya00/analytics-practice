@@ -111,6 +111,7 @@ describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
       serviceFeeMinor: 150,
       discountAmountMinor: 0,
       savedAmountMinor: 0,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 2599,
       currency: 'USD',
     });
@@ -125,6 +126,7 @@ describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
       serviceFeeMinor: 20000,
       discountAmountMinor: 0,
       savedAmountMinor: 0,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 285000,
       currency: 'VND',
     });
@@ -150,6 +152,7 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
       serviceFeeMinor: 20000,
       discountAmountMinor: 25000,
       savedAmountMinor: 40000,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 245000,
       currency: 'VND',
     });
@@ -169,6 +172,7 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
       serviceFeeMinor: 150,
       discountAmountMinor: 200,
       savedAmountMinor: 499,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 2100,
       currency: 'USD',
     });
@@ -690,6 +694,7 @@ describe('order history cap (AC5)', () => {
       driverRating: null,
       ratingPromptedAt: null,
       walletPaid: false,
+      thanksVoucherMinor: 0,
       ...overrides,
     };
   }
