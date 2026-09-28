@@ -19,6 +19,7 @@ image file by hand. `npm run generate-photo-manifest` regenerates
 |---|---|---|
 | `public/images/cities/sf.jpg` | "san francisco street golden gate" | [Mauro Lima](https://unsplash.com/@limamauro23) — [photo NwJucjfyEXE](https://unsplash.com/photos/a-large-red-bridge-over-water-with-golden-gate-bridge-in-the-background-NwJucjfyEXE) — Unsplash License (https://unsplash.com/license) |
 | `public/images/cities/hcmc.jpg` | "ho chi minh city street motorbikes" | [Tron Le](https://unsplash.com/@tronle_sg) — [photo aM3KBX6twTI](https://unsplash.com/photos/man-in-yellow-shirt-riding-motorcycle-with-woman-in-yellow-shirt-aM3KBX6twTI) — Unsplash License (https://unsplash.com/license) |
+| `public/images/cities/la.svg` | "los angeles palm trees street" | Pending fetch (#231, batch 1) |
 
 ## Restaurant hero images
 
@@ -52,6 +53,20 @@ image file by hand. `npm run generate-photo-manifest` regenerates
 | `public/images/restaurants/banh-xeo-co-nam-tan-dinh-hero.jpg` | HCMC, bánh xèo | "vietnamese crispy pancake herbs" | [Markus Winkler](https://unsplash.com/@markuswinkler) — [photo _KW74Yat8HY](https://unsplash.com/photos/red-chopsticks-on-white-ceramic-bowl-_KW74Yat8HY) — Unsplash License (https://unsplash.com/license) |
 | `public/images/restaurants/mi-quang-que-son-co-lien-hero.jpg` | HCMC, mì quảng | "vietnamese egg noodle soup bowl" | [JANG’S 🍂](https://unsplash.com/@xmtnguyen) — [photo OGxO48Zuf8w](https://unsplash.com/photos/pasta-with-green-leaf-vegetable-in-white-ceramic-bowl-OGxO48Zuf8w) — Unsplash License (https://unsplash.com/license) |
 | `public/images/restaurants/bo-bit-tet-chu-tam-go-vap-hero.jpg` | HCMC, bò bít tết | "sizzling beef steak pan" | [Nanxi wei](https://unsplash.com/@nanxiwei) — [photo TVzSWDntlOM](https://unsplash.com/photos/person-cooking-meat-on-black-pan-TVzSWDntlOM) — Unsplash License (https://unsplash.com/license) |
+| `public/images/restaurants/boyle-heights-taco-window-hero.svg` | LA, tacos | "birria tacos consomme" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/koreatown-charcoal-house-hero.svg` | LA, korean bbq | "korean bbq grill table" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/thai-town-boat-noodle-house-hero.svg` | LA, thai | "thai boat noodle soup bowls" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/glendale-lavash-bakery-hero.svg` | LA, armenian | "armenian bakery lavash bread" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/venice-boardwalk-bowls-hero.svg` | LA, smoothie bowls | "acai bowl beach" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/sawtelle-tonkotsu-bar-hero.svg` | LA, ramen | "ramen bar counter bowls" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/temple-street-filipino-kitchen-hero.svg` | LA, filipino | "filipino food spread table" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/silver-lake-poke-counter-hero.svg` | LA, poke | "poke bowls counter" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/echo-park-breakfast-burritos-hero.svg` | LA, breakfast | "breakfast burrito foil" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/little-tokyo-hand-roll-bar-hero.svg` | LA, hand rolls | "temaki hand roll sushi bar" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/leimert-park-soul-kitchen-hero.svg` | LA, soul food | "soul food plate fried chicken" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/westwood-persian-grill-hero.svg` | LA, persian | "persian kebab rice saffron" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/fairfax-pastrami-deli-hero.svg` | LA, deli | "deli counter pastrami sandwiches" | Pending fetch (#231, batch 1) |
+| `public/images/restaurants/los-feliz-plant-kitchen-hero.svg` | LA, vegan | "vegan food bowls table" | Pending fetch (#231, batch 1) |
 
 ## Dish thumbnails
 

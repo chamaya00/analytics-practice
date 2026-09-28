@@ -13,6 +13,12 @@
       "height": 64
     },
     {
+      "path": "public/images/cities/la.jpg",
+      "query": "los angeles palm trees street",
+      "width": 96,
+      "height": 64
+    },
+    {
       "path": "public/images/restaurants/mission-taqueria-hero.jpg",
       "query": "street tacos platter spread",
       "width": 343,
@@ -177,6 +183,90 @@
     {
       "path": "public/images/restaurants/bo-bit-tet-chu-tam-go-vap-hero.jpg",
       "query": "sizzling beef steak pan",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/boyle-heights-taco-window-hero.jpg",
+      "query": "birria tacos consomme",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/koreatown-charcoal-house-hero.jpg",
+      "query": "korean bbq grill table",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/thai-town-boat-noodle-house-hero.jpg",
+      "query": "thai boat noodle soup bowls",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/glendale-lavash-bakery-hero.jpg",
+      "query": "armenian bakery lavash bread",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/venice-boardwalk-bowls-hero.jpg",
+      "query": "acai bowl beach",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/sawtelle-tonkotsu-bar-hero.jpg",
+      "query": "ramen bar counter bowls",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/temple-street-filipino-kitchen-hero.jpg",
+      "query": "filipino food spread table",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/silver-lake-poke-counter-hero.jpg",
+      "query": "poke bowls counter",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/echo-park-breakfast-burritos-hero.jpg",
+      "query": "breakfast burrito foil",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/little-tokyo-hand-roll-bar-hero.jpg",
+      "query": "temaki hand roll sushi bar",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/leimert-park-soul-kitchen-hero.jpg",
+      "query": "soul food plate fried chicken",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/westwood-persian-grill-hero.jpg",
+      "query": "persian kebab rice saffron",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/fairfax-pastrami-deli-hero.jpg",
+      "query": "deli counter pastrami sandwiches",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/los-feliz-plant-kitchen-hero.jpg",
+      "query": "vegan food bowls table",
       "width": 343,
       "height": 180
     },
