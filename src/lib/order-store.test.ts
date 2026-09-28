@@ -503,6 +503,12 @@ describe('getOrders — migrating the legacy `parody.order` key (AC2)', () => {
     expect(second?.driver).toEqual(first?.driver);
   });
 
+  it('reads walletPaid as false for a legacy record from before that field existed (#165 AC1)', () => {
+    storeLegacyOrder();
+
+    expect(getLatestOrder(window.localStorage)?.walletPaid).toBe(false);
+  });
+
   it('removes the legacy key once migrated — nothing reads it again, so leaving it behind would only be dead state', () => {
     storeLegacyOrder();
     getOrders(window.localStorage);
@@ -607,6 +613,61 @@ describe('placeOrder — total (AC5)', () => {
   });
 });
 
+describe('placeOrder — walletPaid (#165 AC1)', () => {
+  it('defaults to false when the caller passes nothing (the dark path and the D1 fallback both call placeOrder this way)', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+
+    expect(order.walletPaid).toBe(false);
+  });
+
+  it('is true when the caller passes walletPaid: true (a debit answering debited/already_debited)', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      walletPaid: true,
+    });
+
+    expect(order.walletPaid).toBe(true);
+  });
+
+  it('reads false for an order already stored under ORDERS_KEY from before the field existed', () => {
+    const stored = {
+      orderId: 'pre-165-order',
+      placedAt: new Date().toISOString(),
+      etaMinutes: 15,
+      deliveryMs: 5 * 60_000,
+      items: [{ ...LINE, quantity: 1 }],
+      itemCount: 1,
+      amountMinor: 1400,
+      totalMinor: 1400,
+      currency: 'USD',
+      driver: DRIVERS_BY_CITY.sf[0],
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 0,
+      deliveredEventFired: false,
+      rating: null,
+      driverRating: null,
+      ratingPromptedAt: null,
+    };
+    window.localStorage.setItem(ORDERS_KEY, JSON.stringify([stored]));
+
+    expect(getLatestOrder(window.localStorage)?.walletPaid).toBe(false);
+  });
+});
+
 describe('order history cap (AC5)', () => {
   function storedOrder(overrides: Partial<PlacedOrder> & { orderId: string; placedAt: string }): PlacedOrder {
     return {
@@ -628,6 +689,7 @@ describe('order history cap (AC5)', () => {
       rating: null,
       driverRating: null,
       ratingPromptedAt: null,
+      walletPaid: false,
       ...overrides,
     };
   }

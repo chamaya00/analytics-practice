@@ -622,8 +622,13 @@ export function renderCheckout(
    * rather than clearing it — ADR 0008's "Source of truth": the `orderId`
    * survives for a retry to reuse and get `already_debited`, instead of the
    * money being spent with no way back to the order it paid for.
+   *
+   * `walletPaid` records whether `wallet_debit` actually answered `debited`/
+   * `already_debited` for this order (#165, docs/design/162-*, "Tips") —
+   * `false` for every other caller: the dark path, the D1 fallback, and a
+   * debit's `blocked`/`insufficient` answers, none of which reach here.
    */
-  function writeOrderAndTrack(orderId?: string): void {
+  function writeOrderAndTrack(orderId?: string, walletPaid = false): void {
     try {
       const order = placeOrder(
         storage,
@@ -633,6 +638,7 @@ export function renderCheckout(
           savedAmountMinor: breakdown!.savedAmountMinor,
           totalMinor: breakdown!.totalMinor,
           orderId,
+          walletPaid,
         },
         restaurantSlug,
       );
@@ -880,7 +886,7 @@ export function renderCheckout(
     }
 
     renderWalletRow(updatedBalances);
-    writeOrderAndTrack(pending.orderId);
+    writeOrderAndTrack(pending.orderId, true);
   }
 
   function dispatchPlaceOrder(state: WalletCheckoutState): void {

@@ -8,7 +8,7 @@ import type { DeliveryInstructions, DropOffPreset, RatingTag } from './tracking'
 import type { City, Currency } from './money';
 import { SERVICE_FEE_MINOR } from './money';
 import { estimateEtaMinutes } from './eta';
-import { getRestaurant } from './restaurants';
+import { getMenuItem, getRestaurant } from './restaurants';
 import { pickDriver, type Driver } from './drivers';
 import { isDelivered } from './tracker-state';
 
@@ -82,6 +82,13 @@ export interface PlacedOrder {
    * every legacy order (`withLegacyDefaults`), which the 24-hour rule then
    * marks prompted on first sight rather than opening for. */
   ratingPromptedAt: string | null;
+  /** Whether the wallet paid for this order — `true` only when `wallet_debit`
+   * answered `debited` or `already_debited` at Place order (#165,
+   * docs/design/162-*, "Tips": "the order was paid from the wallet").
+   * `false` for the D1 fallback, a dark wallet, and every legacy order:
+   * exactly the set of orders the server would refuse a tip against (D14),
+   * which is what #171's tippable check reads this for. */
+  walletPaid: boolean;
 }
 
 /** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
@@ -334,6 +341,48 @@ export function clearRestaurantCart(storage: Storage, restaurantSlug: string): C
   return remaining;
 }
 
+/** Replaces one restaurant's lines with `lines`, keeping every other
+ * restaurant's cart intact — Order again's "Replace" (#165, docs/design/
+ * 162-*, "Order again"). `lines` is trusted to already share that
+ * `restaurantSlug` (`orderAgainLines`' contract). */
+export function setRestaurantCart(storage: Storage, restaurantSlug: string, lines: CartLine[]): CartLine[] {
+  const others = getCart(storage).filter((line) => line.restaurantSlug !== restaurantSlug);
+  const next = [...others, ...lines];
+  setCart(storage, next);
+  return next;
+}
+
+/** An order's items, repriced at today's menu (#165, docs/design/162-*,
+ * "Order again": "The stored `amountMinor` is a record of what was paid, not
+ * a price to reuse"). An item no longer on the menu is skipped rather than
+ * carried over stale — `availableCount` is what's left, `totalCount` is what
+ * the order originally held, and the caller (tracker-dom.ts) reads their gap
+ * as "N of M items are still on the menu." Quantities are carried over
+ * unchanged. */
+export interface OrderAgainResult {
+  lines: CartLine[];
+  availableCount: number;
+  totalCount: number;
+}
+
+export function orderAgainLines(order: PlacedOrder): OrderAgainResult {
+  const lines: CartLine[] = [];
+  for (const line of order.items) {
+    const menuItem = getMenuItem(line.itemId);
+    if (!menuItem) continue;
+    lines.push({
+      itemId: line.itemId,
+      restaurantSlug: line.restaurantSlug,
+      restaurantName: line.restaurantName,
+      name: menuItem.item.name,
+      amountMinor: menuItem.item.amountMinor,
+      currency: line.currency,
+      quantity: line.quantity,
+    });
+  }
+  return { lines, availableCount: lines.length, totalCount: order.items.length };
+}
+
 /** The fixed delivery time every order used before #121 — the fallback for an
  * order stored under that shape, so it keeps behaving exactly as it did. */
 const LEGACY_DELIVERY_MS = 7 * 60_000;
@@ -362,6 +411,7 @@ function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => 
     driver: order.driver ?? pickDriver(city, random),
     driverRating: order.driverRating ?? null,
     ratingPromptedAt: order.ratingPromptedAt ?? null,
+    walletPaid: order.walletPaid ?? false,
   };
 }
 
@@ -387,19 +437,21 @@ function setOrders(storage: Storage, orders: PlacedOrder[]): void {
   storage.setItem(ORDERS_KEY, JSON.stringify(orders));
 }
 
-/** Backfills `driverRating`/`ratingPromptedAt` (#163) on an order already
- * stored under `ORDERS_KEY` from before those fields existed — unlike
- * `etaMinutes`/`totalMinor`/`driver`, which only ever needed backfilling on
- * the one-time `ORDER_KEY` migration, `ORDERS_KEY` itself predates this pair,
- * so a real stored array can be missing them without going through
- * `withLegacyDefaults` at all. `undefined` here reads exactly as `null`
- * (docs/design/162-*, "Storage": "Legacy orders read as unrated" /
- * "count as null"). */
+/** Backfills `driverRating`/`ratingPromptedAt`/`walletPaid` on an order
+ * already stored under `ORDERS_KEY` from before those fields existed —
+ * unlike `etaMinutes`/`totalMinor`/`driver`, which only ever needed
+ * backfilling on the one-time `ORDER_KEY` migration, `ORDERS_KEY` itself
+ * predates them, so a real stored array can be missing them without going
+ * through `withLegacyDefaults` at all. `undefined` here reads exactly as
+ * `null`/`false` (docs/design/162-*, "Storage": "Legacy orders read as
+ * unrated" / "count as null"; #165's "Legacy orders read as not
+ * wallet-paid"). */
 function withRatingDefaults(order: PlacedOrder): PlacedOrder {
   return {
     ...order,
     driverRating: order.driverRating ?? null,
     ratingPromptedAt: order.ratingPromptedAt ?? null,
+    walletPaid: order.walletPaid ?? false,
   };
 }
 
@@ -459,6 +511,10 @@ export interface PlaceOrderFields {
   totalMinor?: number;
   /** A pre-made order id (#149: the wallet debit's idempotency key, created at the first Place-order tap and kept in `sessionStorage` until this order is written — ADR 0008, "Source of truth"). Defaults to a freshly generated one, as before, for every caller that doesn't pass one. */
   orderId?: string;
+  /** Whether `wallet_debit` answered `debited` or `already_debited` for this
+   * order — defaults to `false`, which is right for the dark path, the D1
+   * fallback, and every caller unconcerned with the wallet (#165). */
+  walletPaid?: boolean;
 }
 
 /**
@@ -529,6 +585,7 @@ export function placeOrder(
     rating: null,
     driverRating: null,
     ratingPromptedAt: null,
+    walletPaid: fields.walletPaid ?? false,
   };
   const orders = getOrders(storage, random);
   orders.push(order);

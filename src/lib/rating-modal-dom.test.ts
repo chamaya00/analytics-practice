@@ -244,6 +244,101 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
   });
 });
 
+describe('initTrackerPage — Rate from a history row (#165 AC2)', () => {
+  it('opens the sheet at the first unrated step for that order, and never marks it prompted — unlike the auto-open rule', () => {
+    const orderA = placeOrderFor(LINE);
+    // Outside the 24h auto-open window (qualifiesForRatingPrompt), so this
+    // test isolates a manual Rate tap from the multi-order rule entirely.
+    patchOrder(orderA.orderId, { placedAt: new Date(Date.now() - 3 * 24 * 60 * 60_000).toISOString() });
+    placeOrderFor(LINE_B); // still active — the open card, pushing orderA into history
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+    const promptedBefore = findOrder(window.localStorage, orderA.orderId)?.ratingPromptedAt ?? null;
+
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    expect(row?.textContent).toContain(LINE.restaurantName);
+    row?.querySelector<HTMLButtonElement>('[data-testid="tracker-history-rate"]')?.click();
+
+    expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="rating-sheet-step-label"]')?.textContent).toBe('1 of 2 · Driver');
+    expect(findOrder(window.localStorage, orderA.orderId)?.ratingPromptedAt ?? null).toBe(promptedBefore);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+    expect(findOrder(window.localStorage, orderA.orderId)?.ratingPromptedAt ?? null).toBe(promptedBefore);
+  });
+
+  it('a row with both steps rated shows the rated summary instead of Rate', () => {
+    const orderA = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + orderA.deliveryMs);
+    placeOrderFor(LINE_B); // still active — the open card
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    vi.advanceTimersByTime(600); // the sheet auto-opens for orderA (the only qualifying order)
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-done"]')?.click();
+
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    expect(row?.querySelector('[data-testid="tracker-history-rate"]')).toBeNull();
+    expect(row?.querySelector('[data-testid="tracker-history-rated-summary"]')?.textContent).toBe(
+      `${orderA.driver.name} ★★★★☆ · Food ★★★★★`,
+    );
+  });
+
+  it('a skipped step never counts as rated, so Rate still shows and reopens at that step', () => {
+    const orderA = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + orderA.deliveryMs);
+    placeOrderFor(LINE_B);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    vi.advanceTimersByTime(600);
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-skip"]')?.click();
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    expect(row?.querySelector('[data-testid="tracker-history-rate"]')).not.toBeNull();
+    expect(row?.querySelector('[data-testid="tracker-history-rated-summary"]')).toBeNull();
+  });
+
+  it('the auto-opened sheet and a later history Rate together fire rating_submitted at most once per order_id', () => {
+    const orderA = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + orderA.deliveryMs);
+    placeOrderFor(LINE_B);
+    const track = vi.fn();
+    setTrack(track);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    vi.advanceTimersByTime(600); // auto-opens for orderA
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-done"]')?.click();
+    expect(track.mock.calls.filter(([name]) => name === 'rating_submitted')).toHaveLength(1);
+
+    // Driver step is still unrated (skipped) — Rate still shows and reopens
+    // at that step, and a second restaurant Submit is guarded (already rated).
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    row?.querySelector<HTMLButtonElement>('[data-testid="tracker-history-rate"]')?.click();
+    expect(document.querySelector('[data-testid="rating-sheet-step-label"]')?.textContent).toBe('1 of 2 · Driver');
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    expect(track.mock.calls.filter(([name]) => name === 'rating_submitted')).toHaveLength(1);
+  });
+});
+
 describe('the rating sheet — driver then restaurant (AC2, docs/design/162-*, "Step flow")', () => {
   function seedOrder(): PlacedOrder {
     const placed = placeOrderFor(LINE);

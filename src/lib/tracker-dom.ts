@@ -11,11 +11,16 @@
 // "Submit" is tapped.
 
 import {
+  cartItemCount,
   findOrder,
+  getCart,
   getOrders,
+  linesForRestaurant,
   markRatingPrompted,
   minutesSinceOrder,
+  orderAgainLines,
   recordTrackerView,
+  setRestaurantCart,
   submitDriverRating,
   submitRating,
   type PlacedOrder,
@@ -31,7 +36,8 @@ import {
 } from './tracker-state';
 import { checkDelivery } from './delivery';
 import { RATING_TAGS, track, type RatingTag } from './tracking';
-import { openRatingSheet } from './rating-sheet-dom';
+import { openRatingSheet, type RatingSheetOptions } from './rating-sheet-dom';
+import { openConfirmDialog } from './confirm-dialog-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
 import { formatMoney } from './money';
@@ -39,6 +45,7 @@ import { getRestaurant, type Restaurant } from './restaurants';
 import { formatReviewCount } from './reviews';
 import { createVehicleIcon } from './vehicle-icon';
 import { formatHistoryDate } from './history-date';
+import { cartPath } from './cart-routes';
 
 const STAR_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
@@ -297,6 +304,7 @@ function renderOpenCard(
   order: PlacedOrder,
   view: TrackerView,
   onSubmitRating: (stars: number, tags: RatingTag[]) => void,
+  onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
 ): HTMLElement {
   const card = document.createElement('section');
   card.className = 'tracker-order-card';
@@ -350,6 +358,21 @@ function renderOpenCard(
   if (view.kind === 'delivered') {
     card.append(renderDemoDisclosure());
     card.append(view.rated ? renderRatedPrompt(view.stars) : renderRatingPrompt(onSubmitRating));
+    // Order again (#165, docs/design/162-*, "Order again": "From the
+    // Delivered card ... straight to /cart/?restaurant=<slug>") — absent
+    // when the restaurant no longer resolves, same as the history row.
+    if (restaurant) {
+      const orderAgainWrap = document.createElement('div');
+      orderAgainWrap.className = 'tracker-delivered-order-again';
+      const again = document.createElement('button');
+      again.type = 'button';
+      again.className = 'tracker-action-button tracker-action-secondary';
+      again.setAttribute('data-testid', 'tracker-delivered-order-again');
+      again.textContent = 'Order again';
+      again.addEventListener('click', () => onOrderAgain(order, restaurant));
+      orderAgainWrap.append(again);
+      card.append(orderAgainWrap);
+    }
   }
 
   return card;
@@ -407,8 +430,28 @@ function renderOrderRow(order: PlacedOrder, view: TrackerView, onSelect: (orderI
   return button;
 }
 
-/** A past order — read-only, no rating/tipping/reorder control (#147, "History row"). */
-function renderHistoryRow(order: PlacedOrder): HTMLElement {
+/** The "Minh T. ★★★★★ · Food ★★★★☆" summary (#165, docs/design/162-*,
+ * "History rows") once both steps are rated — a skipped step stays `null`
+ * forever, so this is never shown for one. */
+function renderRatedSummary(order: PlacedOrder): HTMLElement {
+  const summary = document.createElement('p');
+  summary.className = 'tracker-history-rated-summary';
+  summary.setAttribute('data-testid', 'tracker-history-rated-summary');
+  const driverStars = order.driverRating!.stars;
+  const restaurantStars = order.rating!.stars;
+  const stars = (count: number) => '★'.repeat(count) + '☆'.repeat(5 - count);
+  summary.textContent = `${order.driver.name} ${stars(driverStars)} · Food ${stars(restaurantStars)}`;
+  return summary;
+}
+
+/** A past order — Rate (#163's sheet, at whichever step is unrated) and Order
+ * again (#162's rule) alongside #147's read-only content; an empty slot is
+ * left for #171's Tip control, which this issue does not build. */
+function renderHistoryRow(
+  order: PlacedOrder,
+  onRate: (orderId: string) => void,
+  onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
+): HTMLElement {
   const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
   const li = document.createElement('li');
   li.className = 'tracker-history-row';
@@ -449,7 +492,41 @@ function renderHistoryRow(order: PlacedOrder): HTMLElement {
   state.append('Delivered');
   right.append(total, state);
 
-  li.append(mid, right);
+  const actions = document.createElement('div');
+  actions.className = 'tracker-history-actions';
+  actions.setAttribute('data-testid', 'tracker-history-actions');
+
+  const bothRated = order.driverRating !== null && order.rating !== null;
+  if (bothRated) {
+    actions.append(renderRatedSummary(order));
+  } else {
+    const rate = document.createElement('button');
+    rate.type = 'button';
+    rate.className = 'tracker-action-button tracker-action-primary';
+    rate.setAttribute('data-testid', 'tracker-history-rate');
+    rate.textContent = 'Rate';
+    rate.addEventListener('click', () => onRate(order.orderId));
+    actions.append(rate);
+  }
+
+  // #171's Tip control mounts here — deliberately empty until that issue
+  // ships (this issue's driver brief: "leave a clear spot on the row").
+  const tipSlot = document.createElement('div');
+  tipSlot.className = 'tracker-history-tip-slot';
+  tipSlot.setAttribute('data-testid', 'tracker-history-tip-slot');
+  actions.append(tipSlot);
+
+  if (restaurant) {
+    const again = document.createElement('button');
+    again.type = 'button';
+    again.className = 'tracker-action-button tracker-action-secondary tracker-history-order-again';
+    again.setAttribute('data-testid', 'tracker-history-order-again');
+    again.textContent = 'Order again';
+    again.addEventListener('click', () => onOrderAgain(order, restaurant));
+    actions.append(again);
+  }
+
+  li.append(mid, right, actions);
   return li;
 }
 
@@ -459,6 +536,9 @@ export function renderTrackerView(
   openOrderId: string | null,
   onSubmitRating: (stars: number, tags: RatingTag[]) => void,
   onSelectOrder: (orderId: string) => void,
+  onRate: (orderId: string) => void,
+  onOrderAgainFromHistory: (order: PlacedOrder, restaurant: Restaurant) => void,
+  onOrderAgainFromDelivered: (order: PlacedOrder, restaurant: Restaurant) => void,
   now: number = Date.now(),
 ): void {
   root.innerHTML = '';
@@ -502,7 +582,7 @@ export function renderTrackerView(
     live.append(label);
   }
 
-  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onSubmitRating));
+  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onSubmitRating, onOrderAgainFromDelivered));
   for (const order of stack.live) {
     if (order.orderId === openOrderId) continue;
     live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder));
@@ -521,7 +601,7 @@ export function renderTrackerView(
     list.className = 'tracker-history';
     list.setAttribute('data-testid', 'tracker-history');
     for (const order of stack.past) {
-      list.append(renderHistoryRow(order));
+      list.append(renderHistoryRow(order, onRate, onOrderAgainFromHistory));
     }
     const note = document.createElement('p');
     note.className = 'tracker-device-note';
@@ -533,7 +613,13 @@ export function renderTrackerView(
   root.append(cols);
 }
 
-export function initTrackerPage(root: HTMLElement, storage: Storage = window.localStorage): () => void {
+export function initTrackerPage(
+  root: HTMLElement,
+  storage: Storage = window.localStorage,
+  navigate: (path: string) => void = (path) => {
+    window.location.href = path;
+  },
+): () => void {
   // Arriving from Order placed opens the order just placed (#147, "Order
   // stack rules"; order-placed-dom.ts's track link is `/tracker/#order-
   // <orderId>`). Read once, on load — the open choice afterward is page
@@ -578,7 +664,16 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
   function render(): void {
     checkDelivery(storage);
     const orders = getOrders(storage);
-    renderTrackerView(root, orders, openOrderId, onSubmitRating, onSelectOrder);
+    renderTrackerView(
+      root,
+      orders,
+      openOrderId,
+      onSubmitRating,
+      onSelectOrder,
+      openRatingSheetManual,
+      onOrderAgainFromHistory,
+      onOrderAgainFromDelivered,
+    );
   }
 
   // #163's multi-order rule (docs/design/162-*, "Two orders landing together"
@@ -624,13 +719,14 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
     );
   }
 
-  function openRatingSheetFor(orderId: string): void {
-    const target = findOrder(storage, orderId);
-    if (!target) return;
-    markRatingPrompted(storage, orderId);
-    ratingSheetOpen = true;
-    openRatingSheet({
-      order: target,
+  /** The callbacks #163's sheet needs, shared by the auto-open path and a
+   * manual Rate tap from history — the only difference between the two is
+   * whether `markRatingPrompted` runs first (#165: "A manual Rate open does
+   * not touch ratingPromptedAt"). Both share `submitRating`'s own guard, so
+   * `rating_submitted` still fires at most once per `order_id` however the
+   * sheet was reached. */
+  function ratingSheetCallbacks(orderId: string): Omit<RatingSheetOptions, 'order'> {
+    return {
       onSubmitDriverRating: (stars) => {
         submitDriverRating(storage, orderId, stars);
         render();
@@ -645,7 +741,127 @@ export function initTrackerPage(root: HTMLElement, storage: Storage = window.loc
         ratingSheetOpen = false;
         render();
       },
+    };
+  }
+
+  function openRatingSheetFor(orderId: string): void {
+    const target = findOrder(storage, orderId);
+    if (!target) return;
+    markRatingPrompted(storage, orderId);
+    ratingSheetOpen = true;
+    openRatingSheet({ order: target, ...ratingSheetCallbacks(orderId) });
+  }
+
+  /** A manual Rate tap from a history row (#165) — never marks the order
+   * prompted, since that flag is reserved for the auto-open rule (#162's
+   * "A manual Rate open does not touch ratingPromptedAt"). */
+  function openRatingSheetManual(orderId: string): void {
+    const target = findOrder(storage, orderId);
+    if (!target) return;
+    ratingSheetOpen = true;
+    openRatingSheet({ order: target, ...ratingSheetCallbacks(orderId) });
+  }
+
+  let toastEl: HTMLElement | null = null;
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function dismissToast(): void {
+    toastEl?.remove();
+    toastEl = null;
+    if (toastTimer !== null) {
+      clearTimeout(toastTimer);
+      toastTimer = null;
+    }
+  }
+
+  /** The history-row Order again toast (#165, docs/design/162-*, "Order
+   * again": "stays on the tracker and shows a toast ... lasts 6s, and pauses
+   * while focused or hovered"). Never fires an event (AC3). */
+  function showOrderAgainToast(restaurantName: string, restaurantSlug: string, availableCount: number, totalCount: number): void {
+    dismissToast();
+    const toast = document.createElement('div');
+    toast.className = 'tracker-toast';
+    toast.setAttribute('data-testid', 'tracker-order-again-toast');
+    toast.setAttribute('role', 'status');
+    const message =
+      availableCount < totalCount
+        ? `${availableCount} of ${totalCount} items are still on the menu. `
+        : `Order again: ${availableCount} item${availableCount === 1 ? '' : 's'} from ${restaurantName} are in your cart. `;
+    toast.append(message);
+    const link = document.createElement('a');
+    link.href = cartPath(restaurantSlug);
+    link.textContent = 'View cart';
+    toast.append(link);
+    (root.parentElement ?? root).append(toast);
+    toastEl = toast;
+
+    function schedule(): void {
+      toastTimer = setTimeout(dismissToast, 6000);
+    }
+    toast.addEventListener('mouseenter', () => {
+      if (toastTimer !== null) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+      }
     });
+    toast.addEventListener('mouseleave', schedule);
+    toast.addEventListener('focusin', () => {
+      if (toastTimer !== null) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+      }
+    });
+    toast.addEventListener('focusout', schedule);
+    schedule();
+  }
+
+  /** Order again (#165, docs/design/162-*, "Order again") — fires no event
+   * (AC3). `restaurant` is only ever passed for a slug that still resolves
+   * (both callers only render the control then), so the "opens the
+   * restaurant page instead" branch is the sole no-menu-item fallback. */
+  function onOrderAgain(order: PlacedOrder, restaurant: Restaurant, surface: 'history' | 'delivered'): void {
+    const restaurantSlug = restaurant.slug;
+    const restaurantName = order.items[0]?.restaurantName ?? restaurant.name;
+    const result = orderAgainLines(order);
+
+    if (result.availableCount === 0) {
+      navigate(`/restaurants/${restaurantSlug}/`);
+      return;
+    }
+
+    function commit(): void {
+      setRestaurantCart(storage, restaurantSlug, result.lines);
+      if (surface === 'delivered') {
+        navigate(cartPath(restaurantSlug));
+      } else {
+        showOrderAgainToast(restaurantName, restaurantSlug, result.availableCount, result.totalCount);
+      }
+    }
+
+    const existing = linesForRestaurant(getCart(storage), restaurantSlug);
+    if (existing.length > 0) {
+      openConfirmDialog({
+        title: `Replace your ${restaurantName} cart?`,
+        body: `It has ${cartItemCount(existing)} item${cartItemCount(existing) === 1 ? '' : 's'}. Order again puts in the ${cartItemCount(result.lines)} from this order instead.`,
+        confirmLabel: 'Replace',
+        cancelLabel: 'Keep my cart',
+        onConfirm: commit,
+        // "Keep goes to that cart unchanged" (#162, "Order again") — the
+        // cart is untouched either way, so there is nothing to toast.
+        onCancel: () => navigate(cartPath(restaurantSlug)),
+      });
+      return;
+    }
+
+    commit();
+  }
+
+  function onOrderAgainFromHistory(order: PlacedOrder, restaurant: Restaurant): void {
+    onOrderAgain(order, restaurant, 'history');
+  }
+
+  function onOrderAgainFromDelivered(order: PlacedOrder, restaurant: Restaurant): void {
+    onOrderAgain(order, restaurant, 'delivered');
   }
 
   function tick(): void {
