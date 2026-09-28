@@ -832,6 +832,87 @@ describe('initCheckoutPage — wallet live, signed in, sufficient balance (AC3)'
   });
 });
 
+describe('initCheckoutPage — walletPaid recorded on the order (#165 AC1)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+
+  it('is true when the debit answers debited', async () => {
+    const el = root();
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({
+        fetchImpl: walletFetch({
+          providers: { google: true },
+          ready: true,
+          balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+          debit: [{ status: 'debited' }],
+        }),
+        auth: signedInAuth(),
+      }),
+    );
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(getLatestOrder(window.localStorage)?.walletPaid).toBe(true);
+  });
+
+  it('is true when the debit answers already_debited (a retry after the local write was lost)', async () => {
+    const el = root();
+    initCheckoutPage(
+      el,
+      window.localStorage,
+      vi.fn(),
+      window.sessionStorage,
+      undefined,
+      undefined,
+      walletDeps({
+        fetchImpl: walletFetch({
+          providers: { google: true },
+          ready: true,
+          balances: { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false },
+          debit: [{ status: 'already_debited' }],
+        }),
+        auth: signedInAuth(),
+      }),
+    );
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(getLatestOrder(window.localStorage)?.walletPaid).toBe(true);
+  });
+
+  it('is false when the wallet gate probe fails (D1 fallback places the order with no debit at all)', async () => {
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: false });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl }));
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(getLatestOrder(window.localStorage)?.walletPaid).toBe(false);
+  });
+
+  it('is false when the wallet is dark (no config at all — the exact original synchronous path)', async () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, { config: null });
+    await flush();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(getLatestOrder(window.localStorage)?.walletPaid).toBe(false);
+  });
+});
+
 describe('initCheckoutPage — wallet live, signed in, short balance (AC4)', () => {
   beforeEach(() => addToCart(window.localStorage, LINE));
 

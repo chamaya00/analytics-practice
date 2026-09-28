@@ -53,6 +53,7 @@ function orderPlacedAt(
     rating,
     driverRating,
     ratingPromptedAt,
+    walletPaid: false,
   };
 }
 
