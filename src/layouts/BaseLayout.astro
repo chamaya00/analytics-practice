@@ -469,19 +469,38 @@ const imageUrl = origin ? `${origin}/og-image.png` : undefined;
 
   /* ---- location picker (home screen 1) ---- */
 
+  /* docs/design/229-la-catalogue.md, "The three-card picker" (#233): each
+     city is a compact row - the 96x64 photo flush to the card's left edge,
+     name and currency, a chevron - stacked below 720px, three across above. */
   .location-cards {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
     margin-top: var(--space-md);
   }
 
+  @media (min-width: 720px) {
+    .location-cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+
+    /* The mock's own `main` is 60rem: three rows across need more than the
+       sitewide single-column 40rem, or "Ho Chi Minh City" wraps. */
+    main:has(.location-picker) {
+      max-width: 60rem;
+    }
+  }
+
   .location-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-xs);
-    padding: var(--space-md);
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) 20px;
+    align-items: center;
+    column-gap: var(--space-md);
+    width: 100%;
+    min-height: 64px;
+    padding: 0 var(--space-md) 0 0;
+    overflow: hidden;
     font-family: inherit;
     font-size: var(--font-size-body);
     color: var(--color-text);
@@ -493,18 +512,57 @@ const imageUrl = origin ? `${origin}/og-image.png` : undefined;
     -webkit-tap-highlight-color: transparent;
   }
 
+  .location-card:focus-visible {
+    outline: 2px solid var(--color-accent-a);
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    .location-card:hover {
+      border-color: var(--color-accent-a);
+    }
+  }
+
   .location-card img {
-    border-radius: 8px;
+    display: block;
+    width: 96px;
+    height: 64px;
     object-fit: cover;
+    background: var(--color-bg);
+  }
+
+  .location-card-text {
+    min-width: 0;
   }
 
   .location-card-name {
+    display: block;
+    font-size: 1rem;
     font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
   }
 
   .location-card-currency {
+    display: block;
+    margin-top: 2px;
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
+  }
+
+  .location-card-chevron {
+    display: block;
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
+  }
+
+  .location-card-chevron svg {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .location-blocked-notice {

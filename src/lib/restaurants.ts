@@ -1,4 +1,5 @@
-// Fixed, compile-time restaurant/menu content for both cities — docs/design/
+// Fixed, compile-time restaurant/menu content for SF and HCMC (LA's is
+// catalogue-la.ts, #233) — docs/design/
 // 80-two-city-brand-and-flow.md, "Home feed" and "Restaurant" screens, and
 // its own "guesses" section: plausible, licensable-photo-backed rosters, not
 // the only valid set. Replaces the parody catalogue
@@ -12,6 +13,7 @@
 import type { City, Currency } from './money';
 import { CITIES, currencyForCity } from './money';
 import { HCMC_MORE, SF_MORE } from './catalogue-more';
+import { LA_RESTAURANTS } from './catalogue-la';
 
 export interface MenuItem {
   id: string;
@@ -461,12 +463,11 @@ const HCMC_RESTAURANTS: Restaurant[] = [
 
 // The first four per city are the ones #80's mocks and the home feed's
 // first screen are designed around; catalogue-more.ts carries the rest.
-// LA's own 14 are #233's (docs/design/229-la-catalogue.md); until then LA
-// has none, and the city picker doesn't offer it (home-dom.ts).
+// LA's 14 are all in catalogue-la.ts (docs/design/229-la-catalogue.md, #233).
 export const RESTAURANTS_BY_CITY: Record<City, Restaurant[]> = {
   sf: [...SF_RESTAURANTS, ...SF_MORE],
   hcmc: [...HCMC_RESTAURANTS, ...HCMC_MORE],
-  la: [],
+  la: [...LA_RESTAURANTS],
 };
 
 export const ALL_RESTAURANTS: Restaurant[] = CITIES.flatMap((city) => RESTAURANTS_BY_CITY[city]);
