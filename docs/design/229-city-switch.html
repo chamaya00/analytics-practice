@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#229 mock: the "other city" line, from each of three cities</title>
+<!--
+  A drawing, not an implementation: docs/design/229-la-catalogue.md,
+  "The other-city line with three cities". Each column is one current city.
+  Top: the wallet sheet's header (kicker, balance, other row). Bottom: the
+  tracker's VIP card at Gold (spend line, other-currency line).
+  The rule: the other row is the other CURRENCY, labelled with every city
+  that spends it. Balances: USD $20.00, VND 100.000 ₫. VIP spend: $18.40 USD,
+  420.000 ₫ VND.
+-->
+<style>
+  :root {
+    color-scheme: light;
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --space-xs: 0.25rem; --space-sm: 0.5rem; --space-md: 0.875rem; --space-lg: 1.25rem; --space-xl: 1.75rem;
+    --color-bg: #f1f4f1; --color-surface: #ffffff; --color-text: #0b0f0c; --color-text-muted: #56665b;
+    --color-border: #dfe5e0; --color-accent-a: #0f766e; --color-vip-gold: #e0b95a; --color-vip-gold-ink: #0b0f0c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --color-bg: #0b0f0c; --color-surface: #121712; --color-text: #edf5ee; --color-text-muted: #9fb3a2; --color-border: #243328; --color-accent-a: #14b8a6; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-family-base); font-size: 0.9375rem; }
+  main { max-width: 76rem; margin: 0 auto; padding: var(--space-lg); }
+  h1 { font-size: 1rem; margin: 0 0 var(--space-xs); }
+  .lede { margin: 0 0 var(--space-lg); font-size: 0.75rem; color: var(--color-text-muted); }
+  .lede b { color: var(--color-text); }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); }
+  .from { font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-accent-a); margin: 0 0 var(--space-sm); }
+  .panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: var(--space-md); margin-bottom: var(--space-md); }
+  .panel-label { font-size: 0.6875rem; color: var(--color-text-muted); margin: 0 0 var(--space-xs); }
+
+  /* Wallet sheet header, as in docs/design/143-wallet.md items 1-3. */
+  .wallet-title { font-size: 1rem; font-weight: 700; margin: 0; }
+  .kicker { margin: 2px 0 var(--space-sm); font-size: 0.75rem; color: var(--color-text-muted); }
+  .balance { margin: 0 0 var(--space-xs); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .other-row { display: flex; justify-content: space-between; gap: var(--space-sm); padding: var(--space-sm) 0 0; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .other-row .amt { color: var(--color-text); white-space: nowrap; }
+  mark { background: none; color: inherit; box-shadow: inset 0 -0.45em 0 rgba(15, 118, 110, 0.18); }
+
+  /* Tracker VIP card at Gold, as in docs/design/162 state 3/4. */
+  .vip-heading { margin: 0 0 2px; font-weight: 800; }
+  .pill { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; background: var(--color-vip-gold); color: var(--color-vip-gold-ink); }
+  .spend { margin: 0 0 2px; font-variant-numeric: tabular-nums; }
+  .other-currency { margin: 0; font-size: 0.75rem; color: var(--color-text-muted); }
+
+  /* Critique fix 1: equal kicker height so the VIP cards line up across columns at wide. */
+  @media (min-width: 481px) { .kicker { min-height: 2.9em; } .narrow-only { display: none; } }
+  @media (max-width: 480px) {
+    main { padding: var(--space-md); }
+    .lede { margin-bottom: var(--space-sm); }
+    .grid { grid-template-columns: 1fr; gap: var(--space-sm); }
+    .col { display: grid; grid-template-columns: 1fr; }
+    .from { margin: 0 0 2px; }
+    .panel { padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-xs); }
+    .panel-label, .wallet-title { display: none; }
+    .balance { font-size: 1.25rem; }
+    .kicker { margin: 0 0 2px; }
+    .other-row { padding-top: 4px; font-size: 0.8125rem; }
+    .spend { font-size: 0.8125rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>The "other city" line, with three cities</h1>
+  <p class="lede"><b>Rule:</b> the other line is the other <b>currency</b>, labelled with every city that spends it. SF and LA share one USD balance, so neither ever lists the other as "other". <span class="narrow-only">Balance drawn at 1.25rem at 375 for the comparison; it stays 2.5rem in the sheet.</span></p>
+  <div class="grid">
+    <section class="col">
+      <p class="from">From San Francisco</p>
+      <div class="panel">
+        <p class="panel-label">Wallet sheet</p>
+        <p class="wallet-title">Wallet</p>
+        <p class="kicker">Play money. San Francisco and Los Angeles orders spend dollars.</p>
+        <p class="balance">$20.00</p>
+        <div class="other-row"><span><mark>Ho Chi Minh City</mark></span><span class="amt">100.000 ₫</span></div>
+      </div>
+      <div class="panel">
+        <p class="panel-label">Tracker · VIP card (Gold)</p>
+        <p class="vip-heading">Gold<span class="pill">Free delivery</span></p>
+        <p class="spend">$18.40 of $60.00 · $41.60 to Platinum</p>
+        <p class="other-currency">Plus 420.000 ₫ of 1.500.000 ₫ in <mark>HCMC</mark>, counted apart.</p>
+      </div>
+    </section>
+    <section class="col">
+      <p class="from">From Ho Chi Minh City</p>
+      <div class="panel">
+        <p class="panel-label">Wallet sheet</p>
+        <p class="wallet-title">Wallet</p>
+        <p class="kicker">Play money. Ho Chi Minh City orders spend đồng.</p>
+        <p class="balance">100.000 ₫</p>
+        <div class="other-row"><span><mark>San Francisco and Los Angeles</mark></span><span class="amt">$20.00</span></div>
+      </div>
+      <div class="panel">
+        <p class="panel-label">Tracker · VIP card (Gold)</p>
+        <p class="vip-heading">Gold<span class="pill">Free delivery</span></p>
+        <p class="spend">420.000 ₫ of 1.500.000 ₫ · 1.080.000 ₫ to Platinum</p>
+        <p class="other-currency">Plus $18.40 of $60.00 in <mark>SF and LA</mark>, counted apart.</p>
+      </div>
+    </section>
+    <section class="col">
+      <p class="from">From Los Angeles</p>
+      <div class="panel">
+        <p class="panel-label">Wallet sheet</p>
+        <p class="wallet-title">Wallet</p>
+        <p class="kicker">Play money. Los Angeles and San Francisco orders spend dollars.</p>
+        <p class="balance">$20.00</p>
+        <div class="other-row"><span><mark>Ho Chi Minh City</mark></span><span class="amt">100.000 ₫</span></div>
+      </div>
+      <div class="panel">
+        <p class="panel-label">Tracker · VIP card (Gold)</p>
+        <p class="vip-heading">Gold<span class="pill">Free delivery</span></p>
+        <p class="spend">$18.40 of $60.00 · $41.60 to Platinum</p>
+        <p class="other-currency">Plus 420.000 ₫ of 1.500.000 ₫ in <mark>HCMC</mark>, counted apart.</p>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>
