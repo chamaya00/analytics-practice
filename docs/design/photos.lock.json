@@ -8,6 +8,15 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 12155
   },
+  "public/images/cities/la.jpg": {
+    "id": "FGhVs4iN6O4",
+    "query": "los angeles palm trees street",
+    "photographer": "Haneen Krimly",
+    "photographerUrl": "https://unsplash.com/@haneenkrimly",
+    "photoUrl": "https://unsplash.com/photos/green-palm-trees-during-daytime-FGhVs4iN6O4",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 11142
+  },
   "public/images/cities/sf.jpg": {
     "id": "NwJucjfyEXE",
     "query": "san francisco street golden gate",
@@ -1286,6 +1295,15 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 24516
   },
+  "public/images/restaurants/boyle-heights-taco-window-hero.jpg": {
+    "id": "YBp9IqJ1P88",
+    "query": "birria tacos consomme",
+    "photographer": "Doris Morgan",
+    "photographerUrl": "https://unsplash.com/@d_morgan",
+    "photoUrl": "https://unsplash.com/photos/bread-on-white-plastic-container-YBp9IqJ1P88",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 44945
+  },
   "public/images/restaurants/bun-cha-co-ba-hero.jpg": {
     "id": "oIHOjwrXVlI",
     "query": "bun cha vietnam restaurant",
@@ -1340,6 +1358,24 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 34406
   },
+  "public/images/restaurants/echo-park-breakfast-burritos-hero.jpg": {
+    "id": "gBqlz19UlnI",
+    "query": "breakfast burrito foil",
+    "photographer": "Gaby Aziz",
+    "photographerUrl": "https://unsplash.com/@gabyaziz",
+    "photoUrl": "https://unsplash.com/photos/a-white-plate-topped-with-a-burrito-and-rice-gBqlz19UlnI",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 58540
+  },
+  "public/images/restaurants/fairfax-pastrami-deli-hero.jpg": {
+    "id": "qpfEzfzNX3Q",
+    "query": "deli counter pastrami sandwiches",
+    "photographer": "Lucia Gherra",
+    "photographerUrl": "https://unsplash.com/@lugh",
+    "photoUrl": "https://unsplash.com/photos/a-delicious-sandwich-fries-and-pepsi-qpfEzfzNX3Q",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 48167
+  },
   "public/images/restaurants/geary-boulevard-korean-kitchen-hero.jpg": {
     "id": "CKLo-Hw82UA",
     "query": "korean barbecue table spread",
@@ -1348,6 +1384,15 @@
     "photoUrl": "https://unsplash.com/photos/friends-enjoying-korean-barbecue-with-many-side-dishes-CKLo-Hw82UA",
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 66104
+  },
+  "public/images/restaurants/glendale-lavash-bakery-hero.jpg": {
+    "id": "-F5Un3cuEh4",
+    "query": "armenian bakery lavash bread",
+    "photographer": "Андрей Сизов",
+    "photographerUrl": "https://unsplash.com/@alpridephoto",
+    "photoUrl": "https://unsplash.com/photos/a-close-up-of-a-doughnut-with-powdered-sugar-on-it--F5Un3cuEh4",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 42112
   },
   "public/images/restaurants/goi-cuon-co-hai-cho-cu-hero.jpg": {
     "id": "BiXFsAVlbYU",
@@ -1402,6 +1447,42 @@
     "photoUrl": "https://unsplash.com/photos/food-photography-of-varieties-of-sushies-O2yNzXdqOu0",
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 61834
+  },
+  "public/images/restaurants/koreatown-charcoal-house-hero.jpg": {
+    "id": "Fy1DsvIY5Tc",
+    "query": "korean bbq grill table",
+    "photographer": "Himal Rana",
+    "photographerUrl": "https://unsplash.com/@himal_r",
+    "photoUrl": "https://unsplash.com/photos/a-plate-of-food-with-chopsticks-sticking-out-of-it-Fy1DsvIY5Tc",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 49325
+  },
+  "public/images/restaurants/leimert-park-soul-kitchen-hero.jpg": {
+    "id": "D7553GOff0k",
+    "query": "soul food plate fried chicken",
+    "photographer": "Brett Wharton",
+    "photographerUrl": "https://unsplash.com/@brettwharton",
+    "photoUrl": "https://unsplash.com/photos/two-plates-of-chicken-and-waffles-on-a-table-D7553GOff0k",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 46091
+  },
+  "public/images/restaurants/little-tokyo-hand-roll-bar-hero.jpg": {
+    "id": "IaRZ8jsAles",
+    "query": "temaki hand roll sushi bar",
+    "photographer": "Andrey Câmara",
+    "photographerUrl": "https://unsplash.com/@andreycamara",
+    "photoUrl": "https://unsplash.com/photos/a-piece-of-sushi-with-chopsticks-sticking-out-of-it-IaRZ8jsAles",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 16755
+  },
+  "public/images/restaurants/los-feliz-plant-kitchen-hero.jpg": {
+    "id": "4MEL9XS-3JQ",
+    "query": "vegan food bowls table",
+    "photographer": "Victoria Shes",
+    "photographerUrl": "https://unsplash.com/@victoriakosmo",
+    "photoUrl": "https://unsplash.com/photos/vegetable-salad-on-white-ceramic-plate-4MEL9XS-3JQ",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 71002
   },
   "public/images/restaurants/mi-quang-que-son-co-lien-hero.jpg": {
     "id": "OGxO48Zuf8w",
@@ -1493,6 +1574,42 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 46977
   },
+  "public/images/restaurants/sawtelle-tonkotsu-bar-hero.jpg": {
+    "id": "GN9ZdZOu_gI",
+    "query": "ramen bar counter bowls",
+    "photographer": "Haydn",
+    "photographerUrl": "https://unsplash.com/@hgpound",
+    "photoUrl": "https://unsplash.com/photos/hot-pot-ingredients-on-food-counter-GN9ZdZOu_gI",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 65139
+  },
+  "public/images/restaurants/silver-lake-poke-counter-hero.jpg": {
+    "id": "ZwzZ5F_pIBU",
+    "query": "poke bowls counter",
+    "photographer": "Andreas Rasmussen",
+    "photographerUrl": "https://unsplash.com/@andreasdress",
+    "photoUrl": "https://unsplash.com/photos/vegetable-salad-in-white-ceramic-bowl-ZwzZ5F_pIBU",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 65388
+  },
+  "public/images/restaurants/temple-street-filipino-kitchen-hero.jpg": {
+    "id": "sedJnjrUMM8",
+    "query": "filipino food spread table",
+    "photographer": "Avel Chuklanov",
+    "photographerUrl": "https://unsplash.com/@chuklanov",
+    "photoUrl": "https://unsplash.com/photos/photo-of-people-eating-rice-sedJnjrUMM8",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 82183
+  },
+  "public/images/restaurants/thai-town-boat-noodle-house-hero.jpg": {
+    "id": "YpfRCe5lda0",
+    "query": "thai boat noodle soup bowls",
+    "photographer": "Max Griss",
+    "photographerUrl": "https://unsplash.com/@grissphoto",
+    "photoUrl": "https://unsplash.com/photos/pasta-dish-on-black-ceramic-plate-YpfRCe5lda0",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 55218
+  },
   "public/images/restaurants/valencia-street-tandoor-hero.jpg": {
     "id": "LxkWpGMEwlM",
     "query": "indian curry spread",
@@ -1501,5 +1618,23 @@
     "photoUrl": "https://unsplash.com/photos/a-bowl-of-curry-rice-and-pita-bread-LxkWpGMEwlM",
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 60394
+  },
+  "public/images/restaurants/venice-boardwalk-bowls-hero.jpg": {
+    "id": "2QVYWIUKoeE",
+    "query": "acai bowl beach",
+    "photographer": "Jessica Weiller",
+    "photographerUrl": "https://unsplash.com/@jweiller",
+    "photoUrl": "https://unsplash.com/photos/yellow-and-orange-fruit-salad-2QVYWIUKoeE",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 38270
+  },
+  "public/images/restaurants/westwood-persian-grill-hero.jpg": {
+    "id": "V58povvEj_w",
+    "query": "persian kebab rice saffron",
+    "photographer": "maryam emkani",
+    "photographerUrl": "https://unsplash.com/@maryamemkani",
+    "photoUrl": "https://unsplash.com/photos/a-silver-plate-topped-with-meat-and-vegetables-V58povvEj_w",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 78002
   }
 }
