@@ -952,6 +952,7 @@ describe('order history cap (AC5)', () => {
       walletPaid: false,
       thanksVoucherMinor: 0,
       vipCounted: false,
+      tipMinor: null,
       ...overrides,
     };
   }
@@ -1165,6 +1166,7 @@ describe('sweepVipLedger (#174)', () => {
       walletPaid: false,
       thanksVoucherMinor: 0,
       vipCounted: false,
+      tipMinor: null,
       ...overrides,
     };
   }

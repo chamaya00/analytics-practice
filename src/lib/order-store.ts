@@ -104,6 +104,15 @@ export interface PlacedOrder {
    * also the flag `capOrders` requires before an order can be dropped: an
    * order evicted before being counted would take its progress with it. */
   vipCounted: boolean;
+  /** The tip amount sent for this order, in minor units — `null` until
+   * `wallet_tip` answers `tipped` or `already_tipped` (#171, docs/design/
+   * 162-*, "Tips": "store `tipMinor` on the order"). Only ever set once
+   * (`storeTip`'s own guard): a tip is one per order, and the server enforces
+   * that independently, so this is the client's own mirror of that fact
+   * rather than something a second write could ever change. `null` for every
+   * order this never applies to, including a legacy one and one that was
+   * never `walletPaid`. */
+  tipMinor: number | null;
 }
 
 /** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
@@ -478,6 +487,7 @@ function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => 
     walletPaid: order.walletPaid ?? false,
     thanksVoucherMinor: order.thanksVoucherMinor ?? 0,
     vipCounted: order.vipCounted ?? false,
+    tipMinor: order.tipMinor ?? null,
   };
 }
 
@@ -503,8 +513,8 @@ function setOrders(storage: Storage, orders: PlacedOrder[]): void {
   storage.setItem(ORDERS_KEY, JSON.stringify(orders));
 }
 
-/** Backfills `driverRating`/`ratingPromptedAt`/`walletPaid` on an order
- * already stored under `ORDERS_KEY` from before those fields existed —
+/** Backfills `driverRating`/`ratingPromptedAt`/`walletPaid`/`tipMinor` on an
+ * order already stored under `ORDERS_KEY` from before those fields existed —
  * unlike `etaMinutes`/`totalMinor`/`driver`, which only ever needed
  * backfilling on the one-time `ORDER_KEY` migration, `ORDERS_KEY` itself
  * predates them, so a real stored array can be missing them without going
@@ -520,6 +530,7 @@ function withRatingDefaults(order: PlacedOrder): PlacedOrder {
     walletPaid: order.walletPaid ?? false,
     thanksVoucherMinor: order.thanksVoucherMinor ?? 0,
     vipCounted: order.vipCounted ?? false,
+    tipMinor: order.tipMinor ?? null,
   };
 }
 
@@ -658,6 +669,7 @@ export function placeOrder(
     walletPaid: fields.walletPaid ?? false,
     thanksVoucherMinor: fields.thanksVoucherMinor ?? 0,
     vipCounted: false,
+    tipMinor: null,
   };
   // #174: sweep before capOrders runs, so any order that has become
   // delivered since it was last swept is folded into the ledger and marked
@@ -742,6 +754,24 @@ export function submitDriverRating(storage: Storage, orderId: string, stars: num
   const order = orders.find((candidate) => candidate.orderId === orderId);
   if (!order || order.driverRating) return null;
   order.driverRating = { stars };
+  setOrders(storage, orders);
+  return order;
+}
+
+/** Records a successful tip for the named order (#171, docs/design/162-*,
+ * "Tips": "store `tipMinor` on the order"), called after `wallet_tip`
+ * answers `tipped` or `already_tipped` — `null` (a no-op) if that id isn't
+ * stored or already carries a tip, the same "already rated" guard
+ * `submitRating` uses, since a tip is one per order both here and at the
+ * server. `amountMinor` is the RPC's own echoed amount, not a value this
+ * module chooses, so `already_tipped` (a tip this device never sent, or sent
+ * and never heard back from) still stores the real amount rather than
+ * whatever preset happened to be tapped this time. */
+export function storeTip(storage: Storage, orderId: string, amountMinor: number): PlacedOrder | null {
+  const orders = getOrders(storage);
+  const order = orders.find((candidate) => candidate.orderId === orderId);
+  if (!order || order.tipMinor !== null) return null;
+  order.tipMinor = amountMinor;
   setOrders(storage, orders);
   return order;
 }

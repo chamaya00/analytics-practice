@@ -56,6 +56,7 @@ function orderPlacedAt(
     walletPaid: false,
     thanksVoucherMinor: 0,
     vipCounted: false,
+    tipMinor: null,
   };
 }
 
