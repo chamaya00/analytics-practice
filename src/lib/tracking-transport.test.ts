@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildEventRow, createSupabaseSender, initTracking } from './tracking-transport';
 import { resetTrack, track } from './tracking';
+import { SESSION_STARTED_KEY } from './acquisition';
+import { getSessionId } from './order-store';
 
 const ORDER_ID = '11111111-2222-4333-8444-555555555555';
 const VALID_ORDER_PLACED = {
@@ -178,6 +180,54 @@ describe('initTracking (AC2: env var absent leaves track at its no-op default)',
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(fetchImpl.mock.calls[1][0]).toBe('https://abcdefgh.supabase.co/rest/v1/events');
     expect(JSON.parse(fetchImpl.mock.calls[1][1].body).event_name).toBe('home_viewed');
+  });
+});
+
+describe('track() calls made while the page loads, before initTracking runs (#245)', () => {
+  const sentNames = (fetchImpl: ReturnType<typeof vi.fn>): string[] =>
+    fetchImpl.mock.calls.map((call) => JSON.parse(call[1].body).event_name as string);
+
+  it('AC1: with a config, every earlier call is sent in call order, before any later one', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', 'https://abcdefgh.supabase.co');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test_key');
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchImpl);
+    const sessionId = getSessionId(window.sessionStorage);
+    window.sessionStorage.setItem(SESSION_STARTED_KEY, sessionId); // a later page in a session already started
+
+    track('home_viewed', { city: 'sf' });
+    track('restaurant_opened', { city: 'sf', restaurant_slug: 'mission-taqueria' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    initTracking();
+    track('location_selected', { city: 'sf', is_switch: true });
+
+    expect(sentNames(fetchImpl)).toEqual(['home_viewed', 'restaurant_opened', 'location_selected']);
+  });
+
+  it('AC1: with no config, buffered calls are dropped without error and nothing is sent', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', '');
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchImpl);
+
+    track('home_viewed', { city: 'sf' });
+    expect(() => initTracking()).not.toThrow();
+    track('cart_viewed', { amount_minor: 0, currency: 'USD', item_count: 0 });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('AC2: on a session’s first load, session_started is the first row sent, ahead of any buffered page event', () => {
+    vi.stubEnv('PUBLIC_SUPABASE_URL', 'https://abcdefgh.supabase.co');
+    vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test_key');
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchImpl);
+
+    track('home_viewed', { city: 'sf' });
+    initTracking();
+
+    expect(sentNames(fetchImpl)).toEqual(['session_started', 'home_viewed']);
   });
 });
 

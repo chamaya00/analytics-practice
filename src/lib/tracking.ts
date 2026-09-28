@@ -1,8 +1,9 @@
 // The single injectable tracking function every funnel step fires through —
 // docs/measurement/81-two-city-event-contract.md is the contract this module
 // mirrors client-side (superseding docs/measurement/66-parody-event-
-// contract.md). Nothing here talks to a network: the default track is a
-// no-op; the real sender lives in tracking-transport.ts. `track()` validates
+// contract.md). Nothing here talks to a network: until a sender is set, the
+// default track queues calls (#245); the real sender lives in
+// tracking-transport.ts. `track()` validates
 // a call's `props` against the same shape the store's own `event_is_valid`
 // (ADR 0005/0007) will check server-side, and drops a malformed call rather
 // than forwarding it — a defensive mirror, not a replacement for the
@@ -235,16 +236,40 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
 
 export const noopTrack: Track = () => {};
 
-let currentTrack: Track = noopTrack;
+/**
+ * #245: page scripts run before `BaseLayout.astro`'s initialiser (Astro
+ * decides bundle order), so a call made during load arrives before any
+ * sender is set. Until `setTrack` runs, calls queue here — capped, keeping
+ * the earliest — and `setTrack` hands them to the new sender in call order.
+ * The initialiser with no store configured sets `noopTrack`, which drains
+ * the queue into nothing.
+ */
+export const MAX_PENDING_TRACKS = 50;
 
-/** Swaps the tracking function every call in this module goes through. Tests stub it; #68 will wire a real sender through it. */
+let pending: Array<[EventName, EventProps]> = [];
+
+const bufferTrack: Track = (eventName, props) => {
+  if (pending.length < MAX_PENDING_TRACKS) pending.push([eventName, props]);
+};
+
+let currentTrack: Track = bufferTrack;
+
+/**
+ * Swaps the tracking function every call in this module goes through, then
+ * sends it every call queued before any sender was set, in call order.
+ * Tests stub it; `tracking-transport.ts` wires the real sender through it.
+ */
 export function setTrack(fn: Track): void {
   currentTrack = fn;
+  const queued = pending;
+  pending = [];
+  for (const [eventName, props] of queued) fn(eventName, props);
 }
 
-/** Restores the no-op default — call in `afterEach` so one test's stub never leaks into the next. */
+/** Restores the queueing default with an empty queue — call in `afterEach` so one test's stub or queued calls never leak into the next. */
 export function resetTrack(): void {
-  currentTrack = noopTrack;
+  currentTrack = bufferTrack;
+  pending = [];
 }
 
 /**
