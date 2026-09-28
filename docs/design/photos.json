@@ -1382,7 +1382,7 @@
     },
     {
       "path": "public/images/dishes/little-tokyo-hand-roll-bar-edamame.jpg",
-      "query": "edamame bowl sea salt",
+      "query": "steamed soybeans",
       "width": 64,
       "height": 64
     },
@@ -1407,6 +1407,108 @@
     {
       "path": "public/images/dishes/leimert-park-soul-kitchen-mac-and-cheese.jpg",
       "query": "baked mac and cheese",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-collard-greens.jpg",
+      "query": "collard greens bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-peach-cobbler.jpg",
+      "query": "peach cobbler",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-chicken-koobideh-plate.jpg",
+      "query": "koobideh kebab saffron rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-barg-kebab-plate.jpg",
+      "query": "barg kebab beef rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-ghormeh-sabzi.jpg",
+      "query": "ghormeh sabzi stew",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-tahdig.jpg",
+      "query": "tahdig crispy rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-doogh.jpg",
+      "query": "doogh yogurt drink mint",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-hot-pastrami-sandwich.jpg",
+      "query": "pastrami sandwich rye",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-reuben.jpg",
+      "query": "reuben sandwich",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-matzo-ball-soup.jpg",
+      "query": "matzo ball soup",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-potato-latkes.jpg",
+      "query": "potato latkes applesauce",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-black-and-white-cookie.jpg",
+      "query": "black and white cookie",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-jackfruit-tacos.jpg",
+      "query": "jackfruit tacos",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-mushroom-cheesesteak.jpg",
+      "query": "mushroom cheesesteak sandwich",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-kale-caesar.jpg",
+      "query": "kale caesar salad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-buffalo-cauliflower.jpg",
+      "query": "buffalo cauliflower wings",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-oat-milk-horchata.jpg",
+      "query": "horchata cinnamon glass",
       "width": 64,
       "height": 64
     }

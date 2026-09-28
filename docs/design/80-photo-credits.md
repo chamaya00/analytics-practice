@@ -260,11 +260,28 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/little-tokyo-hand-roll-bar-blue-crab-hand-roll.svg` | "crab hand roll temaki" | Pending fetch (#231, batch 4) |
 | `public/images/dishes/little-tokyo-hand-roll-bar-salmon-hand-roll.svg` | "salmon hand roll" | Pending fetch (#231, batch 4) |
 | `public/images/dishes/little-tokyo-hand-roll-bar-yellowtail-hand-roll.svg` | "yellowtail hamachi hand roll" | Pending fetch (#231, batch 4) |
-| `public/images/dishes/little-tokyo-hand-roll-bar-edamame.svg` | "edamame bowl sea salt" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-edamame.svg` | "steamed soybeans" | Pending fetch (#231, batch 4) |
 | `public/images/dishes/little-tokyo-hand-roll-bar-miso-soup.svg` | "miso soup bowl" | Pending fetch (#231, batch 4) |
 | `public/images/dishes/leimert-park-soul-kitchen-chicken-and-waffles.svg` | "chicken and waffles" | Pending fetch (#231, batch 4) |
 | `public/images/dishes/leimert-park-soul-kitchen-oxtail-plate.svg` | "braised oxtail rice" | Pending fetch (#231, batch 4) |
 | `public/images/dishes/leimert-park-soul-kitchen-mac-and-cheese.svg` | "baked mac and cheese" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/leimert-park-soul-kitchen-collard-greens.svg` | "collard greens bowl" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/leimert-park-soul-kitchen-peach-cobbler.svg` | "peach cobbler" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/westwood-persian-grill-chicken-koobideh-plate.svg` | "koobideh kebab saffron rice" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/westwood-persian-grill-barg-kebab-plate.svg` | "barg kebab beef rice" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/westwood-persian-grill-ghormeh-sabzi.svg` | "ghormeh sabzi stew" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/westwood-persian-grill-tahdig.svg` | "tahdig crispy rice" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/westwood-persian-grill-doogh.svg` | "doogh yogurt drink mint" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/fairfax-pastrami-deli-hot-pastrami-sandwich.svg` | "pastrami sandwich rye" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/fairfax-pastrami-deli-reuben.svg` | "reuben sandwich" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/fairfax-pastrami-deli-matzo-ball-soup.svg` | "matzo ball soup" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/fairfax-pastrami-deli-potato-latkes.svg` | "potato latkes applesauce" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/fairfax-pastrami-deli-black-and-white-cookie.svg` | "black and white cookie" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/los-feliz-plant-kitchen-jackfruit-tacos.svg` | "jackfruit tacos" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/los-feliz-plant-kitchen-mushroom-cheesesteak.svg` | "mushroom cheesesteak sandwich" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/los-feliz-plant-kitchen-kale-caesar.svg` | "kale caesar salad" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/los-feliz-plant-kitchen-buffalo-cauliflower.svg` | "buffalo cauliflower wings" | Pending fetch (#231, batch 5) |
+| `public/images/dishes/los-feliz-plant-kitchen-oat-milk-horchata.svg` | "horchata cinnamon glass" | Pending fetch (#231, batch 5) |
 
 ## Weight budget (#80: home feed first paint ≤ 900KB total)
 
