@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { initTrackerPage } from './tracker-dom';
+import { initTrackerPage, type TrackerWalletDeps } from './tracker-dom';
 import { addToCart, findOrder, getCart, getLatestOrder, linesForRestaurant, ORDER_KEY, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
 import { defaultOpenOrderId } from './tracker-state';
 import { resetTrack, setTrack } from './tracking';
 import { setStoredCity } from './location';
 import { formatReviewCount } from './reviews';
 import { cartPath } from './cart-routes';
+import type { SupabaseAuthLike } from './auth-client';
+import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -906,5 +908,407 @@ describe('the VIP card (#174, docs/design/162-*, "The VIP card: where and what")
     initTrackerPage(root(), window.localStorage);
 
     expect(stub.mock.calls.map(([name]) => name)).not.toContain('vip_level_changed');
+  });
+});
+
+describe('tip control (#171, docs/design/162-*, "Tips"/"History rows")', () => {
+  // These tests drive the wallet gate/auth/RPC round trip for real (as
+  // promises, not fake-timer ticks), so they run under real timers rather
+  // than this file's own default fake ones.
+  beforeEach(() => {
+    vi.useRealTimers();
+    window.sessionStorage.clear();
+  });
+
+  const WALLET_CONFIG = { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key' };
+  const RAW_SESSION = {
+    access_token: 'token-abc',
+    user: { id: 'user-1', email: 'visitor@example.com', app_metadata: { provider: 'google' } },
+  };
+  const BALANCES = {
+    usd_minor: 900,
+    vnd_minor: 750000,
+    window_start: '2026-09-27T14:00:00.000Z',
+    next_window_start: '2026-09-27T22:00:00.000Z',
+    claimed_this_window: true,
+  };
+
+  function fakeAuth(overrides: Partial<SupabaseAuthLike> = {}): SupabaseAuthLike {
+    return {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { session: RAW_SESSION }, error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: 'https://abcdefgh.supabase.co/auth/v1/authorize?provider=google' }, error: null }),
+      ...overrides,
+    };
+  }
+
+  function signedInAuth(): Partial<SupabaseAuthLike> {
+    return { getSession: vi.fn().mockResolvedValue({ data: { session: RAW_SESSION } }) };
+  }
+
+  interface TipFetchOptions {
+    providers?: { google?: boolean; apple?: boolean };
+    ready?: boolean;
+    balances?: typeof BALANCES | null;
+    tip?: Array<
+      | { status: 'tipped' | 'already_tipped' | 'insufficient'; amountMinor?: number; usdMinor?: number; vndMinor?: number }
+      | { blocked: string }
+      | 'network-error'
+    >;
+  }
+
+  /** One fetch call per `tip` array entry; the last entry repeats past the array's end (same convention as checkout-dom.test.ts's `walletFetch`). */
+  function tipFetch(opts: TipFetchOptions) {
+    let tipCalls = 0;
+    return vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/auth/v1/settings')) {
+        return Promise.resolve({ ok: true, json: async () => ({ external: opts.providers ?? {} }) });
+      }
+      if (url.endsWith('/rest/v1/rpc/wallet_ready')) {
+        return Promise.resolve({ ok: true, json: async () => opts.ready ?? false });
+      }
+      if (url.endsWith('/rest/v1/rpc/wallet_get')) {
+        if (!opts.balances) return Promise.resolve({ ok: false, json: async () => ({}) });
+        return Promise.resolve({ ok: true, json: async () => opts.balances });
+      }
+      if (url.endsWith('/rest/v1/rpc/wallet_tip')) {
+        const entries = opts.tip ?? [];
+        const entry = entries[Math.min(tipCalls, entries.length - 1)];
+        tipCalls += 1;
+        if (entry === 'network-error') return Promise.reject(new Error('network down'));
+        if (!entry) return Promise.resolve({ ok: false, status: 500, json: async () => ({}) });
+        if ('blocked' in entry) return Promise.resolve({ ok: false, status: 400, json: async () => ({ message: entry.blocked }) });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            status: entry.status,
+            amount_minor: entry.amountMinor ?? 200,
+            currency: 'USD',
+            usd_minor: entry.usdMinor ?? 0,
+            vnd_minor: entry.vndMinor ?? 0,
+          }),
+        });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+  }
+
+  function tipWalletDeps(overrides: Partial<TrackerWalletDeps> & { auth?: Partial<SupabaseAuthLike> } = {}): TrackerWalletDeps {
+    const { auth, ...rest } = overrides;
+    return {
+      config: WALLET_CONFIG,
+      createAuth: vi.fn().mockResolvedValue(fakeAuth(auth)),
+      fetchImpl: tipFetch({}),
+      locationHref: 'https://site.example/tracker/',
+      replaceUrl: vi.fn(),
+      navigateToOAuth: vi.fn(),
+      sessionStorage: window.sessionStorage,
+      ...rest,
+    };
+  }
+
+  async function flush(): Promise<void> {
+    // A real macrotask drains the whole microtask queue first, however many
+    // `await` hops the gate probe, session lookup and balance fetch chain
+    // through (checkout-dom.test.ts's own `flush`, same reasoning).
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  /** A delivered order for `line`, `walletPaid` as given — the caller is
+   * responsible for also placing one still-live order (`placeOrderFor(LINE_B)`
+   * or similar) so this one lands in Past orders rather than becoming the
+   * open Delivered card (#147: "the order that landed while watched, or the
+   * most recent order when nothing is live"). */
+  function placeDeliveredOrder(line: typeof LINE, walletPaid: boolean): PlacedOrder {
+    const order = placeOrderFor(line);
+    vi.setSystemTime(Date.now() + order.deliveryMs + 1000);
+    patchOrder(order.orderId, { walletPaid });
+    return { ...order, walletPaid };
+  }
+
+  function rowFor(el: HTMLElement, orderId: string): HTMLElement {
+    return el.querySelector<HTMLElement>(`[data-order-id="${orderId}"]`)!;
+  }
+
+  describe('AC1: absent when dark, sign-in when signed out', () => {
+    it('shows no tip control and makes no request at all when there is no wallet config', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = vi.fn();
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), { config: null, fetchImpl });
+      await flush();
+
+      const row = rowFor(el, target.orderId);
+      expect(row.querySelector('[data-testid="tracker-history-tip"]')).toBeNull();
+      expect(row.querySelector('[data-testid="tracker-history-tip-signin"]')).toBeNull();
+      expect(row.querySelector('[data-testid="tracker-history-tip-note"]')).toBeNull();
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it('shows no tip control, and makes no auth or wallet_get request, when probeWalletGate fails', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = vi.fn().mockRejectedValue(new Error('network down'));
+      const createAuth = vi.fn();
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), tipWalletDeps({ fetchImpl, createAuth }));
+      await flush();
+
+      const row = rowFor(el, target.orderId);
+      expect(row.querySelector('[data-testid="tracker-history-tip"]')).toBeNull();
+      expect(row.querySelector('[data-testid="tracker-history-tip-signin"]')).toBeNull();
+      expect(createAuth).not.toHaveBeenCalled();
+    });
+
+    it('an order placed without the wallet shows nothing at all — not even the D14 note — while the gate is dark', async () => {
+      const target = placeDeliveredOrder(LINE, false);
+      placeOrderFor(LINE_B);
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), { config: null });
+      await flush();
+
+      expect(rowFor(el, target.orderId).querySelector('[data-testid="tracker-history-tip-note"]')).toBeNull();
+    });
+
+    it('shows "Sign in to tip" for a wallet-paid order, and the D14 note for one that is not, while the wallet is live and the visitor is signed out', async () => {
+      const paid = placeDeliveredOrder(LINE, true);
+      const unpaid = placeDeliveredOrder(LINE_C, false);
+      placeOrderFor(LINE_B);
+      const el = root();
+
+      initTrackerPage(
+        el,
+        window.localStorage,
+        vi.fn(),
+        tipWalletDeps({ fetchImpl: tipFetch({ providers: { google: true }, ready: true }) }),
+      );
+      await flush();
+
+      expect(rowFor(el, paid.orderId).querySelector('[data-testid="tracker-history-tip-signin"]')).not.toBeNull();
+      expect(rowFor(el, unpaid.orderId).querySelector('[data-testid="tracker-history-tip-note"]')?.textContent).toBe(
+        "Placed without the wallet, so it can't take a tip.",
+      );
+      expect(rowFor(el, unpaid.orderId).querySelector('[data-testid="tracker-history-tip-signin"]')).toBeNull();
+    });
+
+    it('tapping "Sign in to tip" opens the shared sign-in sheet titled "Sign in to tip", and a provider tap starts the OAuth redirect, stashing the order id', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const navigateToOAuth = vi.fn();
+      const el = root();
+
+      initTrackerPage(
+        el,
+        window.localStorage,
+        vi.fn(),
+        tipWalletDeps({ fetchImpl: tipFetch({ providers: { google: true }, ready: true }), navigateToOAuth }),
+      );
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip-signin"]')!.click();
+
+      const prompt = document.querySelector('[data-testid="sign-in-prompt"]');
+      expect(prompt).not.toBeNull();
+      expect(prompt?.querySelector('#sign-in-prompt-heading')?.textContent).toBe('Sign in to tip');
+
+      prompt!.querySelector<HTMLButtonElement>('[data-testid="google-signin"]')!.click();
+      await flush();
+
+      expect(navigateToOAuth).toHaveBeenCalledTimes(1);
+      expect(window.sessionStorage.getItem('parody.pendingTipOrderId')).toBe(target.orderId);
+    });
+
+    it('returning from OAuth reopens that row\'s tip panel', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      window.sessionStorage.setItem('parody.pendingTipOrderId', target.orderId);
+      const el = root();
+
+      initTrackerPage(
+        el,
+        window.localStorage,
+        vi.fn(),
+        tipWalletDeps({
+          fetchImpl: tipFetch({ providers: { google: true }, ready: true, balances: BALANCES }),
+          locationHref: 'https://site.example/tracker/?code=abc123&state=s1',
+        }),
+      );
+      await flush();
+
+      expect(rowFor(el, target.orderId).querySelector('[data-testid="tracker-tip-panel"]')).not.toBeNull();
+      expect(window.sessionStorage.getItem('parody.pendingTipOrderId')).toBeNull();
+    });
+  });
+
+  describe('AC2: tipping, live and signed in', () => {
+    function liveDeps(overrides: Partial<TrackerWalletDeps> = {}): TrackerWalletDeps {
+      return tipWalletDeps({
+        fetchImpl: tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'tipped', amountMinor: 200 }] }),
+        auth: signedInAuth(),
+        ...overrides,
+      });
+    }
+
+    it('tapping a preset then Send sends exactly one wallet_tip call keyed by this order, stores the tip, shows it on the row, and updates the header balance', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'tipped', amountMinor: 200, usdMinor: 700, vndMinor: 750000 }] });
+      const balanceEvents: unknown[] = [];
+      document.addEventListener(WALLET_BALANCE_CHANGED_EVENT, (event) => balanceEvents.push((event as CustomEvent).detail));
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps({ fetchImpl }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      const presets = rowFor(el, target.orderId).querySelectorAll<HTMLButtonElement>('.tracker-tip-preset');
+      presets[2].click(); // the $3 preset
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!.click();
+      await flush();
+
+      const tipCalls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.filter((call: unknown[]) =>
+        (call[0] as string).endsWith('/rpc/wallet_tip'),
+      );
+      expect(tipCalls).toHaveLength(1);
+      expect(JSON.parse((tipCalls[0][1] as RequestInit).body as string)).toMatchObject({ p_order_id: target.orderId, p_amount_minor: 300 });
+
+      const updatedRow = rowFor(el, target.orderId);
+      expect(updatedRow.querySelector('[data-testid="tracker-history-tipped"]')?.textContent).toContain('Tipped $2.00');
+      expect(findOrder(window.localStorage, target.orderId)?.tipMinor).toBe(200);
+      expect(balanceEvents).toEqual([{ usdMinor: 700, vndMinor: 750000 }]);
+    });
+
+    it('a double tap on Send sends exactly one call', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'tipped', amountMinor: 200 }] });
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps({ fetchImpl }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      const send = rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!;
+      send.click();
+      send.click();
+      await flush();
+
+      const tipCalls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.filter((call: unknown[]) =>
+        (call[0] as string).endsWith('/rpc/wallet_tip'),
+      );
+      expect(tipCalls).toHaveLength(1);
+    });
+
+    it('already_tipped shows the tip without a second charge', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'already_tipped', amountMinor: 200 }] });
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps({ fetchImpl }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!.click();
+      await flush();
+
+      expect(rowFor(el, target.orderId).querySelector('[data-testid="tracker-history-tipped"]')?.textContent).toContain('$2.00');
+      expect(findOrder(window.localStorage, target.orderId)?.tipMinor).toBe(200);
+    });
+
+    it('insufficient (the RPC disagreeing with a stale client balance) shows the short-balance state and stores nothing', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      // The middle preset ($2.00) reads as affordable against this starting
+      // balance, so Send is enabled and the call actually goes out; the RPC
+      // then answers `insufficient` against a lower real balance, which is
+      // what makes this the server's answer rather than the client's own
+      // pre-check (already covered by the disabled-Send case elsewhere).
+      const startingBalances = { ...BALANCES, usd_minor: 250 };
+      const fetchImpl = tipFetch({
+        providers: { google: true },
+        ready: true,
+        balances: startingBalances,
+        tip: [{ status: 'insufficient', usdMinor: 150, vndMinor: 750000 }],
+      });
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps({ fetchImpl }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      const send = rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!;
+      expect(send.getAttribute('aria-disabled')).toBeNull();
+      send.click();
+      await flush();
+
+      expect(rowFor(el, target.orderId).querySelector('[data-testid="tracker-tip-short"]')).not.toBeNull();
+      expect(findOrder(window.localStorage, target.orderId)?.tipMinor).toBeNull();
+    });
+
+    it('unreachable stores nothing and shows the error, panel stays open', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: ['network-error', 'network-error'] });
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps({ fetchImpl }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!.click();
+      await flush();
+
+      const row = rowFor(el, target.orderId);
+      expect(row.querySelector('[data-testid="tracker-tip-error"]')?.textContent).toContain("Couldn't send the tip");
+      expect(row.querySelector('[data-testid="tracker-tip-panel"]')).not.toBeNull();
+      expect(findOrder(window.localStorage, target.orderId)?.tipMinor).toBeNull();
+    });
+
+    it('blocked stores nothing and collapses to the D14 note', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const fetchImpl = tipFetch({
+        providers: { google: true },
+        ready: true,
+        balances: BALANCES,
+        tip: [{ blocked: 'no debit row for this order' }],
+      });
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps({ fetchImpl }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!.click();
+      await flush();
+
+      const row = rowFor(el, target.orderId);
+      expect(row.querySelector('[data-testid="tracker-tip-panel"]')).toBeNull();
+      expect(row.querySelector('[data-testid="tracker-history-tip-note"]')?.textContent).toBe(
+        "Placed without the wallet, so it can't take a tip.",
+      );
+      expect(findOrder(window.localStorage, target.orderId)?.tipMinor).toBeNull();
+    });
+
+    it('an order that is not wallet-paid offers no tip button, even signed in and live', async () => {
+      const target = placeDeliveredOrder(LINE, false);
+      placeOrderFor(LINE_B);
+      const el = root();
+
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps());
+      await flush();
+
+      const row = rowFor(el, target.orderId);
+      expect(row.querySelector('[data-testid="tracker-history-tip"]')).toBeNull();
+      expect(row.querySelector('[data-testid="tracker-history-tip-note"]')?.textContent).toBe(
+        "Placed without the wallet, so it can't take a tip.",
+      );
+    });
   });
 });

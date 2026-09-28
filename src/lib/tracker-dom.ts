@@ -116,6 +116,12 @@ interface TipRowState {
   selectedPresetMinor: number | null;
   sending: boolean;
   errorMessage: string | null;
+  /** `wallet_tip` refused this order outright (docs/design/162-*, "Send":
+   * "Refused ... collapse to the D14 note") — shown with the same copy as a
+   * never-wallet-paid order regardless of this order's own `walletPaid`
+   * flag, since the refusal itself is the server's word that the account
+   * behind this tap cannot tip it. */
+  blocked: boolean;
   onToggle: (orderId: string) => void;
   onSignIn: (orderId: string) => void;
   onSelectPreset: (orderId: string, amountMinor: number) => void;
@@ -623,7 +629,7 @@ function renderTipControl(
     return { slotContent: null, underRow: null };
   }
 
-  if (!order.walletPaid) {
+  if (!order.walletPaid || tip.blocked) {
     const note = document.createElement('p');
     note.className = 'tracker-history-tip-note';
     note.setAttribute('data-testid', 'tracker-history-tip-note');
@@ -743,6 +749,7 @@ function renderHistoryRow(
   const li = document.createElement('li');
   li.className = 'tracker-history-row';
   li.setAttribute('data-testid', 'tracker-history-row');
+  li.setAttribute('data-order-id', order.orderId);
   li.append(renderThumb('tracker-history-thumb', restaurant));
 
   const mid = document.createElement('div');
@@ -943,6 +950,7 @@ export function renderTrackerView(
     selectedPresetMinor: null,
     sending: false,
     errorMessage: null,
+    blocked: false,
     onToggle: () => {},
     onSignIn: () => {},
     onSelectPreset: () => {},
@@ -1116,6 +1124,7 @@ export function initTrackerPage(
   const tipSelectedPreset = new Map<string, number>();
   const tipSending = new Set<string>();
   const tipErrors = new Map<string, string>();
+  const tipBlocked = new Set<string>();
   let signInPromptHandle: { close: () => void; element: HTMLElement } | null = null;
 
   function walletNavigate(url: string): void {
@@ -1250,6 +1259,7 @@ export function initTrackerPage(
     if (result.kind === 'blocked') {
       // D14 collapse (docs/design/162-*, "Send": "Refused ... collapse to
       // the D14 note") — no debit row for this account, nothing stored.
+      tipBlocked.add(orderId);
       openTipPanels.delete(orderId);
       tipSelectedPreset.delete(orderId);
       render();
@@ -1276,16 +1286,36 @@ export function initTrackerPage(
     render();
   }
 
+  /** The panel's own initial pick (docs/design/162-*, "The tip panel": "The
+   * middle preset is pre-selected, or the largest affordable one if the
+   * middle is over the balance") is made once, the first render the panel is
+   * open for, and stuck to from then on — never recomputed against a balance
+   * that has since moved (a drip collected, or the RPC's own updated answer
+   * after `insufficient`), which would otherwise silently swap the visitor's
+   * selection out from under them mid-panel. */
+  function ensureInitialPresetSelected(order: PlacedOrder): void {
+    if (tipSelectedPreset.has(order.orderId) || !walletState || walletState.kind !== 'signed-in') return;
+    const presets = TIP_PRESETS_MINOR[order.currency];
+    const balanceMinor = order.currency === 'USD' ? walletState.balances.usdMinor : walletState.balances.vndMinor;
+    tipSelectedPreset.set(order.orderId, pickInitialPresetMinor(presets, balanceMinor));
+  }
+
   function tipRowStateFor(order: PlacedOrder): TipRowState {
+    if (openTipPanels.has(order.orderId)) ensureInitialPresetSelected(order);
     return {
       walletState: walletState ?? { kind: 'dark' },
       panelOpen: openTipPanels.has(order.orderId),
       selectedPresetMinor: tipSelectedPreset.get(order.orderId) ?? null,
       sending: tipSending.has(order.orderId),
       errorMessage: tipErrors.get(order.orderId) ?? null,
+      blocked: tipBlocked.has(order.orderId),
       onToggle: (orderId) => {
-        if (openTipPanels.has(orderId)) openTipPanels.delete(orderId);
-        else openTipPanels.add(orderId);
+        if (openTipPanels.has(orderId)) {
+          openTipPanels.delete(orderId);
+          tipSelectedPreset.delete(orderId);
+        } else {
+          openTipPanels.add(orderId);
+        }
         render();
       },
       onSignIn: handleTipSignIn,
