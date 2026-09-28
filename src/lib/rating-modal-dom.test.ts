@@ -46,6 +46,7 @@ beforeEach(() => {
 afterEach(() => {
   resetTrack();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   document.body.innerHTML = '';
 });
 
@@ -141,6 +142,10 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
   });
 
   it('does not reopen once both steps are submitted and the page is reloaded', () => {
+    // Reduced motion: this test reaches the win screen via the tracker's own
+    // wiring (no loadConfetti override available there), and happy-dom's
+    // canvas has no real 2D context for the real library to draw into.
+    mockMatchMedia(true);
     const order = placeOrderFor(LINE);
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
@@ -150,7 +155,9 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
-    expect(document.querySelector('[data-testid="rating-sheet-win"]')).not.toBeNull();
+    // The still variant under the reduced motion stubbed above — this test
+    // is about the reopen guard, not which win variant renders.
+    expect(document.querySelector('[data-testid="rating-sheet-win-still"]')).not.toBeNull();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-done"]')?.click();
 
     initTrackerPage(root(), window.localStorage);
@@ -255,6 +262,11 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
 });
 
 describe('initTrackerPage — Rate from a history row (#165 AC2)', () => {
+  // Reduced motion: these tests reach the win via the tracker's own wiring,
+  // which has no loadConfetti override — see the note in the auto-open
+  // describe above.
+  beforeEach(() => mockMatchMedia(true));
+
   it('opens the sheet at the first unrated step for that order, and never marks it prompted — unlike the auto-open rule', () => {
     const orderA = placeOrderFor(LINE);
     // Outside the 24h auto-open window (qualifiesForRatingPrompt), so this
@@ -321,6 +333,9 @@ describe('initTrackerPage — Rate from a history row (#165 AC2)', () => {
   });
 
   it('the auto-opened sheet and a later history Rate together fire rating_submitted at most once per order_id', () => {
+    // Reduced motion: reaches the win via the tracker's own wiring, which has
+    // no loadConfetti override — see the note on the test above.
+    mockMatchMedia(true);
     const orderA = placeOrderFor(LINE);
     vi.setSystemTime(Date.now() + orderA.deliveryMs);
     placeOrderFor(LINE_B);
@@ -440,6 +455,9 @@ describe('the rating sheet — driver then restaurant (AC2, docs/design/162-*, "
   });
 
   it('a second restaurant submit for the same order, via the tracker-wired path, fires nothing (submitRating\'s own guard)', () => {
+    // Reduced motion: reaches the win via the tracker's own wiring — see the
+    // note in the auto-open describe above.
+    mockMatchMedia(true);
     const order = seedOrder();
     const track = vi.fn();
     setTrack(track);
@@ -699,6 +717,11 @@ describe('the rating sheet — the win\'s VIP nudge reads a read-only ledger sna
 });
 
 describe('initTrackerPage — the first rating step submitted unlocks the thanks voucher (#166)', () => {
+  // Reduced motion: every test here reaches the win via the tracker's own
+  // wiring, which has no loadConfetti override — see the note in the
+  // auto-open describe above.
+  beforeEach(() => mockMatchMedia(true));
+
   it('driver Next, as the first step, unlocks a voucher in this order\'s city, shown in the win', () => {
     const order = placeOrderFor(LINE);
     vi.setSystemTime(Date.now() + order.deliveryMs);
