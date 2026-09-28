@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>235: home intro — feed after city picked, light</title>
+<style>
+  :root {
+    color-scheme: light;
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+    --color-bg: #f1f4f1;
+    --color-surface: #ffffff;
+    --color-text: #0b0f0c;
+    --color-text-muted: #56665b;
+    --color-border: #dfe5e0;
+    --color-accent-a: #0f766e;
+    --color-tab-active-bg: #d7ede8;
+    --color-indicator: #7d8c82;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-family-base); font-size: var(--font-size-body); line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+  main { max-width: 40rem; margin: 0 auto; padding: var(--space-xl) var(--space-lg); padding-bottom: calc(56px + var(--space-xl)); }
+  h2 { font-size: var(--font-size-h2); font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); }
+
+  .site-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; padding: var(--space-xs) var(--space-lg); border-bottom: 1px solid var(--color-border); }
+  .site-header-main { flex: 1; min-width: 0; }
+  .site-header-row { display: flex; align-items: center; gap: var(--space-sm); }
+  .site-nav { display: flex; gap: var(--space-md); }
+  .site-nav a { min-height: 44px; display: inline-flex; align-items: center; color: var(--color-text); text-decoration: none; }
+  .site-nav a.current { text-decoration: underline; }
+  .site-name { margin: 0; display: flex; align-items: center; gap: var(--space-xs); font-size: var(--font-size-nav-title); }
+  .wordmark { font-weight: 500; }
+  .wordmark-strong { font-weight: 800; }
+  .wordmark-tail { position: relative; }
+  .wordmark-tail::after { content: ''; position: absolute; right: -3px; bottom: -2px; width: 6px; height: 6px; border-bottom: 2px solid var(--color-accent-a); border-right: 2px solid var(--color-accent-a); border-radius: 0 0 6px 0; }
+  .location-bar { font-size: var(--font-size-muted); font-weight: 700; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 999px; padding: var(--space-xs) var(--space-md); }
+
+  .home-intro { margin: 2px 0 0; font-size: var(--font-size-muted); line-height: 1.25; color: var(--color-text-muted); max-width: 30rem; }
+  .home-intro strong { color: var(--color-text); }
+
+  .home-search { display: block; width: 100%; min-height: 44px; padding: 0 var(--space-md); font-size: var(--font-size-body); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; }
+  .carousel { margin-top: var(--space-md); }
+  .carousel-slide-media { position: relative; height: 256px; border-radius: 12px; overflow: hidden; background: var(--color-surface); }
+  .carousel-slide-panel { position: absolute; inset: 0; display: flex; flex-direction: row-reverse; align-items: center; gap: var(--space-md); padding: 0 var(--space-lg); background: linear-gradient(135deg, #0a7a6d 0%, #0b2e29 100%); border-radius: 12px; color: #fff; }
+  .carousel-slide-panel-claim { font-weight: 800; }
+  .carousel-slide-panel-sub { font-size: var(--font-size-muted); color: #dff9f4; }
+  .carousel-slide-panel-ticket { flex: none; width: 80px; height: 60px; background: #fff; border-radius: 10px; color: #0b2e29; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8125rem; }
+  .carousel-dots { display: flex; justify-content: center; gap: var(--space-xs); margin-top: var(--space-sm); }
+  .carousel-dot-mark { display: block; width: 6px; height: 6px; border-radius: 999px; background: var(--color-indicator); }
+  .carousel-dot-mark.is-current { width: 8px; height: 8px; background: var(--color-accent-a); }
+  .cuisine-chips { margin-top: var(--space-md); display: flex; gap: var(--space-sm); overflow-x: auto; }
+  .cuisine-chip { flex: none; min-height: 36px; display: flex; align-items: center; padding: 0 var(--space-md); border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-surface); font-size: var(--font-size-muted); font-weight: 700; color: var(--color-text-muted); }
+  .cuisine-chip.selected { color: var(--color-accent-a); border-color: var(--color-accent-a); }
+  .tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin: var(--space-md) 0 0; padding: 0; }
+  .tile-card { display: flex; flex-direction: column; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; color: var(--color-text); }
+  .tile-card-photo { display: block; width: 100%; aspect-ratio: 4/3; }
+  .tile-card-body { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm); }
+  .tile-card-name { font-weight: 800; }
+  .tile-card-rating, .tile-card-meta { font-size: var(--font-size-muted); color: var(--color-text-muted); }
+  .photo--a { background: linear-gradient(135deg, #35506b, #7ea8c9); }
+  .photo--b { background: linear-gradient(135deg, #6b3d1f, #d98b3e); }
+  .photo--c { background: linear-gradient(135deg, #3d6b45, #8fd9a0); }
+  .photo--d { background: linear-gradient(135deg, #6b3d5c, #d98bc0); }
+
+  .site-footer { max-width: 40rem; margin: 0 auto; padding: 0 var(--space-lg) var(--space-xl); padding-bottom: calc(56px + var(--space-xl)); text-align: center; }
+  .site-footer a { color: var(--color-text-muted); font-size: var(--font-size-muted); letter-spacing: 0.05em; }
+
+  .tab-bar { display: none; }
+  @media (max-width: 480px) {
+    .site-header .site-nav { display: none; }
+    .tab-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; background: var(--color-surface); border-top: 1px solid var(--color-border); padding: var(--space-xs) var(--space-lg); }
+  }
+  .tab-bar a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; color: var(--color-text-muted); text-decoration: none; font-size: var(--font-size-muted); }
+  .tab-bar a svg { width: 20px; height: 20px; }
+  .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+  .tab-bar a.current .pill { display: inline-block; padding: 2px var(--space-md); background: var(--color-tab-active-bg); border-radius: 999px; }
+</style>
+</head>
+<body>
+  <div class="site-header">
+    <div class="site-header-main">
+      <div class="site-header-row">
+        <p class="site-name">
+          <span class="wordmark"><span class="wordmark-strong">dont</span>dropthat<span>prom<span class="wordmark-tail">o</span></span></span>
+        </p>
+        <span class="location-bar">San Francisco ▾</span>
+      </div>
+      <p class="home-intro" data-testid="home-intro">
+        <strong>A parody delivery app for practicing product analytics.</strong>
+        Every tap fires a real, anonymous event — nothing's charged, no food arrives. Pick a city and place a fake order.
+      </p>
+    </div>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/" class="current">Home</a>
+      <a href="/cart/">Cart</a>
+      <a href="/tracker/">Tracker</a>
+    </nav>
+  </div>
+  <main>
+    <input class="home-search" type="search" placeholder="Search restaurants or cuisines" />
+    <div class="carousel">
+      <div class="carousel-slide-media">
+        <div class="carousel-slide-panel">
+          <span class="carousel-slide-panel-ticket">$2<br />off</span>
+          <span>
+            <span class="carousel-slide-panel-claim" style="display:block">Your first order</span>
+            <span class="carousel-slide-panel-sub">Applied automatically at checkout</span>
+          </span>
+        </div>
+      </div>
+      <div class="carousel-dots">
+        <span class="carousel-dot-mark"></span><span class="carousel-dot-mark"></span><span class="carousel-dot-mark"></span>
+        <span class="carousel-dot-mark is-current"></span><span class="carousel-dot-mark"></span><span class="carousel-dot-mark"></span><span class="carousel-dot-mark"></span>
+      </div>
+    </div>
+    <div class="cuisine-chips">
+      <span class="cuisine-chip selected">All</span><span class="cuisine-chip">Pizza</span><span class="cuisine-chip">Sushi</span><span class="cuisine-chip">Tacos</span>
+    </div>
+    <h2>Near you</h2>
+    <div class="tile-grid">
+      <a class="tile-card"><span class="tile-card-photo photo--a"></span><span class="tile-card-body"><span class="tile-card-name">Mission Taqueria</span><span class="tile-card-rating">★ 4.6 (320)</span><span class="tile-card-meta">20–30 min · $1.99 delivery</span></span></a>
+      <a class="tile-card"><span class="tile-card-photo photo--b"></span><span class="tile-card-body"><span class="tile-card-name">North Beach Pizzeria</span><span class="tile-card-rating">★ 4.7 (540)</span><span class="tile-card-meta">15–25 min · Free delivery</span></span></a>
+      <a class="tile-card"><span class="tile-card-photo photo--c"></span><span class="tile-card-body"><span class="tile-card-name">Noe Valley Morning Kitchen</span><span class="tile-card-rating">★ 4.5 (210)</span><span class="tile-card-meta">25–35 min · $2.49 delivery</span></span></a>
+      <a class="tile-card"><span class="tile-card-photo photo--d"></span><span class="tile-card-body"><span class="tile-card-name">Inner Richmond Sushi Bar</span><span class="tile-card-rating">★ 4.8 (410)</span><span class="tile-card-meta">20–30 min · $1.49 delivery</span></span></a>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <a href="/about/">What we log, and why</a>
+  </footer>
+  <nav class="tab-bar" aria-label="Primary">
+    <a href="/" class="current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="pill">Home</span></a>
+    <a href="/cart/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg>Cart</a>
+    <a href="/tracker/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg>Tracker</a>
+  </nav>
+</body>
+</html>
