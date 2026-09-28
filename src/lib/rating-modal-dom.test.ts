@@ -634,6 +634,70 @@ describe('the rating sheet — the reward slot renders the thanks voucher unlock
   });
 });
 
+describe('the rating sheet — the win\'s VIP nudge reads a read-only ledger snapshot (#169, docs/design/162-*, "The win\'s VIP nudge")', () => {
+  function seedOrder(): PlacedOrder {
+    const placed = placeOrderFor(LINE);
+    return findOrder(window.localStorage, placed.orderId) as PlacedOrder;
+  }
+
+  function submitBothSteps(): void {
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+  }
+
+  it('shows the Gold meter below Gold, the remaining spend to Platinum at Gold, and nothing at Platinum', () => {
+    mockMatchMedia(true); // the still frame is enough; this is about the nudge, not the burst
+
+    openRatingSheet({
+      order: seedOrder(),
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getVipLedger: () => ({ v: 1, deliveredCount: 2, spendMinor: { USD: 0, VND: 0 }, level: 'none' }),
+    });
+    submitBothSteps();
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-slot"]')?.hasAttribute('aria-hidden')).toBe(
+      false,
+    );
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-meter"]')?.getAttribute('aria-label')).toBe(
+      '2 of 3 delivered orders',
+    );
+    expect(document.querySelector('.rating-sheet-vip-nudge-text')?.textContent).toBe('1 more delivered order to Gold');
+
+    openRatingSheet({
+      order: seedOrder(),
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getVipLedger: () => ({ v: 1, deliveredCount: 3, spendMinor: { USD: 5230, VND: 0 }, level: 'gold' }),
+    });
+    submitBothSteps();
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-meter"]')).toBeNull();
+    expect(document.querySelector('.rating-sheet-vip-nudge-text')?.textContent).toBe('$7.70 to Platinum');
+
+    openRatingSheet({
+      order: seedOrder(),
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getVipLedger: () => ({ v: 1, deliveredCount: 5, spendMinor: { USD: 6000, VND: 0 }, level: 'platinum' }),
+    });
+    submitBothSteps();
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-slot"]')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+  });
+
+  it('with no getVipLedger option at all, the slot stays empty and aria-hidden', () => {
+    mockMatchMedia(true);
+
+    openRatingSheet({ order: seedOrder(), onSubmitDriverRating: () => {}, onSubmitRestaurant: () => {} });
+    submitBothSteps();
+
+    const nudgeSlot = document.querySelector('[data-testid="rating-sheet-vip-nudge-slot"]');
+    expect(nudgeSlot?.getAttribute('aria-hidden')).toBe('true');
+    expect(nudgeSlot?.textContent).toBe('');
+  });
+});
+
 describe('initTrackerPage — the first rating step submitted unlocks the thanks voucher (#166)', () => {
   it('driver Next, as the first step, unlocks a voucher in this order\'s city, shown in the win', () => {
     const order = placeOrderFor(LINE);
