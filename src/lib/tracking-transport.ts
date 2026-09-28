@@ -3,8 +3,9 @@
 // insert-only POST per event, over the Data API, with the publishable key
 // only — the secret key never appears in this repository. When the store's
 // URL or key is absent (CI, local dev, an unconfigured preview deploy),
-// `initTracking` leaves `track` at its no-op default from tracking.ts: no
-// request is attempted, nothing throws, and the build needs neither value.
+// `initTracking` sets `track` to tracking.ts's no-op and drops whatever was
+// queued before it ran (#245): no request is attempted, nothing throws, and
+// the build needs neither value.
 //
 // The database enforces the ADR's anti-spam bounds itself (the migration in
 // supabase/migrations/ is the source of truth); this module enforces the
@@ -15,7 +16,7 @@
 
 import { applyInternalMarking, readIsInternal, sessionStartedProps, SESSION_STARTED_KEY } from './acquisition';
 import { getSessionId, getVisitorId } from './order-store';
-import { isValidEventProps, setTrack, track, type EventName, type EventProps, type Track } from './tracking';
+import { isValidEventProps, noopTrack, setTrack, type EventName, type EventProps, type Track } from './tracking';
 
 const EVENTS_PATH = '/rest/v1/events';
 
@@ -137,19 +138,27 @@ export function startSessionOnce(page: PageContext, send: Track): void {
 /**
  * The site-wide initialiser's body, with the page passed in. In order: the
  * `?internal=` marking (always, before anything is sent), then — only when
- * the store is configured — the real sender, then `session_started`, so it
- * is the first event this page load sends.
+ * the store is configured — `session_started` through the real sender, then
+ * that sender installed, which flushes the calls page scripts queued before
+ * this ran (#245). So `session_started` is the first event this page load
+ * sends. With no store, `noopTrack` is installed and the queue is dropped.
  */
 export function startTracking(
   config: Pick<SupabaseSenderConfig, 'url' | 'publishableKey' | 'fetchImpl'> | null,
   page: PageContext,
 ): void {
   applyInternalMarking(page.search, page.localStorage);
-  if (!config) return;
-  setTrack(
-    createSupabaseSender({ ...config, localStorage: page.localStorage, sessionStorage: page.sessionStorage }),
-  );
-  startSessionOnce(page, track);
+  if (!config) {
+    setTrack(noopTrack);
+    return;
+  }
+  const send = createSupabaseSender({
+    ...config,
+    localStorage: page.localStorage,
+    sessionStorage: page.sessionStorage,
+  });
+  startSessionOnce(page, send);
+  setTrack(send);
 }
 
 function storageOrUndefined(read: () => Storage): Storage | undefined {
@@ -173,7 +182,7 @@ function currentPage(): PageContext {
 /**
  * Reads the store's URL and publishable key from the environment and, if
  * both are present, swaps `track` to send there. Absent either — CI, local
- * dev, an unconfigured preview deploy — `track` stays the no-op default:
+ * dev, an unconfigured preview deploy — `track` becomes the no-op:
  * "When the key or URL is absent, the sender does nothing" (ADR 0005).
  * `BaseLayout.astro` runs this on every page; see `startTracking` for the
  * `?internal=` marking and `session_started` it also does (#225).
