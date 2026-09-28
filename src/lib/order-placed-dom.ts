@@ -75,7 +75,9 @@ export function renderOrderPlaced(
 
   const order = getLatestOrder(storage);
   if (!order) {
-    navigate('/restaurants/');
+    // `/` rather than `/restaurants/`: this static site has no restaurants
+    // index page, so that path was a 404 (soft-launch readiness QA).
+    navigate('/');
     return { redirectedToRestaurants: true };
   }
 
@@ -94,7 +96,11 @@ export function renderOrderPlaced(
   const restaurantNames = [...new Set(order.items.map((line) => line.restaurantName))].join(', ');
   const summary = document.createElement('p');
   summary.setAttribute('data-testid', 'order-placed-summary');
-  summary.textContent = `${order.itemCount} item${order.itemCount === 1 ? '' : 's'} from ${restaurantNames}, ${formatMoney(order.amountMinor, order.currency)}.`;
+  // The total checkout charged (`totalMinor`: subtotal + fees - discounts),
+  // not `amountMinor`, which is the subtotal - showing that here disagreed
+  // with checkout and the tracker. An order stored before `totalMinor`
+  // existed has it null, and falls back to the subtotal it always showed.
+  summary.textContent = `${order.itemCount} item${order.itemCount === 1 ? '' : 's'} from ${restaurantNames}, ${formatMoney(order.totalMinor ?? order.amountMinor, order.currency)}.`;
 
   // The same estimate stored on the order at placeOrder (order-store.ts) —
   // not re-derived, so it can never drift from what checkout showed (AC2).
