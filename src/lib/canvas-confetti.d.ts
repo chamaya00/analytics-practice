@@ -11,6 +11,11 @@ declare module 'canvas-confetti' {
     gravity?: number;
     colors?: string[];
     disableForReducedMotion?: boolean;
+    /** Fractions of the viewport (0–1 on each axis), not pixels — the
+     * Delivered landing burst (#189) computes this from the stamp's own
+     * `getBoundingClientRect()` rather than leaving it at the library's
+     * `{ x: 0.5, y: 0.5 }` default. */
+    origin?: { x: number; y: number };
   }
 
   export type ConfettiFn = (options?: ConfettiOptions) => void;
