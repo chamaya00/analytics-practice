@@ -63,10 +63,10 @@ function root(): HTMLElement {
 }
 
 describe('initOrderPlacedPage (AC9)', () => {
-  it('redirects to /restaurants/ when no order is stored (direct nav, or Back after a cleared order)', () => {
+  it('redirects home when no order is stored (direct nav, or Back after a cleared order)', () => {
     const navigate = vi.fn();
     initOrderPlacedPage(root(), window.localStorage, navigate);
-    expect(navigate).toHaveBeenCalledWith('/restaurants/');
+    expect(navigate).toHaveBeenCalledWith('/');
   });
 
   it('renders a confirmation with a link to the order just placed (#147 "Order stack rules")', () => {
@@ -84,6 +84,23 @@ describe('initOrderPlacedPage (AC9)', () => {
       `/tracker/#order-${order.orderId}`,
     );
     expect(el.querySelector('[data-testid="order-placed-summary"]')?.textContent).toContain('One Job Pizza');
+  });
+
+  it('shows the total checkout charged, not the subtotal (soft-launch readiness QA)', () => {
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      totalMinor: 1700,
+    });
+
+    const el = root();
+    initOrderPlacedPage(el, window.localStorage, vi.fn());
+
+    const text = el.querySelector('[data-testid="order-placed-summary"]')?.textContent ?? '';
+    expect(text).toContain('$17.00');
+    expect(text).not.toContain('$14.00');
   });
 
   it('shows the order’s own stored estimate (AC2)', () => {

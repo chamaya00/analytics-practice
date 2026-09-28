@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Astro emits this as dist/404.html, which Vercel serves for any path the
+// static build has no page for - instead of the host's own bare 404 with no
+// way back into the app (soft-launch readiness QA). Same shape as the cart's
+// empty state (cart-dom.ts): a line of text and one link home.
+---
+
+<BaseLayout title="Page not found — Dontdropthatpromo">
+  <h1>Page not found</h1>
+  <div data-testid="not-found">
+    <p>There's nothing at this address.</p>
+    <a href="/" class="add-button" data-testid="not-found-home">Browse restaurants</a>
+  </div>
+</BaseLayout>

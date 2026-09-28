@@ -1,5 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+// The sign-in paragraph below describes the wallet, so it renders only in a
+// build where the wallet is switched on (wallet-config.ts's flag; ADR 0008,
+// "Switch it on"). With it off, no visitor is offered sign-in at all.
+const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
 ---
 
 <BaseLayout title="What we log, and why — Dontdropthatpromo">
@@ -29,8 +34,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </li>
     <li>
       <strong>The flash-deal sheet that sometimes opens on the home feed</strong> — <code>flash_sheet_shown</code>
-      (which two restaurants and what discount were randomly drawn
-      for you this browsing session) and <code>flash_sheet_closed</code> (whether you tapped one of
+      (which restaurants and what discount were randomly drawn
+      for you this browsing session; not recorded at the moment, while the sheet's larger draw of five or six
+      restaurants is brought into the log) and <code>flash_sheet_closed</code> (whether you tapped one of
       the two restaurants, dismissed the sheet, or let its countdown run out). That draw is random,
       done in this browser, and tied to this one session — it isn't a promise the same deal is
       available to anyone else, or to you again later.
@@ -58,12 +64,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     this app for any of the above, ever — because the choices above are the only ones this app
     actually asks you to make.
   </p>
+  {walletEnabled && (
   <p>
     <strong>If you sign in to place an order:</strong> Google or Apple shares an email address with
     us, which Supabase Auth holds to keep your play-money wallet tied to your account. Your balance
     is stored per account in our database — never in the events above, and never joined to the
     random browser ID. It's still play money: no payment is ever taken.
   </p>
+  )}
   <div class="demo-disclosure" data-testid="about-disclosure">
     <span
       ><svg

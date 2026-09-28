@@ -95,12 +95,20 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).not.toContain('No account');
   });
 
-  it('states that signing in stores an email via Supabase Auth, and a balance per account, and that it is still play money (#149, AC5)', () => {
+  // #149's sign-in paragraph renders only when PUBLIC_WALLET_ENABLED is set
+  // (soft-launch readiness QA). The suite's build never sets it - the same as
+  // production until the owner switches the wallet on - so the built page
+  // must not mention signing in at all.
+  it('says nothing about signing in when the wallet is off for this build', () => {
     const text = readAbout().body.textContent ?? '';
-    expect(text).toContain('If you sign in to place an order');
-    expect(text).toContain('Google or Apple shares an email address with us, which Supabase Auth holds');
-    expect(text).toContain('Your balance is stored per account in our database');
-    expect(text).toContain("It's still play money: no payment is ever taken.");
+    expect(text).not.toContain('If you sign in to place an order');
+    expect(text).not.toContain('Supabase Auth');
+  });
+
+  it('does not claim flash_sheet_shown is recorded while the store drops it (5-6 restaurant draw vs the 2-slug contract)', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).not.toContain('which two restaurants');
+    expect(text).toContain('not recorded at the moment');
   });
 
   it('discloses the IP-hash rate limit, its one-hour retention, and that it never joins the events table', () => {

@@ -8,11 +8,14 @@
 // #149 adds a second sentence, plainly stating what #136's wallet stores now
 // that "No account" has stopped being true: an email, held by Supabase Auth,
 // and a play-money balance per account — neither ever added to an event
-// (ADR 0008, the #79 rule). True everywhere this renders, whether or not the
-// wallet is switched on for this build (D1): it describes the site, not the
-// visitor's own session.
+// (ADR 0008, the #79 rule). That second sentence renders only when the
+// wallet is switched on for this build (`readWalletEnvConfig`): with it off,
+// no visitor is ever offered sign-in, and a sentence about signing in read as
+// a step they couldn't find (soft-launch readiness QA).
 
-export function renderDemoDisclosure(): HTMLElement {
+import { readWalletEnvConfig } from './wallet-config';
+
+export function renderDemoDisclosure(walletEnabled: boolean = readWalletEnvConfig() !== null): HTMLElement {
   const disclosure = document.createElement('div');
   disclosure.className = 'demo-disclosure';
   disclosure.setAttribute('data-testid', 'demo-disclosure');
@@ -23,8 +26,9 @@ export function renderDemoDisclosure(): HTMLElement {
   const icon = iconWrapper.firstElementChild!;
 
   const text = document.createElement('span');
-  text.textContent =
-    'This is a demo. No payment is taken and no food is sent. Signing in stores an email, held by Supabase Auth, and your play-money balance per account. ';
+  text.textContent = walletEnabled
+    ? 'This is a demo. No payment is taken and no food is sent. Signing in stores an email, held by Supabase Auth, and your play-money balance per account. '
+    : 'This is a demo. No payment is taken and no food is sent. ';
 
   const link = document.createElement('a');
   link.href = '/about/';
