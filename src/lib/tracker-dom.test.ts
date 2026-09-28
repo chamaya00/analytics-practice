@@ -8,13 +8,15 @@ import { formatReviewCount } from './reviews';
 import { cartPath } from './cart-routes';
 import type { SupabaseAuthLike } from './auth-client';
 import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
+import confetti from 'canvas-confetti';
+import * as confettiLoader from './confetti-loader';
 
 // #189: canvas-confetti is mocked file-wide rather than per test — many
 // tests here advance a watched order straight through Delivered without
 // caring about the landing burst, and happy-dom's canvas has no real 2D
 // context for the real library's requestAnimationFrame loop to draw into
-// (docs/memory/engineer.md's #178 lesson, which the same risk this file's
-// own confetti-specific tests below guard against directly).
+// (docs/memory/engineer.md's #178 lesson). The mocked `confetti` default
+// export is also what #189's own tests below assert calls against directly.
 vi.mock('canvas-confetti', () => {
   const cannon = Object.assign(vi.fn(), { create: vi.fn(() => vi.fn()), reset: vi.fn() });
   return { default: cannon };
@@ -1443,5 +1445,160 @@ describe('initTrackerPage — stable photo/avatar elements across the 1s render 
 
     expect(el.querySelector('.tracker-driver-avatar')?.tagName).toBe('SPAN');
     expect(el.querySelector('.tracker-driver-avatar')).not.toBeNull();
+  });
+});
+
+describe('initTrackerPage — the Delivered hero\'s landing animation (#189, docs/design/162-*, "Delivered")', () => {
+  function mockMatchMedia(reducedMotion: boolean): void {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('prefers-reduced-motion') && reducedMotion,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+  }
+
+  /** A fixed stamp geometry and viewport so the burst's `origin` is an exact,
+   * assertable value rather than happy-dom's all-zero layout. */
+  function stubStampGeometry(): void {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      top: 50,
+      width: 76,
+      height: 76,
+      right: 176,
+      bottom: 126,
+      x: 100,
+      y: 50,
+      toJSON: () => {},
+    } as DOMRect);
+    vi.stubGlobal('innerWidth', 800);
+    vi.stubGlobal('innerHeight', 600);
+  }
+
+  beforeEach(() => {
+    vi.mocked(confetti).mockClear();
+    vi.mocked(confetti.create).mockClear();
+    // rating-sheet-dom.ts appends its overlay to the real document.body and
+    // only ever removes the *previous* one reactively, the next time
+    // openRatingSheet runs (its own `current?.close()` guard) — a sheet an
+    // earlier test in this file left open (never clicked closed) would
+    // otherwise still be sitting in document.body when this test's own
+    // "hasn't risen yet" check runs.
+    document.querySelectorAll('[data-testid="rating-sheet"]').forEach((el) => el.remove());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    confettiLoader.resetConfettiCannon();
+  });
+
+  it('AC1: a watched landing carries the press class, adds one ring, and fires one burst from the stamp\'s own position, before the 1.4s sheet', async () => {
+    const order = placeAnOrder();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    stubStampGeometry();
+
+    const tickThatCatchesIt = Math.ceil(order.deliveryMs / 1000) * 1000;
+    await vi.advanceTimersByTimeAsync(tickThatCatchesIt);
+
+    const stamp = el.querySelector('[data-testid="tracker-delivered-stamp"]');
+    expect(stamp?.classList.contains('tracker-delivered-stamp--landing')).toBe(true);
+    expect(el.querySelectorAll('[data-testid="tracker-delivered-ring"]')).toHaveLength(1);
+
+    // Not yet risen — the sheet's own existing 1.4s hasn't elapsed.
+    expect(document.querySelector('[data-testid="rating-sheet"]')).toBeNull();
+
+    expect(confetti).toHaveBeenCalledTimes(1);
+    expect(confetti).toHaveBeenCalledWith({
+      particleCount: 26,
+      ticks: 80,
+      origin: { x: (100 + 38) / 800, y: (50 + 38) / 600 },
+    });
+  });
+
+  it('AC2: it plays once — a re-render after landing never replays the class, the ring, or the burst', async () => {
+    const order = placeAnOrder();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    stubStampGeometry();
+
+    const tickThatCatchesIt = Math.ceil(order.deliveryMs / 1000) * 1000;
+    await vi.advanceTimersByTimeAsync(tickThatCatchesIt);
+    expect(confetti).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(3000); // three more 1s render ticks
+
+    expect(confetti).toHaveBeenCalledTimes(1);
+    expect(el.querySelectorAll('[data-testid="tracker-delivered-ring"]').length).toBeLessThanOrEqual(1);
+    const stamp = el.querySelector('[data-testid="tracker-delivered-stamp"]');
+    expect(stamp?.classList.contains('tracker-delivered-stamp--landing')).toBe(false);
+  });
+
+  it('AC2: opened afterwards (already Delivered at load) is static from the first render — no class, no ring, no burst', () => {
+    const order = placeAnOrder();
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+    const el = root();
+
+    initTrackerPage(el, window.localStorage);
+
+    const stamp = el.querySelector('[data-testid="tracker-delivered-stamp"]');
+    expect(stamp?.classList.contains('tracker-delivered-stamp--landing')).toBe(false);
+    expect(el.querySelector('[data-testid="tracker-delivered-ring"]')).toBeNull();
+    expect(confetti).not.toHaveBeenCalled();
+  });
+
+  it('AC3: under reduced motion, a watched landing shows only the static stamp and never imports canvas-confetti', async () => {
+    mockMatchMedia(true);
+    const loadSpy = vi.spyOn(confettiLoader, 'loadConfettiCannon');
+    const order = placeAnOrder();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const tickThatCatchesIt = Math.ceil(order.deliveryMs / 1000) * 1000;
+    await vi.advanceTimersByTimeAsync(tickThatCatchesIt);
+
+    const stamp = el.querySelector('[data-testid="tracker-delivered-stamp"]');
+    expect(stamp).not.toBeNull();
+    expect(stamp?.classList.contains('tracker-delivered-stamp--landing')).toBe(false);
+    expect(el.querySelector('[data-testid="tracker-delivered-ring"]')).toBeNull();
+    expect(confetti).not.toHaveBeenCalled();
+    expect(loadSpy).not.toHaveBeenCalled();
+
+    // The rating sheet still rises on its existing 1.4s timing.
+    await vi.advanceTimersByTimeAsync(1400);
+    expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
+  });
+
+  it('AC4: the landing burst and the rating win burst share one loaded canvas-confetti module', async () => {
+    const loadSpy = vi.spyOn(confettiLoader, 'loadConfettiCannon');
+    const order = placeAnOrder();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    stubStampGeometry();
+
+    const tickThatCatchesIt = Math.ceil(order.deliveryMs / 1000) * 1000;
+    await vi.advanceTimersByTimeAsync(tickThatCatchesIt);
+    expect(confetti).toHaveBeenCalledTimes(1); // the landing burst
+
+    // A manual Rate tap straight through to the win, well inside the 1.4s
+    // the auto-open sheet is still waiting on, so only one sheet is ever
+    // open here.
+    el.querySelector<HTMLButtonElement>('[data-testid="tracker-delivered-rate"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+    await vi.advanceTimersByTimeAsync(0); // flush the win screen's own dynamic import
+
+    expect(document.querySelector('[data-testid="rating-sheet-win"]')).not.toBeNull();
+    expect(confetti.create).toHaveBeenCalledTimes(1); // the win's own burst, via the canvas-scoped cannon
+
+    expect(loadSpy).toHaveBeenCalledTimes(2); // both call sites went through the shared loader
+    const [landingCannon, winCannon] = await Promise.all(loadSpy.mock.results.map((result) => result.value));
+    expect(landingCannon).toBe(winCannon); // the same loaded instance, not re-imported
   });
 });
