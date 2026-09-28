@@ -570,6 +570,7 @@ describe('initTrackerPage — history (#148 AC3)', () => {
       rating: null,
       driverRating: null,
       ratingPromptedAt: null,
+      walletPaid: false,
     };
     window.localStorage.setItem(ORDERS_KEY, JSON.stringify([legacy]));
     placeAnOrder(); // a live order, so `legacy` lands in Past orders rather than as the live fallback.
