@@ -1091,6 +1091,114 @@
       "query": "sparkling lime drink glass ice",
       "width": 64,
       "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-birria-tacos.jpg",
+      "query": "birria tacos consomme dipping",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-carnitas-taco.jpg",
+      "query": "carnitas taco cilantro onion",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-nopales-taco.jpg",
+      "query": "nopales cactus taco",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-elote.jpg",
+      "query": "elote mexican street corn",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-agua-de-jamaica.jpg",
+      "query": "agua de jamaica hibiscus drink",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-galbi-plate.jpg",
+      "query": "galbi korean short ribs",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-pork-belly-set.jpg",
+      "query": "samgyeopsal pork belly grill",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-kimchi-fried-rice.jpg",
+      "query": "kimchi fried rice egg",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-seafood-pancake.jpg",
+      "query": "haemul pajeon seafood pancake",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-corn-cheese.jpg",
+      "query": "korean corn cheese skillet",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-boat-noodle-soup.jpg",
+      "query": "thai boat noodle soup",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-pad-see-ew.jpg",
+      "query": "pad see ew noodles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-khao-man-gai.jpg",
+      "query": "khao man gai chicken rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-papaya-salad.jpg",
+      "query": "som tam papaya salad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-thai-iced-tea.jpg",
+      "query": "thai iced tea glass",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-lahmajun.jpg",
+      "query": "lahmacun flatbread lemon",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-cheese-boereg.jpg",
+      "query": "borek cheese pastry",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-pakhlava.jpg",
+      "query": "baklava walnut honey",
+      "width": 64,
+      "height": 64
     }
   ]
 }

@@ -212,6 +212,24 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/bo-bit-tet-chu-tam-go-vap-than-bo-uc.jpg` | "sirloin steak pepper sauce" | [behrouz sasani](https://unsplash.com/@behrouzsasani) — [photo RZoNMrC13KU](https://unsplash.com/photos/a-plate-of-meat-and-vegetables-on-a-table-RZoNMrC13KU) — Unsplash License (https://unsplash.com/license) |
 | `public/images/dishes/bo-bit-tet-chu-tam-go-vap-khoai-tay-chien.jpg` | "french fries basket" | [Fernando Andrade](https://unsplash.com/@thisisnando) — [photo R3f2emOt1bU](https://unsplash.com/photos/fried-fries-in-white-pack-beside-red-squeeze-bottle-R3f2emOt1bU) — Unsplash License (https://unsplash.com/license) |
 | `public/images/dishes/bo-bit-tet-chu-tam-go-vap-soda-chanh.jpg` | "sparkling lime drink glass ice" | [Mahdi Kordi](https://unsplash.com/@mahdikordi_ir) — [photo DSuiziv7r8o](https://unsplash.com/photos/a-lemon-slice-in-a-glass-of-water-DSuiziv7r8o) — Unsplash License (https://unsplash.com/license) |
+| `public/images/dishes/boyle-heights-taco-window-birria-tacos.svg` | "birria tacos consomme dipping" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/boyle-heights-taco-window-carnitas-taco.svg` | "carnitas taco cilantro onion" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/boyle-heights-taco-window-nopales-taco.svg` | "nopales cactus taco" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/boyle-heights-taco-window-elote.svg` | "elote mexican street corn" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/boyle-heights-taco-window-agua-de-jamaica.svg` | "agua de jamaica hibiscus drink" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/koreatown-charcoal-house-galbi-plate.svg` | "galbi korean short ribs" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/koreatown-charcoal-house-pork-belly-set.svg` | "samgyeopsal pork belly grill" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/koreatown-charcoal-house-kimchi-fried-rice.svg` | "kimchi fried rice egg" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/koreatown-charcoal-house-seafood-pancake.svg` | "haemul pajeon seafood pancake" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/koreatown-charcoal-house-corn-cheese.svg` | "korean corn cheese skillet" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/thai-town-boat-noodle-house-boat-noodle-soup.svg` | "thai boat noodle soup" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/thai-town-boat-noodle-house-pad-see-ew.svg` | "pad see ew noodles" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/thai-town-boat-noodle-house-khao-man-gai.svg` | "khao man gai chicken rice" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/thai-town-boat-noodle-house-papaya-salad.svg` | "som tam papaya salad" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/thai-town-boat-noodle-house-thai-iced-tea.svg` | "thai iced tea glass" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/glendale-lavash-bakery-lahmajun.svg` | "lahmacun flatbread lemon" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/glendale-lavash-bakery-cheese-boereg.svg` | "borek cheese pastry" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/glendale-lavash-bakery-pakhlava.svg` | "baklava walnut honey" | Pending fetch (#231, batch 2) |
 
 ## Weight budget (#80: home feed first paint ≤ 900KB total)
 
