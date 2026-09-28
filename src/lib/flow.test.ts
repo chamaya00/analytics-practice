@@ -19,6 +19,17 @@ import { initTrackerPage } from './tracker-dom';
 import { restaurantsForCity } from './restaurants';
 import { resetTrack, setTrack } from './tracking';
 
+// #213: this walk now reaches order-placed-dom.ts's own confetti burst —
+// mocked file-wide, the same shape tracker-dom.test.ts's and
+// order-placed-dom.test.ts's own mocks use, since happy-dom's canvas has no
+// real 2D context and the real library throws once its animation frame runs,
+// after this test has already finished (docs/memory/engineer.md's #178
+// lesson).
+vi.mock('canvas-confetti', () => {
+  const cannon = Object.assign(vi.fn(), { create: vi.fn(() => vi.fn()), reset: vi.fn() });
+  return { default: cannon };
+});
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
