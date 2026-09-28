@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { VOUCHER_IDS, isValidEventProps, resetTrack, setTrack, track } from './tracking';
+import { VOUCHER_IDS, isValidEventProps, resetTrack, setTrack, track, type EventProps } from './tracking';
 
 const ORDER_ID = '11111111-2222-4333-8444-555555555555';
 
@@ -312,7 +312,43 @@ describe('track (AC3)', () => {
     expect(stub).not.toHaveBeenCalled();
   });
 
-  it('is a genuine no-op by default — calling track before any setTrack does not throw', () => {
+  it('calling track before any setTrack does not throw (it queues — see #245 below)', () => {
     expect(() => track('home_viewed', { city: 'sf' })).not.toThrow();
+  });
+});
+
+describe('track() calls made before a sender is set are buffered, not lost (#245 AC1)', () => {
+  it('delivers every earlier call to the sender, in call order, before any later call', () => {
+    track('home_viewed', { city: 'sf' });
+    track('restaurant_opened', { city: 'sf', restaurant_slug: 'mission-taqueria' });
+
+    const sent: string[] = [];
+    setTrack((eventName) => sent.push(eventName));
+    track('location_selected', { city: 'sf', is_switch: false });
+
+    expect(sent).toEqual(['home_viewed', 'restaurant_opened', 'location_selected']);
+  });
+
+  it('buffers only calls whose props pass the shape check', () => {
+    track('home_viewed', { city: 'not-a-city' });
+    const sender = vi.fn();
+    setTrack(sender);
+    expect(sender).not.toHaveBeenCalled();
+  });
+
+  it('caps the buffer at 50 entries, keeping the earliest', () => {
+    for (let i = 0; i < 80; i += 1) track('home_viewed', { city: i === 0 ? 'hcmc' : 'sf' });
+    const sent: EventProps[] = [];
+    setTrack((_eventName, props) => sent.push(props));
+    expect(sent).toHaveLength(50);
+    expect(sent[0]).toEqual({ city: 'hcmc' });
+  });
+
+  it('resetTrack() discards the buffer, so one test never leaks calls into the next', () => {
+    track('home_viewed', { city: 'sf' });
+    resetTrack();
+    const sender = vi.fn();
+    setTrack(sender);
+    expect(sender).not.toHaveBeenCalled();
   });
 });
