@@ -13,6 +13,16 @@ worry was banners nobody reads as ads; the fix there was fewer banners, the
 fix here is one banner clearly marked when it's paid for. Same finding,
 opposite lever.
 
+**Amended for #184 (parent #180).** Two changes, both the owner's, both
+recorded here rather than re-argued: the first-order slide moves from index 0
+to index 3 (4th of 7), so the carousel opens on a restaurant photo instead of
+on the site's own promo text; and that slide's plain tinted-panel treatment
+becomes a designed banner. Every section below is edited in place to describe
+the current state rather than kept as a history of two documents — the
+"Revision round" critique further down stays dated, since it records what a
+rendering pass actually found, but "Slide order," "Reduced motion," "Image
+budget," and "Contrast checked" now state the #184 outcome directly.
+
 ## Outcome, constraints, guesses (design-craft)
 
 **Outcome (fixed):** the home feed reads as a food-delivery app, not a
@@ -42,7 +52,11 @@ settings list, on first paint at 375px, in both cities and both themes.
   first-order → ad → promo → ad → promo → ad → promo, so the carousel never
   runs two ads back to back on a short attention span (see "Carousel," below,
   for the full sequence). A different order is a one-line change and not
-  worth a question.
+  worth a question. *(Superseded by #184: the owner did ask for a different
+  order, moving the first-order slide from index 0 to index 3 so the carousel
+  opens on a photo — see "Slide order," under "Content picked," for the
+  current sequence. Left here rather than rewritten, since it's the record of
+  why the original order was a guess and not a constraint.)*
 - **The cuisine tag is dropped from the tile.** The current row shows
   `cuisineTag · ★ rating (count)` on one line at full card width (~295px of
   text room at 375px). A tile is roughly 160px wide — see "Two-column tile
@@ -176,12 +190,21 @@ real catalogue restaurant, not a synthetic string, carrying 25 characters
 across five diacritic-heavy words — the worst case already sitting in the
 data rather than invented for the test.
 
-The seventh slide (both cities) is the existing first-order claim,
+One of the seven slides (both cities) is the existing first-order claim,
 unchanged: `PROMO_BANNER_CLAIM` in `home-dom.ts` (`$2 off your first order` /
-`10.000 ₫ off your first order`).
+`10.000 ₫ off your first order`). It's no longer the slide the carousel opens
+on — see "Slide order," directly below.
 
-**Slide order (both cities):** first-order → ad 1 → promo 1 → ad 2 → promo 2
-→ ad 3 → promo 3.
+**Slide order (both cities), per #184:** ad 1 → promo 1 → ad 2 →
+**first-order** → promo 2 → ad 3 → promo 3 — the first-order slide is now the
+4th of 7, not the 1st. The six restaurant slides keep the exact relative
+order this document originally gave them (ad, promo, ad, promo, ad, promo);
+only the first-order slide's position within the full sequence moves, from
+index 0 to index 3. Confirmed against `CAROUSEL_RESTAURANT_SLIDES` in
+`src/lib/home-dom.ts` (`:41`-`:58`): its own six-entry array, unchanged by
+this document, already gives `ad, promo, ad, promo, ad, promo` per city — the
+engineer's work is to splice the first-order slide into the 4th position of
+the *combined* seven, not to reorder the six-entry constant itself.
 
 ## Composition
 
@@ -312,6 +335,110 @@ in the flow (between search and the cuisine chips):
   on interaction and resuming ~5s after it ends are both behaviors to cover,
   not just "stops and never restarts."
 
+### First-order banner (#184)
+
+Now the 4th slide, not the 1st (see "Slide order," above), and the one issue
+that opened this follow-up: today's `.carousel-slide-panel` is a plain
+tinted-surface box holding the claim and sub as two lines of text — legible,
+and exactly the "reads like a form's help text" flatness this document's own
+"Look at what's there now" section already diagnosed the *old* single banner
+for, now reproduced one slide deep into a carousel that's supposed to have
+fixed it.
+
+**Directions considered, structurally, not just by palette (design-craft):**
+
+- **A — Gradient reward panel.** A full-bleed, fixed (non-retheming)
+  two-stop gradient fills the slide's whole photo-equivalent area, a small
+  decorative motif sits behind the text, and the claim/sub overlay it in a
+  light color — the same "content sits on a ground, ground fills the frame"
+  structure every photo slide already has, with color standing in for the
+  photo instead of a smaller box of text on the page's own surface.
+- **B — Icon-led card, page-surface ground.** Keep the page's own
+  per-theme surface/text tokens (fully rethemed, no fixed exception), and
+  add one large single decorative icon or illustration to the left of the
+  claim/sub as the structural focal point — a bank-app-style icon+text tile
+  rather than a full-bleed ground.
+
+**Recommendation: A.** Every other slide in this carousel is a photo filling
+the frame with text riding on top of it; B keeps this one slide compositionally
+closer to today's plain box (an icon in the corner of an otherwise page-colored
+rectangle) than to its six neighbors, so the carousel would still have one
+visibly flatter slide in the rotation — a smaller version of the exact problem
+this follow-up exists to fix. A costs one themed exception (the gradient is
+fixed across light/dark, like the Ad-label scrim below), which is a cost this
+document already accepted once for the same reason: chrome that has to hold
+its own regardless of what's behind or around it doesn't retheme. I'm taking A.
+
+**Look outside this repository, for this decision specifically:**
+
+- **Mobbin's banner-pattern catalogue** (`mobbin.com/glossary/banner` — the
+  page itself refused automated fetching with a 403; this is drawn from its
+  indexed summary, said plainly rather than dressed up as a full read). Its
+  stated convention for a promotional banner with no product photo is "an
+  eye-catching color or gradient" standing in for the image. I'm taking
+  "gradient stands in for the photo, not a flat near-identical tint" directly
+  — it's why the panel gets a two-stop gradient rather than a slightly
+  different flat surface color. I'm refusing the "eye-catching" instruction's
+  most literal reading (bright, saturated, chosen to pop): this carousel's own
+  Direction section above is "confident... not... high-saturation," so the
+  gradient stays inside the one violet accent already used everywhere else on
+  this screen rather than introducing a second, louder hue.
+- **Envato's 2026 mobile color-scheme trends piece**
+  (`elements.envato.com/learn/color-scheme-trends-in-mobile-app-design`),
+  fetched directly. Its duotone description is specifically "two dominant
+  hues," named for use in "promotional imagery." I'm taking "two hues, not
+  many" directly — the gradient is `--color-accent-a`'s own violet fading to
+  one deeper shade of that same hue, never a second accent color — which is
+  just "one accent, used a few times" (design-craft) applied to a background
+  rather than a border or a badge. I'm refusing the same piece's separate
+  "gradient mesh" trend (several unrelated hues blended together): that's the
+  opposite of the one-accent discipline every other surface on this screen
+  already holds to.
+
+**The design:**
+
+- **Background.** `linear-gradient(135deg, #6c3ce0 0%, #2f1861 100%)` — fixed
+  in both themes, the same "doesn't retheme, because it holds its own regardless
+  of what's around it" reasoning the Ad-label scrim and `global.css`'s
+  `--color-flash-tile-bg` already use elsewhere in this document, extended here
+  to a treatment the panel owns outright (its whole background) rather than one
+  that only sits over unpredictable photo content. `#6c3ce0` is this app's own
+  `--color-accent-a` at its light-theme value — the one accent already doing
+  every highlight on this screen, not a new hue; `#2f1861` is a deeper shade of
+  the same violet, not a second color.
+- **Decorative motif.** Three overlapping circle outlines (a soft
+  "confetti"/bubble cluster), white at 15% opacity, `aria-hidden="true"`,
+  bottom-right, drawn as inline SVG per `docs/memory/designer.md`'s standing
+  "no unicode glyph, no DiceBear-style shared-id inline SVG" lessons — a
+  single, unshared `<svg>` with its own literal circles, no reused ids, no
+  external file. This is the one deliberate oddity on this slide: decoration
+  that carries no information at all, on a screen where everything else earns
+  its place by being legible content. Defended because it's confined to low
+  opacity behind the text (never competing with the claim or sub for contrast)
+  and it's the one thing that keeps a photo-less slide from reading as a
+  placeholder-shaped absence rather than a designed surface — covering it with
+  a hand, the panel goes back to being a flat rectangle with no ground.
+- **Text.** Unchanged content (`PROMO_BANNER_CLAIM[city]`, then "Applied
+  automatically at checkout") and unchanged type scale (`--font-size-body`
+  claim, `--font-size-muted` sub) — this document's own "nothing about slide
+  chrome invents a new display type size" rule (see "Promo carousel," above),
+  restated on purpose since a banner is exactly the kind of element that
+  tempts a bigger size instead of a better ground. Claim in white (`#ffffff`);
+  sub in a dimmer near-white (`#ece4ff`) so the bold-vs-muted hierarchy every
+  other slide gets from `--color-text`/`--color-text-muted` survives even
+  though both now sit on a colored ground instead of the page's own surface.
+- **Layout.** The panel fills the slide's full 256px height (200px
+  photo-equivalent + 56px caption-equivalent — see "Promo carousel"'s own
+  arithmetic above) as one element, not photo-plus-separate-caption-strip:
+  claim and sub left-aligned with `--space-lg` (20px) padding, vertically
+  centered, the motif behind them. The pause button keeps its existing
+  top-right scrim placement, photo or not — the control doesn't move based on
+  what slide type it's sitting on.
+- **What doesn't change.** No "Ad" label (this isn't a paid placement — it's
+  the site's own offer, same as today). Tapping this slide still goes nowhere
+  (unchanged; see "Promo carousel," above). No `<img>`, so nothing here touches
+  "Image budget," below, beyond what the reordering itself already changes.
+
 **Two-column tile grid**, replacing `.restaurant-list`'s vertical stack,
 same position (under the "Near you" heading):
 - CSS grid, 2 columns, `gap: var(--space-md)` (14px) both axes. At 375px,
@@ -352,8 +479,9 @@ same position (under the "Near you" heading):
   grid with `auto-rows` doesn't require a full row; one tile just sits alone
   in the first column.
 - **Carousel with `prefers-reduced-motion: reduce`:** static on the first
-  slide (first-order claim), no auto-advance; swipe and the dots still
-  navigate it manually.
+  slide (the first ad slide, `ad1` — no longer the first-order slide, which
+  per #184 is now the 4th of 7, not the 1st), no auto-advance; swipe and the
+  dots still navigate it manually.
 - **Storage-blocked (private browsing):** unaffected — the carousel and grid
   don't read storage themselves; the existing location-picker notice already
   covers this at the point storage actually matters.
@@ -364,26 +492,45 @@ same position (under the "Near you" heading):
 
 ## Image budget
 
-No new photo. Every slide's restaurant image is that restaurant's own
-existing `heroImage`, already fetched and credited (`photos.json` /
-`80-photo-credits.md`) — reused, not duplicated. The first-order slide stays
-text-only (no image), same as today's banner, so it adds nothing to the
-budget.
+No new raster asset, still. Every restaurant slide's image is that
+restaurant's own existing `heroImage`, already fetched and credited
+(`photos.json` / `80-photo-credits.md`) — reused, not duplicated. The
+first-order banner (see "First-order banner," above) is CSS gradient plus one
+small, unshared inline `<svg>` — no `<img>`, no external file — so it adds
+zero bytes to any budget, same as the plain-panel treatment it replaces.
 
-What changes is what counts as "first paint." Today's 900KB budget
-(`image-budget.test.ts`) sums the first six restaurant `heroImage`s. With a
-carousel in front of the grid, first paint also includes whichever slide is
-current on load (the first-order slide, which is text-only — so in practice
-the currently-visible slide contributes nothing extra either). The other six
-slide images are carousel content, not simultaneously on screen, and should
-load the same way `renderRestaurantCard()`'s photos already do:
-`loading="lazy"`, decoded only as a slide becomes reachable (next/previous
-neighbor) rather than all seven eagerly. That keeps true first-paint weight
-at "grid's first screen of tiles," unchanged from today's number — but the
-test itself measures committed file bytes, not runtime laziness, so its
-six-restaurant slice and its 900KB comment should be revisited by whoever
-implements this to say explicitly what it's now bounding (the engineer's
-job, flagged here so it isn't missed).
+What changes is which restaurant's photo is on screen at first paint. Per
+#184's reordering, the carousel's on-load slide (index 0) is no longer the
+text-only first-order slide — it's now the first ad slide, `ad1`: Mission
+Taqueria (`mission-taqueria-hero.jpg`, 63,667 bytes) for San Francisco, Bến
+Thành Bánh Mì (`ben-thanh-banh-mi-hero.jpg`, 74,950 bytes) for Ho Chi Minh
+City.
+
+`image-budget.test.ts`'s current first-paint assertion sums
+`restaurantsForCity(city).slice(0, 4)`'s `heroImage`s — the tile grid's first
+two rows — against the 900KB cap, on the reasoning (its own comment) that the
+carousel's on-load slide contributed nothing because it was text-only. That
+reasoning no longer holds once the carousel opens on a photo, so the sum
+needs to explicitly account for whichever restaurant is now the carousel's
+first slide, rather than silently assume "still four."
+
+Checked directly against `src/lib/restaurants.ts` and `home-dom.ts`, that
+restaurant turns out to already be `restaurantsForCity(city)[0]` in both
+cities: `mission-taqueria` is `SF_RESTAURANTS`' own first entry
+(`restaurants.ts:50`) and `ben-thanh-banh-mi` is `HCMC_RESTAURANTS`' own first
+entry (`restaurants.ts:257`), and those are exactly `CAROUSEL_RESTAURANT_SLIDES`'s
+`ad1` for each city (`home-dom.ts:43`, `:51`). So the file the carousel now
+opens on is the same file already inside the test's existing four-image
+slice — not a fifth image to add, in the catalogue as it stands today. That's
+the catalogue's own ordering, not something this document arranges, and it
+should be confirmed rather than assumed permanent: the engineer's job is to
+make this reasoning explicit in the test's own comment (as the current
+`slice(0, 4)` comment already does for the old state), including what would
+have to change — a fifth image, `ad1`'s `heroImage`, added to the sum rather
+than assumed absorbed — if a later catalogue reorder ever puts a different
+restaurant at `restaurantsForCity(city)[0]` than the one `CAROUSEL_RESTAURANT_SLIDES`
+names as `ad1`. Leaving that link implicit is exactly how a future catalogue
+edit would quietly under-count the budget.
 
 ## Contrast checked
 
@@ -397,6 +544,18 @@ job, flagged here so it isn't missed).
 | Muted subline/meta (`--color-text-muted`, dark) | `--color-surface`, dark | 7.76 | `./scripts/contrast '#b7a6d9' '#1e1730' 4.5` |
 | `Deal` badge ink on fill, light | `--color-accent-b`, light | 6.35 | `./scripts/contrast '#241b33' '#ff7a45' 4.5` |
 | `Deal` badge ink on fill, dark | `--color-accent-b`, dark | 9.49 | `./scripts/contrast '#16101f' '#ffa36b' 4.5` |
+| First-order banner claim (white), both themes (fixed, see "First-order banner" above) | banner gradient, lighter stop `#6c3ce0` | 6.25 | `./scripts/contrast '#ffffff' '#6c3ce0' 4.5` |
+| First-order banner claim (white), both themes | banner gradient, darker stop `#2f1861` | 14.75 | `./scripts/contrast '#ffffff' '#2f1861' 4.5` |
+| First-order banner sub (`#ece4ff`), both themes | banner gradient, lighter stop `#6c3ce0` | 5.09 | `./scripts/contrast '#ece4ff' '#6c3ce0' 4.5` |
+| First-order banner sub (`#ece4ff`), both themes | banner gradient, darker stop `#2f1861` | 12.01 | `./scripts/contrast '#ece4ff' '#2f1861' 4.5` |
+
+The banner's gradient is fixed across both themes (see "First-order banner,"
+above), so one pair of rows covers both — the same reasoning the Ad-label row
+above already uses for its own fixed scrim. Both stops are checked, not just
+the darker one, because the gradient's lightest point (its `0%` stop) is where
+contrast is tightest; every point between the two stops sits at or above the
+lighter stop's own ratio, so checking both endpoints covers the whole gradient
+the same way the Ad-label row's own "scrim floor" reference does.
 
 Every pairing above is also already covered by `contrast.test.ts` — this
 table re-runs the same tokens in this component's own combinations rather
@@ -432,16 +591,19 @@ both widths:
 - `137-home-feed-hcmc-light.html`
 - `137-home-feed-hcmc-dark.html`
 
-Each shows the full feed (header row, search, carousel on an **ad** slide —
-the state AC2 asks to be checked visually — with the dot row and pause
-control, cuisine chips, "Near you," and the tile grid with one `Deal` tile
-and one `Flash` tile) plus a small labelled reference strip immediately under
-the live carousel showing a **promo**-type slide's anatomy side by side with
-the ad slide's, since a static picture can only show one slide "live" at a
-time and AC2 needs both anatomies checked. Dark files hardcode the dark
-palette (this repository's own convention — see `46-phone-native-dark.html`
-— `design-render` doesn't emulate `prefers-color-scheme`, so a dark render
-has to carry its own values rather than rely on the browser's OS setting).
+Each shows the full feed (header row, search, carousel on the
+**first-order banner** slide — 4th of 7 per #184's reordering, and the state
+#184's own acceptance criteria ask to be checked visually, since it's the new
+graphic treatment this follow-up adds — with the dot row (4th dot filled) and
+pause control, cuisine chips, "Near you," and the tile grid with one `Deal`
+tile and one `Flash` tile) plus a small labelled reference strip immediately
+under the live carousel showing an **ad**-type slide's anatomy side by side
+with a **promo**-type slide's, since a static picture can only show one slide
+"live" at a time and both anatomies still need checking even though neither
+is the slide type #184 changed. Dark files hardcode the dark palette (this
+repository's own convention — see `46-phone-native-dark.html` — `design-render`
+doesn't emulate `prefers-color-scheme`, so a dark render has to carry its own
+values rather than rely on the browser's OS setting).
 
 **Real photos, not gradient placeholders.** *(Added 2026-09-27 per the
 driver's review on #139.)* Every carousel slide, tile, and slide-anatomy
@@ -499,6 +661,36 @@ driver's review on #139:**
   reads as a real hero image rather than a slightly-tall list row — a
   proportion check the arithmetic alone can't make, only the picture can.
 
+**Revision round (2026-09-28, #184), after re-rendering all four mocks with
+the first-order slide now live in the carousel:**
+
+- **Legibility, the thing the acceptance criteria actually ask for:** in all
+  four renders (both cities, both themes) the claim and sub read clearly
+  against the gradient at both widths — confirmed against the picture, not
+  just the computed ratios in "Contrast checked," above.
+- **Cover the accent with your hand:** with the gradient covered, the banner
+  slide is a blank purple rectangle with two lines of white text — it still
+  reads as a designed surface, not a broken one, because the text hierarchy
+  (bold claim, dimmer sub) carries on its own. The motif is decoration on top
+  of that, not load-bearing for it.
+- **Blur test:** at a squint, the banner reads as one solid violet block
+  sitting where a photo sits on every other slide — the intended "carousel
+  still looks like one rhythm, not six photos and one odd panel" read from
+  the "Recommendation: A" reasoning above, confirmed rather than assumed.
+- **What I considered removing:** the decorative motif. It's the one element
+  on this slide that carries no information at all. Kept, for the reason
+  given where it's specified — a hand over the gradient (not the motif) turns
+  the slide back into a flat, undecided rectangle; the motif is what a flat
+  color ground needed to stop reading as a placeholder, and at 15% opacity
+  behind the text it never once competed with the claim or sub in any of the
+  eight renders checked (four here, four from the prior round).
+- **Dark theme, checked specifically:** the fixed gradient (identical values
+  in both themes, per "First-order banner," above) sits noticeably lighter
+  than the dark theme's own near-black page background, the same "reads as a
+  deliberately different, fixed chip" effect the Ad-label scrim already gets
+  in the dark mock — expected, and consistent with the rest of this
+  document's reasoning for fixed chrome, rather than a new problem.
+
 ## For the engineer
 
 - `.tile-card` is a new class; `.restaurant-card` is untouched by this
@@ -522,3 +714,29 @@ driver's review on #139:**
   about what it now bounds — see "Image budget," above.
 - No `track()` calls, event-contract edits, or migrations in this issue —
   `home_viewed` and `restaurant_opened` keep firing exactly as they do today.
+
+**Added for #184:**
+
+- **Slide order.** Splice the first-order slide into index 3 of the combined
+  seven-slide sequence — `CAROUSEL_RESTAURANT_SLIDES`'s own six-entry array
+  (`home-dom.ts:41`-`:58`) is unchanged by this document; `carouselSlidesForCity`
+  (`home-dom.ts:68`-`:90`) is what currently hardcodes `[firstOrder,
+  ...restaurantSlides]` and needs to become `[...restaurantSlides.slice(0, 3),
+  firstOrder, ...restaurantSlides.slice(3)]` or equivalent. `home-dom.test.ts`'s
+  slide-order assertions (and any test asserting `carousel-dot-0` is the
+  first-order slide, or that `prefers-reduced-motion` holds on the first-order
+  slide) need to move to the new index deliberately, watched red before green,
+  per house-rules.
+- **First-order banner.** `.carousel-slide-panel` (and its `-claim`/`-sub`
+  children, `home-dom.ts:266`-`:278`) gets the gradient background, the
+  inline decorative `<svg>`, and the two text colors specified in "First-order
+  banner," above — the element and its `data-testid`s stay, only its CSS
+  changes. `.carousel-slide-media--first-order`'s existing 56px-growth rule
+  (`home-dom.ts:297`) is unaffected — the banner still needs the full 256px,
+  same as before, just filled differently.
+- **Image budget.** `image-budget.test.ts`'s first-paint test and its own
+  comment need to say explicitly that the carousel's on-load slide is now
+  `ad1`'s restaurant, and why that restaurant's `heroImage` is already inside
+  the existing `slice(0, 4)` sum rather than a fifth image — see "Image
+  budget," above, for the exact reasoning and the two source lines it depends
+  on (`restaurants.ts:50`/`:257`, `home-dom.ts:43`/`:51`).

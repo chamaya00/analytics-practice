@@ -214,6 +214,34 @@
     margin-top: 2px;
   }
 
+  /* ---- first-order banner (#184) — replaces the old text-only panel on
+     the slide that used to open the carousel and now sits 4th of 7. Fixed
+     gradient in both themes, same "doesn't retheme because it holds its
+     own regardless of what's around it" reasoning as .ad-label's scrim. ---- */
+
+  .carousel-banner {
+    position: relative;
+    height: 256px;
+    padding: 0 var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #6c3ce0 0%, #2f1861 100%);
+  }
+
+  .carousel-banner-motif {
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    width: 160px;
+    height: 160px;
+    pointer-events: none;
+  }
+
+  .carousel-banner .carousel-claim { position: relative; color: #ffffff; }
+  .carousel-banner .carousel-sub { position: relative; color: #ece4ff; }
+
   .carousel-dots {
     display: flex;
     justify-content: center;
@@ -414,22 +442,25 @@
   <div class="home-search">Search restaurants or cuisines</div>
 
   <section class="carousel" aria-label="Promotions and ads" aria-roledescription="carousel">
-    <div class="carousel-slide" aria-roledescription="slide" aria-label="2 of 7">
-      <img class="carousel-photo" src="../../public/images/restaurants/mission-taqueria-hero.jpg" alt="" />
-      <span class="ad-label">Ad</span>
+    <div class="carousel-slide" aria-roledescription="slide" aria-label="4 of 7">
+      <div class="carousel-banner">
+        <svg class="carousel-banner-motif" viewBox="0 0 160 160" fill="none" aria-hidden="true">
+          <circle cx="120" cy="90" r="46" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+          <circle cx="145" cy="50" r="26" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+          <circle cx="80" cy="140" r="20" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+        </svg>
+        <span class="carousel-claim">$2 off your first order</span>
+        <span class="carousel-sub">Applied automatically at checkout</span>
+      </div>
       <button type="button" class="pause-btn" aria-label="Pause carousel">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
       </button>
-      <div class="carousel-caption">
-        <span class="carousel-claim">Mission Taqueria</span>
-        <span class="carousel-sub">Tacos · ★ 4.6</span>
-      </div>
     </div>
     <div class="carousel-dots" role="tablist" aria-label="Choose slide">
       <button type="button" class="dot" role="tab" aria-label="Slide 1"></button>
-      <button type="button" class="dot active" role="tab" aria-selected="true" aria-label="Slide 2"></button>
+      <button type="button" class="dot" role="tab" aria-label="Slide 2"></button>
       <button type="button" class="dot" role="tab" aria-label="Slide 3"></button>
-      <button type="button" class="dot" role="tab" aria-label="Slide 4"></button>
+      <button type="button" class="dot active" role="tab" aria-selected="true" aria-label="Slide 4"></button>
       <button type="button" class="dot" role="tab" aria-label="Slide 5"></button>
       <button type="button" class="dot" role="tab" aria-label="Slide 6"></button>
       <button type="button" class="dot" role="tab" aria-label="Slide 7"></button>
