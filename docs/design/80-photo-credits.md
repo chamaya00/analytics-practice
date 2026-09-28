@@ -220,7 +220,7 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/koreatown-charcoal-house-galbi-plate.svg` | "galbi korean short ribs" | Pending fetch (#231, batch 2) |
 | `public/images/dishes/koreatown-charcoal-house-pork-belly-set.svg` | "samgyeopsal pork belly grill" | Pending fetch (#231, batch 2) |
 | `public/images/dishes/koreatown-charcoal-house-kimchi-fried-rice.svg` | "kimchi fried rice egg" | Pending fetch (#231, batch 2) |
-| `public/images/dishes/koreatown-charcoal-house-seafood-pancake.svg` | "haemul pajeon seafood pancake" | Pending fetch (#231, batch 2) |
+| `public/images/dishes/koreatown-charcoal-house-seafood-pancake.svg` | "korean scallion pancake" | Pending fetch (#231, batch 2) |
 | `public/images/dishes/koreatown-charcoal-house-corn-cheese.svg` | "korean corn cheese skillet" | Pending fetch (#231, batch 2) |
 | `public/images/dishes/thai-town-boat-noodle-house-boat-noodle-soup.svg` | "thai boat noodle soup" | Pending fetch (#231, batch 2) |
 | `public/images/dishes/thai-town-boat-noodle-house-pad-see-ew.svg` | "pad see ew noodles" | Pending fetch (#231, batch 2) |
