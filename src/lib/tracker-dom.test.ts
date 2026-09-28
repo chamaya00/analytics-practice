@@ -205,6 +205,11 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
     expect(el.querySelector('[data-testid="tracker-done-rail"]')?.getAttribute('aria-label')).toBe(
       'All five steps done',
     );
+    // #206: the Delivered stamp is #162's shared rubber-stamp seal, not a bare
+    // glyph — the same svg.stamp-seal stamp.ts draws for the rating win.
+    const stamp = el.querySelector('[data-testid="tracker-delivered-stamp"]');
+    expect(stamp?.querySelector('svg.stamp-seal')).not.toBeNull();
+    expect(stamp?.querySelector('circle[stroke-dasharray]')).not.toBeNull();
     const disclosure = el.querySelector('[data-testid="demo-disclosure"]');
     const actions = el.querySelector('[data-testid="tracker-delivered-actions"]');
     const rate = el.querySelector('[data-testid="tracker-delivered-rate"]');

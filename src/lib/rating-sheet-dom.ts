@@ -27,6 +27,7 @@ import { formatThanksVoucherExpiry, type ThanksVoucherUnlock } from './thanks-vo
 import { VIP_GOLD_ORDERS, platinumSpendRemainingMinor, type VipLedger } from './vip-level';
 import { loadConfettiCannon } from './confetti-loader';
 import type { ConfettiFn } from 'canvas-confetti';
+import { stampSealSvg } from './stamp';
 
 const STAR_ICON =
   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
@@ -467,7 +468,7 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
     const stamp = doc.createElement('div');
     stamp.className = 'rating-sheet-stamp';
     stamp.setAttribute('aria-hidden', 'true');
-    stamp.innerHTML = STAR_ICON;
+    stamp.innerHTML = stampSealSvg('star');
     winEl.append(stamp);
 
     const heading = doc.createElement('h2');
