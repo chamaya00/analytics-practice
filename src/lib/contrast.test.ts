@@ -112,3 +112,19 @@ describe('flash sheet / reopen bar countdown tile: a fixed dark tile with light 
     expect(contrastRatio('#ffffff', FLASH_TILE_BG)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('thanks-voucher ticket: text on tint, the win\'s reward-slot card (#166, docs/design/162-*, "The thanks voucher" — the design\'s own "text on tint" row, quoted 13.14 / 12.29)', () => {
+  // --color-tab-active-bg (global.css) is the design's exact tint value in
+  // both themes, so this is the same pair `./scripts/contrast` was run
+  // against for the PR, pinned here rather than left to only a rendered shot.
+  const LIGHT_TINT = '#ede1ff';
+  const DARK_TINT = '#2e2444';
+
+  it('clears 4.5:1 in the light theme', () => {
+    expect(contrastRatio(LIGHT_TEXT, LIGHT_TINT)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('clears 4.5:1 in the dark theme', () => {
+    expect(contrastRatio(DARK_TEXT, DARK_TINT)).toBeGreaterThanOrEqual(4.5);
+  });
+});

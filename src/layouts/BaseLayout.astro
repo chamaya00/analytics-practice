@@ -2766,9 +2766,29 @@ const { title } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  /* #166's reward unlock mounts here — empty until that issue ships. */
-  [data-testid='rating-sheet-reward-slot'] {
+  /* #166's reward unlock mounts here. Collapsed only while empty
+     (rating-sheet-dom.ts sets `aria-hidden` on this element itself, never on
+     the ticket, so the attribute is a reliable "nothing rendered" flag) —
+     without this qualifier the rule zeroed the slot's height even once the
+     ticket was appended inside it, clipping the whole thing to nothing. */
+  [data-testid='rating-sheet-reward-slot'][aria-hidden='true'] {
     height: 0;
+  }
+
+  /* The win's thanks-voucher ticket (#166, docs/design/162-*, "The thanks
+     voucher"): a single tinted card, left-aligned against the sheet's
+     otherwise centred copy. `--color-tab-active-bg` is exactly the mock's
+     tint value in both themes, and `--color-text` on it is the "text on
+     tint" pair #162's contrast table already checked (13.14 / 12.29) — no
+     new pair beyond quoting that one for this component. */
+  .rating-sheet-reward-ticket {
+    margin: 0 0 var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-tab-active-bg);
+    border-radius: 14px;
+    color: var(--color-text);
+    font-size: var(--font-size-muted);
+    text-align: left;
   }
 
   /* ---- rating prompt (#80's tracker, Delivered state) ---- */
