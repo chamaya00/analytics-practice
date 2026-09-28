@@ -1844,6 +1844,15 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 7314
   },
+  "public/images/dishes/westwood-persian-grill-barg-kebab-plate.jpg": {
+    "id": "QoOCbD4eb8k",
+    "query": "beef kebab rice",
+    "photographer": "Nima Naseri",
+    "photographerUrl": "https://unsplash.com/@nimanaseri",
+    "photoUrl": "https://unsplash.com/photos/a-white-plate-topped-with-meat-and-french-fries-QoOCbD4eb8k",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 8089
+  },
   "public/images/dishes/westwood-persian-grill-chicken-koobideh-plate.jpg": {
     "id": "ZiVed-NKIC0",
     "query": "koobideh kebab saffron rice",
