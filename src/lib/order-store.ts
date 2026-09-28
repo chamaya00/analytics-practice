@@ -11,6 +11,7 @@ import { estimateEtaMinutes } from './eta';
 import { getMenuItem, getRestaurant } from './restaurants';
 import { pickDriver, type Driver } from './drivers';
 import { isDelivered } from './tracker-state';
+import { applyDeliveredOrderToLedger, readVipLedger, writeVipLedger, type VipLedger } from './vip-level';
 
 export const VISITOR_ID_KEY = 'parody.visitorId';
 export const SESSION_ID_KEY = 'parody.sessionId';
@@ -95,6 +96,14 @@ export interface PlacedOrder {
    * order is written... If placing fails ... it is not consumed"), so a
    * failed write never reaches a caller that would clear it from storage. */
   thanksVoucherMinor: number;
+  /** Whether this order has already been folded into `parody.vip` (#174,
+   * docs/design/162-*, "The ledger: progress never goes backwards") — set by
+   * `sweepVipLedger` the first time the order is seen delivered, and never
+   * cleared. `false` for every legacy order, so the first sweep after this
+   * shipped counts each of them exactly once (the doc's "Backfill"). This is
+   * also the flag `capOrders` requires before an order can be dropped: an
+   * order evicted before being counted would take its progress with it. */
+  vipCounted: boolean;
 }
 
 /** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
@@ -433,14 +442,15 @@ function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => 
     ratingPromptedAt: order.ratingPromptedAt ?? null,
     walletPaid: order.walletPaid ?? false,
     thanksVoucherMinor: order.thanksVoucherMinor ?? 0,
+    vipCounted: order.vipCounted ?? false,
   };
 }
 
-/** Drops the oldest droppable order first once `orders` (oldest-first) exceeds `ORDER_HISTORY_CAP` — an order that's still live, or delivered but not yet fired, is never droppable (§5), so a cap breached entirely by protected orders is left over-cap rather than losing one of them. */
+/** Drops the oldest droppable order first once `orders` (oldest-first) exceeds `ORDER_HISTORY_CAP` — an order that's still live, or delivered but not yet fired, is never droppable (§5), so a cap breached entirely by protected orders is left over-cap rather than losing one of them. `vipCounted` joins that guard (#174): dropping an order the VIP ledger hasn't folded in yet would take its progress with it, which is why `placeOrder` always sweeps before this runs. */
 function capOrders(orders: PlacedOrder[], now: number): PlacedOrder[] {
   const overflow = orders.length - ORDER_HISTORY_CAP;
   if (overflow <= 0) return orders;
-  const droppable = (order: PlacedOrder): boolean => isDelivered(order, now) && order.deliveredEventFired;
+  const droppable = (order: PlacedOrder): boolean => isDelivered(order, now) && order.deliveredEventFired && order.vipCounted;
   const result = [...orders];
   let toDrop = overflow;
   for (let i = 0; i < result.length && toDrop > 0; ) {
@@ -474,6 +484,7 @@ function withRatingDefaults(order: PlacedOrder): PlacedOrder {
     ratingPromptedAt: order.ratingPromptedAt ?? null,
     walletPaid: order.walletPaid ?? false,
     thanksVoucherMinor: order.thanksVoucherMinor ?? 0,
+    vipCounted: order.vipCounted ?? false,
   };
 }
 
@@ -611,7 +622,13 @@ export function placeOrder(
     ratingPromptedAt: null,
     walletPaid: fields.walletPaid ?? false,
     thanksVoucherMinor: fields.thanksVoucherMinor ?? 0,
+    vipCounted: false,
   };
+  // #174: sweep before capOrders runs, so any order that has become
+  // delivered since it was last swept is folded into the ledger and marked
+  // vipCounted before eviction can consider it droppable — see capOrders's
+  // own note above.
+  sweepVipLedger(storage, Date.now());
   const orders = getOrders(storage, random);
   orders.push(order);
   setOrders(storage, capOrders(orders, Date.now()));
@@ -643,6 +660,33 @@ export function markOrderDelivered(storage: Storage, orderId: string): void {
   if (!order || order.deliveredEventFired) return;
   order.deliveredEventFired = true;
   setOrders(storage, orders);
+}
+
+/**
+ * Folds every stored order that is delivered (`isDelivered`) and not yet
+ * `vipCounted` into `parody.vip`, once each, then marks them counted — #174,
+ * docs/design/162-*, "The ledger: progress never goes backwards". Fires no
+ * event. Idempotent: an order already `vipCounted` is left untouched, so
+ * calling this repeatedly (the tracker's render, checkout mount, and here in
+ * `placeOrder`) never double-counts one. Returns the ledger whether or not
+ * anything was newly swept, so a caller can read the current level either way.
+ */
+export function sweepVipLedger(storage: Storage, now: number): VipLedger {
+  const orders = getOrders(storage);
+  const toCount = orders.filter((order) => isDelivered(order, now) && !order.vipCounted);
+  if (toCount.length === 0) return readVipLedger(storage);
+
+  let ledger = readVipLedger(storage);
+  for (const order of toCount) ledger = applyDeliveredOrderToLedger(ledger, order);
+  writeVipLedger(storage, ledger);
+
+  const countedIds = new Set(toCount.map((order) => order.orderId));
+  for (const order of orders) {
+    if (countedIds.has(order.orderId)) order.vipCounted = true;
+  }
+  setOrders(storage, orders);
+
+  return ledger;
 }
 
 /** Records the rating for the named order, the one write the tracker's Delivered state makes beyond reading it — `null` (a no-op) if that id isn't stored or is already rated, which is what makes a second "Submit" impossible (contract §7's `rating_submitted` invariant). */
