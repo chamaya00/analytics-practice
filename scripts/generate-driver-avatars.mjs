@@ -90,8 +90,14 @@ export function renderDriverAvatar(driverId, city) {
 function main() {
   if (!existsSync(OUTPUT_DIR)) mkdirSync(OUTPUT_DIR, { recursive: true });
   let count = 0;
+  const written = new Set();
   for (const [city, drivers] of Object.entries(DRIVERS_BY_CITY)) {
     for (const driver of drivers) {
+      // LA reuses SF's pool (docs/design/229-la-catalogue.md): an avatar is
+      // drawn once, under the city whose pool it came from, never redrawn
+      // with another city's options.
+      if (written.has(driver.id)) continue;
+      written.add(driver.id);
       const svg = renderDriverAvatar(driver.id, city);
       writeFileSync(`${OUTPUT_DIR}/${driver.id}.svg`, svg);
       count += 1;

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { VOUCHER_IDS, isValidEventProps, resetTrack, setTrack, track, type EventProps } from './tracking';
+import { LA_VOUCHER_IDS, VOUCHER_IDS, isValidEventProps, resetTrack, setTrack, track, type EventProps } from './tracking';
+import { LA_VOUCHER_IDS as CATALOGUE_LA_VOUCHER_IDS } from './vouchers';
 
 const ORDER_ID = '11111111-2222-4333-8444-555555555555';
 
@@ -414,5 +415,23 @@ describe('track() calls made before a sender is set are buffered, not lost (#245
     const sender = vi.fn();
     setTrack(sender);
     expect(sender).not.toHaveBeenCalled();
+  });
+});
+
+describe('LA events (#230, superseding its older AC3: the store accepts la since #219, and #238 wired it)', () => {
+  it('accepts city la on the events that read money.ts CITIES, exactly as the store does', () => {
+    expect(isValidEventProps('location_selected', { city: 'la', is_switch: false })).toBe(true);
+    expect(isValidEventProps('home_viewed', { city: 'la' })).toBe(true);
+    expect(isValidEventProps('restaurant_opened', { city: 'la', restaurant_slug: 'boyle-heights-taco-window' })).toBe(true);
+    expect(
+      isValidEventProps('flash_sheet_closed', { city: 'la', outcome: 'dismissed', seconds_remaining: 512, restaurant_slug: 'none' }),
+    ).toBe(true);
+    expect(isValidEventProps('home_viewed', { city: 'nyc' })).toBe(false);
+  });
+
+  it("the la-* ids order_placed accepts are exactly vouchers.ts's LA catalogue, and VOUCHER_IDS still pins the ten", () => {
+    expect([...LA_VOUCHER_IDS]).toEqual(['la-delivery-entry', 'la-discount-t1', 'la-discount-t2', 'la-discount-t3', 'la-flash']);
+    expect([...LA_VOUCHER_IDS]).toEqual([...CATALOGUE_LA_VOUCHER_IDS]);
+    expect(VOUCHER_IDS).toHaveLength(10);
   });
 });

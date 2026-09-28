@@ -19,17 +19,21 @@ import type { City } from './money';
 // — verified to read at 15px. `stroke-linecap`/`stroke-linejoin: round` now
 // live on the `<svg>` wrapper (createVehicleIcon, below, and the restaurant
 // page's inline svg) rather than per-path, since these paths don't set them.
+const CAR_ICON_PATH =
+  '<circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>' +
+  '<path d="M5 17H3v-4l2.5-1 2.5-4h8l3 4 2 1v4h-2"/>' +
+  '<path d="M9 17h6"/>' +
+  '<path d="M3 13h18"/>';
+
 export const VEHICLE_ICON_PATHS: Record<City, string> = {
   hcmc:
     '<circle cx="5.5" cy="17" r="2.5"/><circle cx="18.5" cy="17" r="2.5"/>' +
     '<path d="M3 14.5c0-2.5 1.7-3.5 4-3.5h4"/>' +
     '<path d="M8 17h6l2.5-11"/>' +
     '<path d="M14.5 5.5h3.5"/>',
-  sf:
-    '<circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>' +
-    '<path d="M5 17H3v-4l2.5-1 2.5-4h8l3 4 2 1v4h-2"/>' +
-    '<path d="M9 17h6"/>' +
-    '<path d="M3 13h18"/>',
+  sf: CAR_ICON_PATH,
+  // docs/design/229-la-catalogue.md: SF's car, reused.
+  la: CAR_ICON_PATH,
 };
 
 /** "motorbike" for HCMC, "car" for SF — the data-vehicle value a test asserts against rather than the raw path data (#130 AC4/AC5). */

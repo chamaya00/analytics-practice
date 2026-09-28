@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { restaurantsForCity } from './restaurants';
+import { CITIES } from './money';
 import { MAX_BYTES as FETCH_MAX_BYTES } from '../../scripts/fetch-photos.mjs';
 import { DRIVERS_BY_CITY } from './drivers';
 
@@ -42,7 +43,7 @@ function listImageFiles(dir: string): string[] {
 
 describe('committed placeholder images — weight budget (AC3)', () => {
   it('every restaurant hero thumbnail is at most 180KB (fetch-photos.mjs MAX_BYTES)', () => {
-    for (const city of ['sf', 'hcmc'] as const) {
+    for (const city of CITIES) {
       for (const restaurant of restaurantsForCity(city)) {
         const filePath = path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''));
         const size = statSync(filePath).size;
@@ -74,7 +75,7 @@ describe('committed placeholder images — weight budget (AC3)', () => {
   // rather than the old single-column six, erring toward the stricter (more
   // images counted) side of that estimate.
   it("the home feed's first paint (up to 4 restaurant thumbnails: the 2-column tile grid's first two rows, phone width; the carousel's on-load slide is now the first ad restaurant, already inside this slice) totals at most 900KB", () => {
-    for (const city of ['sf', 'hcmc'] as const) {
+    for (const city of CITIES) {
       const restaurants = restaurantsForCity(city).slice(0, 4);
       const total = restaurants.reduce(
         (sum, restaurant) => sum + statSync(path.join(ROOT, 'public', restaurant.heroImage.replace(/^\//, ''))).size,
@@ -110,9 +111,10 @@ describe('photo credits file (AC3, #82; rewritten from the lock file by #106)', 
 
 describe('driver avatars — weight budget (#148 AC4)', () => {
   it('every driver id in drivers.ts has its own committed avatar file, and only those 50', () => {
-    const expectedIds = Object.values(DRIVERS_BY_CITY)
+    // LA reuses SF's pool (docs/design/229-la-catalogue.md), so an id can appear under two cities.
+    const expectedIds = [...new Set(Object.values(DRIVERS_BY_CITY)
       .flat()
-      .map((driver) => driver.id)
+      .map((driver) => driver.id))]
       .sort();
     const actualIds = readdirSync(AVATARS_DIR)
       .map((name) => name.replace(/\.svg$/, ''))

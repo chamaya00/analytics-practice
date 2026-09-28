@@ -226,6 +226,8 @@ describe('drawFlashDeal never draws an already-free restaurant at all (#126 AC4,
   const ZERO_FEE_SLUGS: Record<City, string[]> = {
     hcmc: ['ca-phe-nha-go-18', 'banh-xeo-co-nam-tan-dinh'],
     sf: ['valencia-street-tandoor', 'noe-valley-morning-kitchen'],
+    // docs/design/229-la-catalogue.md; exercised once #233 adds LA's restaurants.
+    la: ['echo-park-breakfast-burritos', 'los-feliz-plant-kitchen'],
   };
 
   it.each(['hcmc', 'sf'] as City[])('%s: no zero-delivery-fee restaurant is ever drawn, across many seeded draws', (city) => {

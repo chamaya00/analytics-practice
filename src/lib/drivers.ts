@@ -78,6 +78,8 @@ const HCMC_DRIVERS: Driver[] = [
 export const DRIVERS_BY_CITY: Record<City, Driver[]> = {
   sf: SF_DRIVERS,
   hcmc: HCMC_DRIVERS,
+  // docs/design/229-la-catalogue.md, "Drivers: LA reuses SF's pool".
+  la: SF_DRIVERS,
 };
 
 function pickIndex(length: number, random: () => number): number {

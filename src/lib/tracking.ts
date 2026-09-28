@@ -30,7 +30,7 @@
 
 import { isValidReferrerHost, isValidUtmValue } from './acquisition';
 import { CITIES } from './money';
-import { VOUCHER_IDS as CATALOGUE_VOUCHER_IDS } from './vouchers';
+import { LA_VOUCHER_IDS as CATALOGUE_LA_VOUCHER_IDS, VOUCHER_IDS as CATALOGUE_VOUCHER_IDS } from './vouchers';
 
 export type EventName =
   | 'location_selected'
@@ -69,8 +69,8 @@ export type RatingTag = (typeof RATING_TAGS)[number];
 /** The ten fixed catalogue voucher ids §7's `order_placed` row names, and `flash_sheet_shown`/`flash_sheet_closed`'s own `restaurant_slugs` draw from — vouchers.ts (#87's catalogue) is the single source, re-exported here so this shape mirror doesn't drift from it. */
 export const VOUCHER_IDS = CATALOGUE_VOUCHER_IDS;
 
-/** #219 contract §4: the five LA ids the store already accepts. LA's catalogue isn't in vouchers.ts yet, so they are named here until it is. */
-export const LA_VOUCHER_IDS = ['la-delivery-entry', 'la-discount-t1', 'la-discount-t2', 'la-discount-t3', 'la-flash'] as const;
+/** #219 contract §4: the five LA ids the store already accepts — vouchers.ts's LA catalogue (#230), re-exported. */
+export const LA_VOUCHER_IDS = CATALOGUE_LA_VOUCHER_IDS;
 
 /** #219 contract §4: the only values an `applied_voucher_ids` element may take (15). */
 export const EVENT_VOUCHER_IDS: readonly string[] = [...VOUCHER_IDS, ...LA_VOUCHER_IDS];

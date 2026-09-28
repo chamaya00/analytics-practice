@@ -15,6 +15,7 @@ import {
   findOrder,
   getCart,
   getOrders,
+  cityForRestaurantSlug,
   linesForRestaurant,
   markRatingPrompted,
   minutesSinceOrder,
@@ -44,7 +45,7 @@ import { openRatingSheet, type RatingSheetOptions } from './rating-sheet-dom';
 import { openConfirmDialog } from './confirm-dialog-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
-import { currencyForCity, formatMoney, type City, type Currency } from './money';
+import { CITY_LOCALE, currencyForCity, formatMoney, otherCurrencyCitiesShortLabel, otherCurrencyForCity, type City, type Currency } from './money';
 import { getStoredCity } from './location';
 import {
   EMPTY_VIP_LEDGER,
@@ -371,7 +372,7 @@ function deliveredTimeLine(order: PlacedOrder, city: Restaurant['city'], now: nu
   const minutesAgo = Math.floor((now - deliveredAt) / 60_000);
 
   if (minutesAgo < 1) {
-    const clock = new Intl.DateTimeFormat(city === 'hcmc' ? 'vi-VN' : 'en-US', {
+    const clock = new Intl.DateTimeFormat(CITY_LOCALE[city], {
       hour: 'numeric',
       minute: '2-digit',
       hour12: city !== 'hcmc',
@@ -1049,7 +1050,7 @@ function renderVipCard(ledger: VipLedger, currentCity: City): HTMLElement {
     const detail = document.createElement('p');
     detail.className = 'muted';
     detail.setAttribute('data-testid', 'vip-card-detail');
-    detail.textContent = 'Free delivery and 10% off every order, both cities.';
+    detail.textContent = 'Free delivery and 10% off every order, every city.';
     body.append(heading, detail);
   } else if (ledger.level === 'gold') {
     heading.append('Gold ');
@@ -1069,15 +1070,16 @@ function renderVipCard(ledger: VipLedger, currentCity: City): HTMLElement {
     spendLine.textContent = `${formatMoney(spendMinor, currency)} of ${formatMoney(targetMinor, currency)} · ${formatMoney(remainingMinor, currency)} to Platinum`;
     body.append(heading, spendLine);
 
-    const otherCity: City = currentCity === 'sf' ? 'hcmc' : 'sf';
-    const otherCurrency = currencyForCity(otherCity);
+    // The other *currency*, labelled with every city that spends it
+    // (docs/design/229-la-catalogue.md, "The 'other city' line").
+    const otherCurrency = otherCurrencyForCity(currentCity);
     const otherSpendMinor = ledger.spendMinor[otherCurrency];
     if (otherSpendMinor > 0) {
       const otherLine = document.createElement('p');
       otherLine.className = 'muted vip-card-other-currency';
       otherLine.setAttribute('data-testid', 'vip-card-other-currency');
       const otherTargetMinor = VIP_PLATINUM_SPEND_MINOR[otherCurrency];
-      const cityLabel = otherCity === 'hcmc' ? 'HCMC' : 'SF';
+      const cityLabel = otherCurrencyCitiesShortLabel(currentCity);
       otherLine.textContent = `Plus ${formatMoney(otherSpendMinor, otherCurrency)} of ${formatMoney(otherTargetMinor, otherCurrency)} in ${cityLabel}, counted apart.`;
       body.append(otherLine);
     }
@@ -1625,7 +1627,8 @@ export function initTrackerPage(
     function maybeUnlockThanksVoucher(): void {
       const target = findOrder(storage, orderId);
       if (!target || target.rating !== null || target.driverRating !== null) return;
-      const city: City = target.currency === 'VND' ? 'hcmc' : 'sf';
+      // The order's restaurant's city, never its currency, which LA shares with SF (#230).
+      const city: City = cityForRestaurantSlug(target.items[0]?.restaurantSlug ?? '');
       thanksVoucherUnlock = unlockThanksVoucher(storage, city, orderId, Date.now());
     }
     return {
