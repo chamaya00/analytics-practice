@@ -12,8 +12,7 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
   <p data-testid="about-builder-credit">
     Dontdropthatpromo is a solo project by Charles Amaya, built as a hands-on way to practice
     product analytics — the querying, event design, and metric judgment the job actually needs,
-    against a real dataset instead of a toy one.
-    <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
+    against a real dataset instead of a toy one. <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
   </p>
   <p>
     Every screen in this app fires a real event at a hosted database, so there's an actual
@@ -51,18 +50,18 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
       to check on an order (<code>tracker_viewed</code>).
     </li>
     <li>
-      <strong>The flash-deal sheet that sometimes opens on the home feed</strong> — <code>flash_sheet_shown</code>
-      (which restaurants and what discount were randomly drawn
-      for you this browsing session; not recorded at the moment, while the sheet's larger draw of five or six
-      restaurants is brought into the log) and <code>flash_sheet_closed</code> (whether you tapped one of
-      the two restaurants, dismissed the sheet, or let its countdown run out). That draw is random,
+      <strong>The flash-deal sheet that sometimes opens on the home feed</strong> — <code>flash_sheet_shown</code> (which
+      five or six restaurants and what discount were randomly drawn for you this browsing session) and <code>flash_sheet_closed</code> (whether
+      you tapped one of those restaurants, dismissed the sheet, or let its countdown run out). That draw is random,
       done in this browser, and tied to this one session — it isn't a promise the same deal is
       available to anyone else, or to you again later.
     </li>
     <li>
       <strong>The choices you make at checkout</strong> — your drop-off preset (Home, Office, or
       Front desk), your delivery instructions, whether you want utensils, and which real voucher or
-      vouchers, if any, you applied (<code>order_placed</code>). There is no name, address, phone
+      vouchers, if any, you applied, along with the city, whether the order was paid from your
+      play-money wallet (yes or no, never the balance), your VIP level and what it saved you, and any
+      thanks voucher (<code>order_placed</code>). There is no name, address, phone
       number, email, or payment field anywhere in this app for us to log, because we never ask for
       one, and no free-text field anywhere in this app, ever.
     </li>
@@ -71,6 +70,23 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
       the first time the tracker computes your order as delivered, and <code>rating_submitted</code>,
       the star count and any preset tags (never free text) you choose
       when you submit a rating.
+    </li>
+    <li>
+      <strong>How you rated your driver</strong> — <code>driver_rating_submitted</code>, the star
+      count you chose for the driver.
+    </li>
+    <li>
+      <strong>Signing in, and whether it worked, if the site ever asks you to</strong> — <code>sign_in_prompt_shown</code> when
+      the sign-in sheet opens, <code>sign_in_started</code> when you pick Google or Apple, and <code>sign_in_completed</code> with whether signing in worked or not.
+      Only which provider, and whether you were ordering or tipping — never your email or your account.
+    </li>
+    <li>
+      <strong>Tips you send a driver</strong> — <code>tip_sent</code>: which order, and which of the
+      fixed tip amounts you picked. Never your wallet balance.
+    </li>
+    <li>
+      <strong>When too little play money stops an order or a tip</strong> — <code>wallet_short_shown</code>: the
+      city, and whether it was at checkout or a tip. Never your balance, or how much you were short.
     </li>
   </ul>
   <p data-testid="driver-avatar-credit">

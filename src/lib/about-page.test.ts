@@ -34,6 +34,13 @@ const CONTRACT_EVENT_FAMILIES = [
   'tracker_viewed',
   'order_delivered',
   'rating_submitted',
+  // #238: the #219 contract's new client events (session_started is #225's, below).
+  'sign_in_prompt_shown',
+  'sign_in_started',
+  'sign_in_completed',
+  'tip_sent',
+  'driver_rating_submitted',
+  'wallet_short_shown',
 ];
 
 const RETIRED_PARODY_STRINGS = [
@@ -105,10 +112,11 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).not.toContain('Supabase Auth');
   });
 
-  it('does not claim flash_sheet_shown is recorded while the store drops it (5-6 restaurant draw vs the 2-slug contract)', () => {
+  it('no longer says flash_sheet_shown is not recorded, now the client and store take the 5-6 draw (#238 AC4)', () => {
     const text = readAbout().body.textContent ?? '';
     expect(text).not.toContain('which two restaurants');
-    expect(text).toContain('not recorded at the moment');
+    expect(text).not.toContain('not recorded at the moment');
+    expect(text).not.toContain('the two restaurants');
   });
 
   it('discloses the IP-hash rate limit, its one-hour retention, and that it never joins the events table', () => {
@@ -143,6 +151,11 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).toContain('how you rated it — order_delivered');
     expect(text).toContain('as delivered, and rating_submitted');
     expect(text).toContain('is kept for up to one hour');
+    // #238: the two glued spots the driver found on main.
+    expect(text).toContain('instead of a toy one. Find me on LinkedIn');
+    expect(text).toContain('flash_sheet_shown (which five or six restaurants');
+    expect(text).toContain('asks you to — sign_in_prompt_shown');
+    expect(text).toContain('a tip — wallet_short_shown');
   });
 });
 
@@ -173,5 +186,41 @@ describe('#236 builder credit', () => {
     expect(credit?.querySelector('a')?.getAttribute('href')).toBe('https://www.linkedin.com/in/charlesamaya');
     const list = doc.querySelector('ul');
     expect(credit!.compareDocumentPosition(list!) & 4).toBeTruthy();
+  });
+});
+
+describe('#238: the new client events, in plain words (AC4)', () => {
+  it('lists sign-in attempts and their outcome, with no email or account', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain(
+      'Signing in, and whether it worked, if the site ever asks you to — sign_in_prompt_shown when the sign-in sheet opens, sign_in_started when you pick Google or Apple, and sign_in_completed with whether signing in worked or not.',
+    );
+    expect(text).toContain('Only which provider, and whether you were ordering or tipping — never your email or your account.');
+  });
+
+  it('lists tips sent, as the preset amount', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain(
+      'Tips you send a driver — tip_sent: which order, and which of the fixed tip amounts you picked. Never your wallet balance.',
+    );
+  });
+
+  it('lists driver ratings', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain('How you rated your driver — driver_rating_submitted, the star count you chose for the driver.');
+  });
+
+  it('lists a short wallet blocking an order or a tip, with no balance or shortfall', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain(
+      'When too little play money stops an order or a tip — wallet_short_shown: the city, and whether it was at checkout or a tip. Never your balance, or how much you were short.',
+    );
+  });
+
+  it("says what order_placed now adds: the city, whether the wallet paid, the VIP level and saving, and any thanks voucher", () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain(
+      'which real voucher or vouchers, if any, you applied, along with the city, whether the order was paid from your play-money wallet (yes or no, never the balance), your VIP level and what it saved you, and any thanks voucher (order_placed).',
+    );
   });
 });

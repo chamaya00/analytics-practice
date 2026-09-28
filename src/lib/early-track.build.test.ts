@@ -69,6 +69,8 @@ describe('built / on a returning visit (#245 AC3)', () => {
       expect(call[0]).toBe(`${FAKE_URL}/rest/v1/events`);
       return JSON.parse(call[1].body).event_name as string;
     });
-    expect(sent).toEqual(['session_started', 'home_viewed']);
+    // A fresh session draws the flash deal, which fires flash_sheet_shown
+    // ahead of home_viewed since #238 put it back on the contract.
+    expect(sent).toEqual(['session_started', 'flash_sheet_shown', 'home_viewed']);
   });
 });

@@ -733,13 +733,8 @@ function renderFeed(root: HTMLElement, pillRoot: HTMLElement, city: City, sessio
   }
 
   if (isNewDraw) {
-    // A 5-6 restaurant draw's own restaurant_slugs no longer matches
-    // flash_sheet_shown's contract (exactly 2, tracking.ts's
-    // isValidRestaurantSlugs and the store's own check) - all of this
-    // draw's slugs are still passed through rather than truncated to 2, so
-    // the event is dropped by that validation and goes quiet rather than
-    // wrong (#120 AC6; docs/design/119-flash-sheet-tall-and-collapsed-
-    // bar.md and the parent objective's "event tracking comes last" rule).
+    // The whole 5-6 restaurant draw, in drawn order, never truncated
+    // (#238; docs/measurement/219-analytics-readiness-contract.md §8).
     track('flash_sheet_shown', {
       city,
       amount_minor: draw.amountMinor,

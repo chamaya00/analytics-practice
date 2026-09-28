@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, EVENT_STORE_BOOT_TIMEOUT_MS, openEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initTrackerPage, type TrackerWalletDeps } from './tracker-dom';
 import { addToCart, findOrder, getCart, getLatestOrder, linesForRestaurant, ORDER_KEY, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
 import { defaultOpenOrderId } from './tracker-state';
@@ -1327,6 +1328,225 @@ describe('tip control (#171, docs/design/162-*, "Tips"/"History rows")', () => {
       expect(row.querySelector('[data-testid="tracker-history-tip-note"]')?.textContent).toBe(
         "Placed without the wallet, so it can't take a tip.",
       );
+    });
+  });
+
+  describe('#238: tip_sent, wallet_short_shown and sign-in on the tip surface (AC1, AC2, AC3)', () => {
+    beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
+    afterAll(closeEventStore);
+    // The sign-in sheet mounts on document.body; an earlier test's would otherwise answer these queries.
+    beforeEach(() => {
+      document.body.innerHTML = '';
+    });
+
+    function propsOf(stub: ReturnType<typeof vi.fn>, eventName: string): Record<string, unknown>[] {
+      return stub.mock.calls.filter(([name]) => name === eventName).map(([, props]) => props as Record<string, unknown>);
+    }
+
+    /** No new event carries an email, a user id, a balance or a shortfall (the #79 rule, #219 §9). */
+    function expectNoIdentityOrBalance(stub: ReturnType<typeof vi.fn>): void {
+      const sent = JSON.stringify(stub.mock.calls);
+      expect(sent).not.toContain(RAW_SESSION.user.email);
+      expect(sent).not.toContain(RAW_SESSION.user.id);
+      expect(sent).not.toContain(RAW_SESSION.access_token);
+      expect(sent).not.toMatch(/balance|shortfall|email|user_id/i);
+    }
+
+    function liveDeps(fetchImpl: ReturnType<typeof tipFetch>): TrackerWalletDeps {
+      return tipWalletDeps({ fetchImpl, auth: signedInAuth() });
+    }
+
+    async function openPanelAndSend(el: HTMLElement, orderId: string, taps = 1): Promise<void> {
+      rowFor(el, orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      const send = rowFor(el, orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-send"]')!;
+      for (let i = 0; i < taps; i++) send.click();
+      await flush();
+    }
+
+    it('tipped fires one tip_sent with exactly currency, order_id and the preset, and the store keeps that object', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const stub = vi.fn();
+      setTrack(stub);
+      const el = root();
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps(tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'tipped', amountMinor: 200, usdMinor: 700 }] })));
+      await flush();
+
+      await openPanelAndSend(el, target.orderId);
+
+      expect(propsOf(stub, 'tip_sent')).toEqual([{ currency: 'USD', order_id: target.orderId, tip_amount_minor: 200 }]);
+      expectNoIdentityOrBalance(stub);
+      const [props] = propsOf(stub, 'tip_sent');
+      await expect(storeWhatTheClientSends('tip_sent', props as never)).resolves.toEqual(props);
+    });
+
+    it('a double tap on Send fires one tip_sent', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const stub = vi.fn();
+      setTrack(stub);
+      const el = root();
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps(tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'tipped', amountMinor: 200 }] })));
+      await flush();
+
+      await openPanelAndSend(el, target.orderId, 2);
+
+      expect(propsOf(stub, 'tip_sent')).toHaveLength(1);
+    });
+
+    it('already_tipped, insufficient, blocked, unreachable and Cancel fire no tip_sent', async () => {
+      const answers: Parameters<typeof tipFetch>[0]['tip'][] = [
+        [{ status: 'already_tipped', amountMinor: 200 }],
+        [{ status: 'insufficient', usdMinor: 150 }],
+        [{ blocked: 'no debit row for this order' }],
+        ['network-error', 'network-error'],
+      ];
+      const stub = vi.fn();
+      setTrack(stub);
+      for (const tip of answers) {
+        window.localStorage.clear();
+        const target = placeDeliveredOrder(LINE, true);
+        placeOrderFor(LINE_B);
+        const el = root();
+        initTrackerPage(el, window.localStorage, vi.fn(), liveDeps(tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip })));
+        await flush();
+        await openPanelAndSend(el, target.orderId);
+      }
+      window.localStorage.clear();
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const el = root();
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps(tipFetch({ providers: { google: true }, ready: true, balances: BALANCES, tip: [{ status: 'tipped' }] })));
+      await flush();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-cancel"]')!.click();
+      await flush();
+
+      expect(propsOf(stub, 'tip_sent')).toHaveLength(0);
+    });
+
+    it('the short-balance block fires wallet_short_shown once, with only city and surface, however often it re-renders; the store keeps it', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const stub = vi.fn();
+      setTrack(stub);
+      const el = root();
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps(tipFetch({ providers: { google: true }, ready: true, balances: { ...BALANCES, usd_minor: 50 } })));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      expect(rowFor(el, target.orderId).querySelector('[data-testid="tracker-tip-short"]')).not.toBeNull();
+      // Preset changes and the 1s tick re-render the block; Cancel and reopen draws it again.
+      rowFor(el, target.orderId).querySelectorAll<HTMLButtonElement>('.tracker-tip-preset')[2].click();
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-tip-cancel"]')!.click();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+      expect(rowFor(el, target.orderId).querySelector('[data-testid="tracker-tip-short"]')).not.toBeNull();
+
+      expect(propsOf(stub, 'wallet_short_shown')).toEqual([{ city: 'sf', surface: 'tip' }]);
+      expectNoIdentityOrBalance(stub);
+      const [props] = propsOf(stub, 'wallet_short_shown');
+      await expect(storeWhatTheClientSends('wallet_short_shown', props as never)).resolves.toEqual(props);
+    });
+
+    it('an affordable panel fires no wallet_short_shown', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const stub = vi.fn();
+      setTrack(stub);
+      const el = root();
+      initTrackerPage(el, window.localStorage, vi.fn(), liveDeps(tipFetch({ providers: { google: true }, ready: true, balances: BALANCES })));
+      await flush();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip"]')!.click();
+
+      expect(propsOf(stub, 'wallet_short_shown')).toHaveLength(0);
+    });
+
+    it('"Sign in to tip" fires sign_in_prompt_shown (tip) per opening, then sign_in_started with parody.pendingSignIn written before navigating', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const stub = vi.fn();
+      setTrack(stub);
+      const navigateToOAuth = vi.fn().mockImplementation(() => {
+        expect(propsOf(stub, 'sign_in_started')).toEqual([{ provider: 'google', surface: 'tip' }]);
+        expect(JSON.parse(window.sessionStorage.getItem('parody.pendingSignIn')!)).toEqual({ provider: 'google', surface: 'tip' });
+      });
+      const el = root();
+      initTrackerPage(el, window.localStorage, vi.fn(), tipWalletDeps({ fetchImpl: tipFetch({ providers: { google: true }, ready: true }), navigateToOAuth }));
+      await flush();
+
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip-signin"]')!.click();
+      document.querySelector<HTMLButtonElement>('[data-testid="sign-in-not-now"]')!.click();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip-signin"]')!.click();
+      expect(propsOf(stub, 'sign_in_prompt_shown')).toEqual([{ surface: 'tip' }, { surface: 'tip' }]);
+
+      document.querySelector<HTMLButtonElement>('[data-testid="google-signin"]')!.click();
+      await flush();
+      expect(navigateToOAuth).toHaveBeenCalledTimes(1);
+      expect(propsOf(stub, 'sign_in_started')).toHaveLength(1);
+    });
+
+    it('beginSignIn returning false fires no sign_in_started', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      const stub = vi.fn();
+      setTrack(stub);
+      const el = root();
+      initTrackerPage(
+        el,
+        window.localStorage,
+        vi.fn(),
+        tipWalletDeps({
+          fetchImpl: tipFetch({ providers: { google: true }, ready: true }),
+          auth: { signInWithOAuth: vi.fn().mockRejectedValue(new Error('down')) },
+        }),
+      );
+      await flush();
+      rowFor(el, target.orderId).querySelector<HTMLButtonElement>('[data-testid="tracker-history-tip-signin"]')!.click();
+      document.querySelector<HTMLButtonElement>('[data-testid="google-signin"]')!.click();
+      await flush();
+
+      expect(propsOf(stub, 'sign_in_started')).toHaveLength(0);
+      expect(window.sessionStorage.getItem('parody.pendingSignIn')).toBeNull();
+    });
+
+    it('the OAuth return fires exactly one sign_in_completed (tip, success), even with two tracker pages reading it; a reload of the cleaned URL fires nothing', async () => {
+      const target = placeDeliveredOrder(LINE, true);
+      placeOrderFor(LINE_B);
+      window.sessionStorage.setItem('parody.pendingTipOrderId', target.orderId);
+      window.sessionStorage.setItem('parody.pendingSignIn', JSON.stringify({ provider: 'google', surface: 'tip' }));
+      const stub = vi.fn();
+      setTrack(stub);
+      const returnDeps = (locationHref: string) =>
+        tipWalletDeps({ fetchImpl: tipFetch({ providers: { google: true }, ready: true, balances: BALANCES }), locationHref });
+
+      initTrackerPage(root(), window.localStorage, vi.fn(), returnDeps('https://site.example/tracker/?code=abc123&state=s1'));
+      // Claimed in the same synchronous step, before any await (§7).
+      expect(window.sessionStorage.getItem('parody.pendingSignIn')).toBeNull();
+      initTrackerPage(root(), window.localStorage, vi.fn(), returnDeps('https://site.example/tracker/?code=abc123&state=s1'));
+      await flush();
+      initTrackerPage(root(), window.localStorage, vi.fn(), returnDeps('https://site.example/tracker/'));
+      await flush();
+
+      expect(propsOf(stub, 'sign_in_completed')).toEqual([{ outcome: 'success', provider: 'google', surface: 'tip' }]);
+      expectNoIdentityOrBalance(stub);
+      const [props] = propsOf(stub, 'sign_in_completed');
+      await expect(storeWhatTheClientSends('sign_in_completed', props as never)).resolves.toEqual(props);
+    });
+
+    it('a failed return fires sign_in_completed with outcome failed', async () => {
+      window.sessionStorage.setItem('parody.pendingSignIn', JSON.stringify({ provider: 'apple', surface: 'tip' }));
+      const stub = vi.fn();
+      setTrack(stub);
+      initTrackerPage(
+        root(),
+        window.localStorage,
+        vi.fn(),
+        tipWalletDeps({ fetchImpl: tipFetch({ providers: { google: true }, ready: true }), locationHref: 'https://site.example/tracker/?error=access_denied' }),
+      );
+      await flush();
+
+      expect(propsOf(stub, 'sign_in_completed')).toEqual([{ outcome: 'failed', provider: 'apple', surface: 'tip' }]);
     });
   });
 });
