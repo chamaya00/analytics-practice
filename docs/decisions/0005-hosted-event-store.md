@@ -92,6 +92,72 @@ with CAPTCHA - superseding the write path here, not the store); or the free
 plan starts losing paused data or the 500 MB cap is reached (Neon behind a
 function).
 
+## Owner setup checklist
+
+One-time, ordered, each step paired with what to run to confirm it worked
+before moving to the next. `supabase/migrations/` is the source of truth for
+every SQL statement below — nothing here duplicates it, only sequences it.
+
+1. **Create the Supabase project** (free plan) at
+   [supabase.com](https://supabase.com/dashboard). Confirm: the dashboard's
+   Project Settings → API page shows a Project URL
+   (`https://<ref>.supabase.co`) and, under API keys, a publishable key
+   (`sb_publishable_…`) — both are needed for step 3.
+2. **Apply every migration under `supabase/migrations/`, in filename order**,
+   in the dashboard's SQL Editor — paste each file's contents as its own run,
+   oldest timestamp first, ending with `20260930000000_rate_limit_search_path.sql`
+   (#222). Confirm each one applied by re-running it: every migration in this
+   directory is idempotent (`create ... if not exists`, `create or replace`,
+   guarded `do $$ ... $$` blocks), so a second run against the same database
+   succeeds silently rather than erroring — an error on the second run means
+   the first run left something half-applied. Confirm the whole set landed:
+   ```sql
+   select table_schema, table_name from information_schema.tables
+   where table_schema in ('public', 'private') order by 1, 2;
+   ```
+   should list, at minimum, `public.events`, `public.events_clean`,
+   `private.write_log`, and `private.rate_limit_salt`.
+3. **Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY`** in the
+   Vercel project's Environment Variables (Settings → Environment Variables),
+   using the two values from step 1, for the Production environment at
+   least. Confirm: both names are listed there with the right values: the
+   URL from step 1 verbatim, and a key starting `sb_publishable_`.
+4. **Redeploy** (Vercel → Deployments → Redeploy on the latest, or push a
+   commit) — environment variable changes do not apply to a deployment that
+   already ran. Confirm: the new deployment's build log shows `astro build`
+   completing with no error, the same as `npm run build` locally (ADR 0001 —
+   no adapter, so Vercel runs the identical program).
+5. **Confirm an event actually lands.** Open the live site and click through
+   any screen that fires a `track()` call (landing the homepage is enough).
+   Then, in the SQL Editor:
+   ```sql
+   select event_name, received_at from public.events order by received_at desc limit 5;
+   ```
+   A row appears within a few seconds of the click, with `received_at` close
+   to now. If nothing appears: check the browser's Network tab for the POST
+   to `/rest/v1/events` and its response — a 401 means the publishable key is
+   wrong or missing, a 400 means a props shape the store's `event_is_valid`
+   rejects (a real bug, not a setup problem), and no request at all means
+   step 3's env vars did not make it into the deployed build (redeploy
+   again).
+6. **Confirm the rate limit's IP hashing is real** — the reason #222 exists.
+   From two devices on two different networks (e.g. a phone on cellular data
+   and a laptop on office/home wifi — two browser tabs on the same wifi
+   share one public IP and will not do this), open the live site on both and
+   trigger at least one event on each. Then:
+   ```sql
+   select ip_hash, count(*) as writes from private.write_log
+   group by ip_hash order by writes desc;
+   ```
+   Expect **two distinct `ip_hash` rows**, one per device/network. One row
+   for both means they were hashed as the same source — check which header
+   `enforce_write_rate_limit()` is actually reading
+   (`20260925000000_events.sql`'s own comment: it prefers
+   `cf-connecting-ip`, falling back to the rightmost `x-forwarded-for`
+   entry) against what Supabase's edge actually sends on this project, and
+   update the trigger if it differs — the migration's comment already flags
+   this as "an assumption to confirm on the first real deploy."
+
 ## Alternatives rejected
 
 - **Keep events in `localStorage`.** Events never leave the device, so there
