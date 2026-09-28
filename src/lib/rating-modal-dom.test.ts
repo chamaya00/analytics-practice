@@ -10,8 +10,8 @@
 // requestAnimationFrame loop throws on it after the assertions that reach it
 // have already run (docs/memory/engineer.md's #178 lesson).
 
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, EVENT_STORE_BOOT_TIMEOUT_MS, openEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initTrackerPage } from './tracker-dom';
 import { openRatingSheet } from './rating-sheet-dom';
 import { addToCart, findOrder, ORDERS_KEY, placeOrder, submitDriverRating, type PlacedOrder } from './order-store';
@@ -809,6 +809,7 @@ describe('initTrackerPage — the first rating step submitted unlocks the thanks
 });
 
 describe('#238: driver_rating_submitted (AC1, AC3)', () => {
+  beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
   afterAll(closeEventStore);
 
   function driverEvents(stub: ReturnType<typeof vi.fn>): unknown[] {

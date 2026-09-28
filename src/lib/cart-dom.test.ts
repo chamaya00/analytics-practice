@@ -1,5 +1,5 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, EVENT_STORE_BOOT_TIMEOUT_MS, openEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initCartPage } from './cart-dom';
 import { addToCart, getCart } from './order-store';
 import { resetTrack, setTrack } from './tracking';
@@ -287,6 +287,7 @@ describe('removing a line: swipe-revealed Remove, or minus at quantity 1 with a 
 });
 
 describe('cart_viewed carries city, and the store keeps the exact object (#238 AC1)', () => {
+  beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
   afterAll(closeEventStore);
 
   it('the empty state sends the stored city, and its own currency', async () => {

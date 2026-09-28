@@ -1,5 +1,5 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, EVENT_STORE_BOOT_TIMEOUT_MS, openEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initTrackerPage, type TrackerWalletDeps } from './tracker-dom';
 import { addToCart, findOrder, getCart, getLatestOrder, linesForRestaurant, ORDER_KEY, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
 import { defaultOpenOrderId } from './tracker-state';
@@ -1332,6 +1332,7 @@ describe('tip control (#171, docs/design/162-*, "Tips"/"History rows")', () => {
   });
 
   describe('#238: tip_sent, wallet_short_shown and sign-in on the tip surface (AC1, AC2, AC3)', () => {
+    beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
     afterAll(closeEventStore);
     // The sign-in sheet mounts on document.body; an earlier test's would otherwise answer these queries.
     beforeEach(() => {
@@ -1520,6 +1521,8 @@ describe('tip control (#171, docs/design/162-*, "Tips"/"History rows")', () => {
         tipWalletDeps({ fetchImpl: tipFetch({ providers: { google: true }, ready: true, balances: BALANCES }), locationHref });
 
       initTrackerPage(root(), window.localStorage, vi.fn(), returnDeps('https://site.example/tracker/?code=abc123&state=s1'));
+      // Claimed in the same synchronous step, before any await (§7).
+      expect(window.sessionStorage.getItem('parody.pendingSignIn')).toBeNull();
       initTrackerPage(root(), window.localStorage, vi.fn(), returnDeps('https://site.example/tracker/?code=abc123&state=s1'));
       await flush();
       initTrackerPage(root(), window.localStorage, vi.fn(), returnDeps('https://site.example/tracker/'));

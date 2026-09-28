@@ -55,6 +55,18 @@ function store(): Promise<PGlite> {
   return dbPromise;
 }
 
+/**
+ * Opens the database ahead of the first test that needs it. Booting PGlite
+ * and applying every migration takes seconds, and longer with every test
+ * file doing it in parallel, so a file calls this from `beforeAll` with its
+ * own generous timeout rather than paying it inside one test's default 5s.
+ */
+export const EVENT_STORE_BOOT_TIMEOUT_MS = 60_000;
+
+export async function openEventStore(): Promise<void> {
+  await store();
+}
+
 export async function closeEventStore(): Promise<void> {
   if (!dbPromise) return;
   const db = await dbPromise;

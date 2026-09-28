@@ -1,5 +1,5 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, EVENT_STORE_BOOT_TIMEOUT_MS, openEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { createSupabaseSender } from './tracking-transport';
 import { initCheckoutPage, type CheckoutWalletDeps } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
@@ -1213,6 +1213,7 @@ function expectNoIdentityOrBalance(stub: ReturnType<typeof vi.fn>): void {
 
 describe('#238: checkout_viewed and order_placed carry the #219 §8 props, and the store keeps them (AC1)', () => {
   beforeEach(() => addToCart(window.localStorage, LINE));
+  beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
   afterAll(closeEventStore);
 
   it('checkout_viewed is exactly the four §8 props, and the store keeps that object', async () => {
@@ -1323,6 +1324,7 @@ describe('#238: checkout_viewed and order_placed carry the #219 §8 props, and t
 
 describe('#238: wallet_short_shown at checkout (AC1, AC3)', () => {
   beforeEach(() => addToCart(window.localStorage, LINE));
+  beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
   afterAll(closeEventStore);
 
   it('fires once with only city and surface when the block first renders on load, and the store keeps that object', async () => {
@@ -1389,6 +1391,7 @@ describe('#238: wallet_short_shown at checkout (AC1, AC3)', () => {
 
 describe('#238: sign-in at Place order, across the OAuth round trip (AC1, AC2)', () => {
   beforeEach(() => addToCart(window.localStorage, LINE));
+  beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
   afterAll(closeEventStore);
 
   async function openSheet(el: HTMLElement, deps: CheckoutWalletDeps): Promise<void> {
@@ -1482,6 +1485,8 @@ describe('#238: sign-in at Place order, across the OAuth round trip (AC1, AC2)',
     const stub = vi.fn();
     setTrack(stub);
     initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&code=abc123'));
+    // Claimed in the same synchronous step, before any await (§7).
+    expect(window.sessionStorage.getItem('parody.pendingSignIn')).toBeNull();
     initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&code=abc123'));
     await flush();
 

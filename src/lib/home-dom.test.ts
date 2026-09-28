@@ -1,5 +1,5 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, EVENT_STORE_BOOT_TIMEOUT_MS, openEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initHomePage } from './home-dom';
 import { getStoredCity } from './location';
 import { restaurantsForCity, getRestaurant } from './restaurants';
@@ -757,6 +757,7 @@ describe('the collapsed reopen bar (AC2, AC3)', () => {
 });
 
 describe('#238: flash_sheet_shown sends the whole 5-6 draw, and the store keeps it (AC1)', () => {
+  beforeAll(openEventStore, EVENT_STORE_BOOT_TIMEOUT_MS);
   afterAll(closeEventStore);
 
   afterEach(() => {
