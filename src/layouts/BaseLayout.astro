@@ -2601,6 +2601,7 @@ const { title } = Astro.props;
   }
 
   .tracker-action-button {
+    flex: none;
     min-height: 36px;
     display: inline-flex;
     align-items: center;
@@ -2610,6 +2611,11 @@ const { title } = Astro.props;
     font-size: var(--font-size-muted);
     font-weight: 700;
     line-height: 1.15;
+    /* A driver review of #173's history render found "Order again" wrapping
+       to two lines at 375px — a flex item's default min-content width is its
+       longest unbreakable word, not the whole phrase, so a tight row shrinks
+       it to fit "Order"/"again" on separate lines instead of overflowing. */
+    white-space: nowrap;
     border-radius: 999px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -2770,8 +2776,12 @@ const { title } = Astro.props;
 
   .rating-sheet-close {
     position: absolute;
-    top: var(--space-sm);
-    right: var(--space-sm);
+    /* A driver review of #176's win render found the focus ring clipped
+       flush against the panel's own edge at `--space-sm` alone — the panel's
+       `overflow-y: auto` (above) clips the x-axis too, so the ring needs
+       clearance beyond its own `outline-offset`, not just the button's. */
+    top: calc(var(--space-sm) + var(--space-xs));
+    right: calc(var(--space-sm) + var(--space-xs));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2906,6 +2916,29 @@ const { title } = Astro.props;
      ticket was appended inside it, clipping the whole thing to nothing. */
   [data-testid='rating-sheet-reward-slot'][aria-hidden='true'] {
     height: 0;
+  }
+
+  /* #169's VIP nudge slot — same "collapse only via aria-hidden on the slot
+     itself" rule as the reward slot just above, and the same reason: zeroing
+     height unconditionally would clip the nudge once rendered inside it. */
+  [data-testid='rating-sheet-vip-nudge-slot'][aria-hidden='true'] {
+    height: 0;
+  }
+
+  .rating-sheet-vip-nudge {
+    margin: 0 0 var(--space-md);
+    text-align: left;
+  }
+
+  .rating-sheet-vip-nudge .vip-meter {
+    justify-content: center;
+  }
+
+  .rating-sheet-vip-nudge-text {
+    margin: 0;
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    text-align: center;
   }
 
   /* The win's thanks-voucher ticket (#166, docs/design/162-*, "The thanks

@@ -24,6 +24,7 @@ import { RATING_TAGS, type RatingTag } from './tracking';
 import { getRestaurant } from './restaurants';
 import { CITY_NAMES, formatMoney, formatMoneyForCity } from './money';
 import { formatThanksVoucherExpiry, type ThanksVoucherUnlock } from './thanks-voucher';
+import { VIP_GOLD_ORDERS, platinumSpendRemainingMinor, type VipLedger } from './vip-level';
 import type { ConfettiFn } from 'canvas-confetti';
 
 const STAR_ICON =
@@ -75,6 +76,12 @@ export interface RatingSheetOptions {
    * tracking.ts directly — the caller resolves the unlock and hands back
    * only its result. */
   getThanksVoucherUnlock?: () => ThanksVoucherUnlock | null;
+  /** Read-only VIP snapshot for the win's VIP nudge (#169, docs/design/
+   * 162-*, "The win's VIP nudge") — `readVipLedger`, read once at the win
+   * screen and never written back here; the sweep that actually updates it
+   * runs in tracker-dom.ts before this sheet ever opens. Omitted shows no
+   * nudge. */
+  getVipLedger?: () => VipLedger;
   /** Where focus returns on close — `null`/omitted for the sheet's usual
    * case, auto-opening with nothing to return to. */
   returnFocusTo?: HTMLElement | null;
@@ -138,6 +145,51 @@ function renderThanksVoucherTicket(unlock: ThanksVoucherUnlock, doc: Document): 
     `For your next ${CITY_NAMES[city]} order over ${formatMoneyForCity(voucher.minimumSpendMinor, city)}. ` +
     `Applies by itself at checkout. · Expires ${formatThanksVoucherExpiry(voucher.expiresAt)} · one per city`;
   return ticket;
+}
+
+/** The win's VIP nudge (#169, docs/design/162-*, "VIP levels": "The win's
+ * VIP nudge shows the next step in one line: the Gold meter, or '$7.70 to
+ * Platinum', or nothing at Platinum") — reuses the VIP card's own
+ * `.vip-meter` styling (tracker-dom.ts/BaseLayout.astro) since it's the same
+ * meter the design names, not a coincidental lookalike. Fires nothing and
+ * never touches the ledger; `ledger` is a snapshot the caller already read. */
+function renderVipNudge(ledger: VipLedger, currency: PlacedOrder['currency'], doc: Document): HTMLElement | null {
+  if (ledger.level === 'platinum') return null;
+
+  const nudge = doc.createElement('div');
+  nudge.className = 'rating-sheet-vip-nudge';
+  nudge.setAttribute('data-testid', 'rating-sheet-vip-nudge');
+
+  if (ledger.level === 'gold') {
+    const remainingMinor = platinumSpendRemainingMinor(ledger, currency);
+    const text = doc.createElement('p');
+    text.className = 'rating-sheet-vip-nudge-text';
+    text.textContent = `${formatMoney(remainingMinor, currency)} to Platinum`;
+    nudge.append(text);
+    return nudge;
+  }
+
+  const meter = doc.createElement('div');
+  meter.className = 'vip-meter';
+  meter.setAttribute('data-testid', 'rating-sheet-vip-nudge-meter');
+  meter.setAttribute('role', 'img');
+  const filled = Math.min(ledger.deliveredCount, VIP_GOLD_ORDERS);
+  meter.setAttribute('aria-label', `${filled} of ${VIP_GOLD_ORDERS} delivered orders`);
+  for (let i = 0; i < VIP_GOLD_ORDERS; i += 1) {
+    const segment = doc.createElement('span');
+    segment.className = 'vip-meter-segment';
+    segment.classList.toggle('filled', i < filled);
+    meter.append(segment);
+  }
+  nudge.append(meter);
+
+  const remaining = VIP_GOLD_ORDERS - ledger.deliveredCount;
+  const text = doc.createElement('p');
+  text.className = 'rating-sheet-vip-nudge-text';
+  text.textContent = `${remaining} more delivered order${remaining === 1 ? '' : 's'} to Gold`;
+  nudge.append(text);
+
+  return nudge;
 }
 
 export function openRatingSheet(options: RatingSheetOptions, doc: Document = document): RatingSheetHandle {
@@ -435,8 +487,7 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
     winEl.append(summary);
 
     // #166's reward unlock: the thanks voucher ticket, when this order's
-    // first submitted step unlocked (or topped up) one. The VIP nudge the
-    // same slot was drawn for in #162's mock is #174's, not this issue's.
+    // first submitted step unlocked (or topped up) one.
     const rewardSlot = doc.createElement('div');
     rewardSlot.setAttribute('data-testid', 'rating-sheet-reward-slot');
     const unlock = options.getThanksVoucherUnlock?.() ?? null;
@@ -446,6 +497,19 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
       rewardSlot.setAttribute('aria-hidden', 'true');
     }
     winEl.append(rewardSlot);
+
+    // #169's VIP nudge, beside the ticket in the same reward slot area —
+    // absent at Platinum, and absent when the caller has nothing to show.
+    const nudgeSlot = doc.createElement('div');
+    nudgeSlot.setAttribute('data-testid', 'rating-sheet-vip-nudge-slot');
+    const ledger = options.getVipLedger?.();
+    const nudge = ledger ? renderVipNudge(ledger, order.currency, doc) : null;
+    if (nudge) {
+      nudgeSlot.append(nudge);
+    } else {
+      nudgeSlot.setAttribute('aria-hidden', 'true');
+    }
+    winEl.append(nudgeSlot);
 
     const done = doc.createElement('button');
     done.type = 'button';

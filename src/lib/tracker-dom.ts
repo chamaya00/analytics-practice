@@ -31,19 +31,28 @@ import {
   computeTrackerView,
   decideRatingPrompt,
   defaultOpenOrderId,
+  deliveredAtMs,
   isDelivered,
+  isRatingFullyDone,
   STEPS,
   type TrackerView,
 } from './tracker-state';
 import { checkDelivery } from './delivery';
-import { RATING_TAGS, track, type RatingTag } from './tracking';
+import { track } from './tracking';
 import { openRatingSheet, type RatingSheetOptions } from './rating-sheet-dom';
 import { openConfirmDialog } from './confirm-dialog-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
 import { currencyForCity, formatMoney, type City } from './money';
 import { getStoredCity } from './location';
-import { EMPTY_VIP_LEDGER, VIP_GOLD_ORDERS, VIP_PLATINUM_SPEND_MINOR, platinumSpendRemainingMinor, type VipLedger } from './vip-level';
+import {
+  EMPTY_VIP_LEDGER,
+  readVipLedger,
+  VIP_GOLD_ORDERS,
+  VIP_PLATINUM_SPEND_MINOR,
+  platinumSpendRemainingMinor,
+  type VipLedger,
+} from './vip-level';
 import { unlockThanksVoucher, type ThanksVoucherUnlock } from './thanks-voucher';
 import { getRestaurant, type Restaurant } from './restaurants';
 import { formatReviewCount } from './reviews';
@@ -51,23 +60,15 @@ import { createVehicleIcon } from './vehicle-icon';
 import { formatHistoryDate } from './history-date';
 import { cartPath } from './cart-routes';
 
-const STAR_ICON =
-  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5 14.4 9.6 21 10.2 16 14.4 17.6 21 12 17.3 6.4 21 8 14.4 3 10.2 9.6 9.6Z"/></svg>';
-
 // 105-tracker.html's own rail dot: a checkmark once a step is reached
 // (current or done), nothing inside it while still ahead. Reused for the
-// history row's "Delivered" state (#148) — same mark, a muted colour there.
+// history row's "Delivered" state (#148), and for #162's Delivered hero
+// stamp and done rail below — same mark, a muted colour on the history row.
 const CHECK_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const CHEVRON_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
-
-const TAG_LABELS: Record<RatingTag, string> = {
-  fast: 'Fast',
-  great_packaging: 'Great packaging',
-  order_was_correct: 'Order was correct',
-};
 
 function renderStepper(currentIndex: number): HTMLElement {
   const stepper = document.createElement('ul');
@@ -107,107 +108,6 @@ function renderStepper(currentIndex: number): HTMLElement {
   });
 
   return stepper;
-}
-
-/** The Delivered state's interactive rating prompt — five stars (required) plus optional preset tag chips, "Submit" enabled once a star count is picked (design doc, "Tracker"). */
-function renderRatingPrompt(onSubmit: (stars: number, tags: RatingTag[]) => void): HTMLElement {
-  const prompt = document.createElement('div');
-  prompt.setAttribute('data-testid', 'rating-prompt');
-
-  const heading = document.createElement('h2');
-  heading.className = 'home-section-title';
-  heading.textContent = 'How was your order?';
-  prompt.append(heading);
-
-  let stars = 0;
-  const selectedTags = new Set<RatingTag>();
-
-  const starRow = document.createElement('div');
-  starRow.className = 'star-picker';
-  starRow.setAttribute('role', 'radiogroup');
-  starRow.setAttribute('aria-label', 'Rating');
-
-  const submitButton = document.createElement('button');
-  submitButton.type = 'button';
-  submitButton.className = 'place-order';
-  submitButton.setAttribute('data-testid', 'rating-submit');
-  submitButton.textContent = 'Submit';
-  submitButton.disabled = true;
-
-  const starButtons: HTMLButtonElement[] = [];
-  for (let i = 1; i <= 5; i += 1) {
-    const star = document.createElement('button');
-    star.type = 'button';
-    star.className = 'star';
-    star.setAttribute('data-testid', `star-${i}`);
-    star.setAttribute('aria-pressed', 'false');
-    star.setAttribute('aria-label', `${i} star${i === 1 ? '' : 's'}`);
-    star.innerHTML = STAR_ICON;
-    star.addEventListener('click', () => {
-      stars = i;
-      starButtons.forEach((button, index) => {
-        const filled = index < stars;
-        button.classList.toggle('selected', filled);
-        button.setAttribute('aria-pressed', String(filled));
-      });
-      submitButton.disabled = false;
-    });
-    starButtons.push(star);
-    starRow.append(star);
-  }
-  prompt.append(starRow);
-
-  const tagGroup = document.createElement('div');
-  tagGroup.className = 'chip-group';
-  tagGroup.setAttribute('data-testid', 'rating-tags');
-  for (const tag of RATING_TAGS) {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip';
-    chip.setAttribute('data-testid', `rating-tag-${tag}`);
-    chip.setAttribute('aria-pressed', 'false');
-    chip.textContent = TAG_LABELS[tag];
-    chip.addEventListener('click', () => {
-      const nowSelected = !selectedTags.has(tag);
-      if (nowSelected) selectedTags.add(tag);
-      else selectedTags.delete(tag);
-      chip.classList.toggle('selected', nowSelected);
-      chip.setAttribute('aria-pressed', String(nowSelected));
-    });
-    tagGroup.append(chip);
-  }
-  prompt.append(tagGroup);
-
-  submitButton.addEventListener('click', () => {
-    if (stars === 0) return;
-    onSubmit(stars, Array.from(selectedTags));
-  });
-  prompt.append(submitButton);
-
-  return prompt;
-}
-
-/** The already-rated state (return visit after submitting) — static, non-interactive, prevents a second submission (design doc, "Tracker"). */
-function renderRatedPrompt(stars: number): HTMLElement {
-  const prompt = document.createElement('div');
-  prompt.setAttribute('data-testid', 'rating-prompt');
-
-  const message = document.createElement('p');
-  message.textContent = 'Thanks for rating this order';
-  prompt.append(message);
-
-  const starRow = document.createElement('div');
-  starRow.className = 'star-picker';
-  starRow.setAttribute('aria-hidden', 'true');
-  for (let i = 1; i <= 5; i += 1) {
-    const star = document.createElement('span');
-    star.className = i <= stars ? 'star selected' : 'star';
-    star.innerHTML = STAR_ICON;
-    starRow.append(star);
-  }
-  prompt.append(starRow);
-
-  return prompt;
 }
 
 /** A restaurant photo, or a plain placeholder square when the order's own
@@ -301,14 +201,124 @@ function renderDriverSlot(order: PlacedOrder, view: TrackerView, city: Restauran
   return slot;
 }
 
+/** "Just now · 12:41" in the first minute, "Delivered N min ago" under an
+ * hour, then #147's history date format past that — "Delivered today, 10:12
+ * AM" / "Delivered today, 10:12" (docs/design/162-*, "Delivered"). Built on
+ * the delivered moment (`deliveredAtMs`), not `placedAt`, since those differ
+ * by the minutes the order took to arrive. */
+function deliveredTimeLine(order: PlacedOrder, city: Restaurant['city'], now: number): string {
+  const deliveredAt = deliveredAtMs(order);
+  const minutesAgo = Math.floor((now - deliveredAt) / 60_000);
+
+  if (minutesAgo < 1) {
+    const clock = new Intl.DateTimeFormat(city === 'hcmc' ? 'vi-VN' : 'en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: city !== 'hcmc',
+    }).format(deliveredAt);
+    return `Just now · ${clock}`;
+  }
+  if (minutesAgo < 60) return `Delivered ${minutesAgo} min ago`;
+
+  const dateLabel = formatHistoryDate(new Date(deliveredAt).toISOString(), city, now);
+  const lower =
+    dateLabel.startsWith('Today') || dateLabel.startsWith('Yesterday')
+      ? dateLabel.charAt(0).toLowerCase() + dateLabel.slice(1)
+      : dateLabel;
+  return `Delivered ${lower}`;
+}
+
+/** #162's celebratory Delivered hero (docs/design/162-*, "Delivered") — the
+ * check stamp, "Delivered", the early/on-time line, and the time line.
+ * Replaces the old plain "Delivered N min ago" line entirely; it is never
+ * shown for a live order. */
+function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: number): HTMLElement {
+  const hero = document.createElement('div');
+  hero.className = 'tracker-delivered-hero';
+  hero.setAttribute('data-testid', 'tracker-delivered-hero');
+
+  const stamp = document.createElement('span');
+  stamp.className = 'tracker-delivered-stamp';
+  stamp.setAttribute('aria-hidden', 'true');
+  stamp.innerHTML = CHECK_ICON;
+  hero.append(stamp);
+
+  const text = document.createElement('div');
+
+  const headline = document.createElement('p');
+  headline.className = 'tracker-delivered-headline';
+  headline.textContent = 'Delivered';
+  text.append(headline);
+
+  // Early is etaMinutes − deliveryMs/60000, floored — #121 always delivers
+  // early, so this never says late; a non-positive result (a hand-patched
+  // test fixture, say) still reads "on time" rather than a negative number.
+  const earlyMinutes = Math.floor(order.etaMinutes - order.deliveryMs / 60_000);
+  const early = document.createElement('p');
+  early.className = 'tracker-delivered-early';
+  early.setAttribute('data-testid', 'tracker-delivered-early');
+  early.textContent = earlyMinutes > 0 ? `Arrived ${earlyMinutes} min early` : 'Arrived on time';
+  text.append(early);
+
+  const time = document.createElement('p');
+  time.className = 'tracker-delivered-time';
+  time.setAttribute('data-testid', 'tracker-delivered-time');
+  time.textContent = deliveredTimeLine(order, city, now);
+  text.append(time);
+
+  hero.append(text);
+  return hero;
+}
+
+/** The done rail (docs/design/162-*, "Delivered": "the five-step stepper
+ * collapses to one thin completed rail") — five dots joined by a line, the
+ * last orange, with only the first and last step's labels under the ends.
+ * Reached only once a card is Delivered; every live state keeps the full
+ * per-step `renderStepper`. */
+function renderDoneRail(): HTMLElement {
+  const rail = document.createElement('div');
+  rail.className = 'tracker-done-rail';
+  rail.setAttribute('data-testid', 'tracker-done-rail');
+  rail.setAttribute('role', 'img');
+  rail.setAttribute('aria-label', 'All five steps done');
+
+  const track = document.createElement('div');
+  track.className = 'tracker-done-rail-track';
+  STEPS.forEach((_, index) => {
+    const dot = document.createElement('span');
+    dot.className = 'tracker-done-rail-dot';
+    if (index === STEPS.length - 1) dot.classList.add('tracker-done-rail-dot--last');
+    track.append(dot);
+    if (index < STEPS.length - 1) {
+      const line = document.createElement('span');
+      line.className = 'tracker-done-rail-line';
+      track.append(line);
+    }
+  });
+  rail.append(track);
+
+  const labels = document.createElement('div');
+  labels.className = 'tracker-done-rail-labels';
+  const placed = document.createElement('span');
+  placed.textContent = STEPS[0];
+  const delivered = document.createElement('span');
+  delivered.textContent = STEPS[STEPS.length - 1];
+  labels.append(placed, delivered);
+  rail.append(labels);
+
+  return rail;
+}
+
 /** The open order card (#147, "Open order card") — everything about the one
- * order currently on screen: restaurant, countdown/Delivered line, stepper,
- * driver slot, and (once Delivered) the demo disclosure and rating prompt. */
+ * order currently on screen: restaurant, countdown or #162's Delivered hero,
+ * stepper or done rail, driver slot, and (once Delivered) Rate/Order again
+ * and the demo disclosure. */
 function renderOpenCard(
   order: PlacedOrder,
   view: TrackerView,
-  onSubmitRating: (stars: number, tags: RatingTag[]) => void,
+  onRate: (orderId: string) => void,
   onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
+  now: number = Date.now(),
 ): HTMLElement {
   const card = document.createElement('section');
   card.className = 'tracker-order-card';
@@ -343,40 +353,50 @@ function renderOpenCard(
     big.textContent = formatCountdown(Math.ceil(view.remainingMs / 1000));
     countdown.append(big, ' until estimated arrival');
     card.append(countdown);
+    card.append(renderStepper(view.currentStepIndex));
   } else {
-    const deliveredMinutesAgo = Math.max(
-      0,
-      Math.floor((Date.now() - (new Date(order.placedAt).getTime() + order.deliveryMs)) / 60_000),
-    );
-    const delivered = document.createElement('p');
-    delivered.className = 'tracker-delivered-line';
-    delivered.setAttribute('data-testid', 'tracker-delivered-line');
-    delivered.textContent = `Delivered ${deliveredMinutesAgo} min ago`;
-    card.append(delivered);
+    card.append(renderDeliveredHero(order, city, now));
+    card.append(renderDoneRail());
   }
 
-  const currentIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
-  card.append(renderStepper(currentIndex));
   card.append(renderDriverSlot(order, view, city));
 
   if (view.kind === 'delivered') {
-    card.append(renderDemoDisclosure());
-    card.append(view.rated ? renderRatedPrompt(view.stars) : renderRatingPrompt(onSubmitRating));
+    const actions = document.createElement('div');
+    actions.className = 'tracker-delivered-actions';
+    actions.setAttribute('data-testid', 'tracker-delivered-actions');
+
+    // Rate this order (#169, docs/design/162-*, "Delivered": "Actions") —
+    // opens #163's sheet, the tracker's only rating surface now, at whichever
+    // step is unrated; absent once both are rated, replaced by the same
+    // rated summary the history row shows.
+    if (isRatingFullyDone(order)) {
+      actions.append(renderRatedSummary(order));
+    } else {
+      const rate = document.createElement('button');
+      rate.type = 'button';
+      rate.className = 'tracker-action-button tracker-action-primary';
+      rate.setAttribute('data-testid', 'tracker-delivered-rate');
+      rate.textContent = 'Rate this order';
+      rate.addEventListener('click', () => onRate(order.orderId));
+      actions.append(rate);
+    }
+
     // Order again (#165, docs/design/162-*, "Order again": "From the
     // Delivered card ... straight to /cart/?restaurant=<slug>") — absent
     // when the restaurant no longer resolves, same as the history row.
     if (restaurant) {
-      const orderAgainWrap = document.createElement('div');
-      orderAgainWrap.className = 'tracker-delivered-order-again';
       const again = document.createElement('button');
       again.type = 'button';
       again.className = 'tracker-action-button tracker-action-secondary';
       again.setAttribute('data-testid', 'tracker-delivered-order-again');
       again.textContent = 'Order again';
       again.addEventListener('click', () => onOrderAgain(order, restaurant));
-      orderAgainWrap.append(again);
-      card.append(orderAgainWrap);
+      actions.append(again);
     }
+
+    card.append(actions);
+    card.append(renderDemoDisclosure());
   }
 
   return card;
@@ -642,9 +662,8 @@ export function renderTrackerView(
   root: HTMLElement,
   orders: PlacedOrder[],
   openOrderId: string | null,
-  onSubmitRating: (stars: number, tags: RatingTag[]) => void,
-  onSelectOrder: (orderId: string) => void,
   onRate: (orderId: string) => void,
+  onSelectOrder: (orderId: string) => void,
   onOrderAgainFromHistory: (order: PlacedOrder, restaurant: Restaurant) => void,
   onOrderAgainFromDelivered: (order: PlacedOrder, restaurant: Restaurant) => void,
   now: number = Date.now(),
@@ -692,7 +711,7 @@ export function renderTrackerView(
     live.append(label);
   }
 
-  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onSubmitRating, onOrderAgainFromDelivered));
+  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, now));
   for (const order of stack.live) {
     if (order.orderId === openOrderId) continue;
     live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder));
@@ -758,16 +777,6 @@ export function initTrackerPage(
     }
   }
 
-  function onSubmitRating(stars: number, tags: RatingTag[]): void {
-    if (!openOrderId) return;
-    const current = findOrder(storage, openOrderId);
-    if (!current) return;
-    const updated = submitRating(storage, current.orderId, stars, tags);
-    if (!updated) return;
-    track('rating_submitted', { order_id: current.orderId, stars, tags });
-    render();
-  }
-
   function onSelectOrder(orderId: string): void {
     openOrderId = orderId;
     render();
@@ -785,9 +794,8 @@ export function initTrackerPage(
       root,
       orders,
       openOrderId,
-      onSubmitRating,
-      onSelectOrder,
       openRatingSheetManual,
+      onSelectOrder,
       onOrderAgainFromHistory,
       onOrderAgainFromDelivered,
       Date.now(),
@@ -876,6 +884,10 @@ export function initTrackerPage(
         render();
       },
       getThanksVoucherUnlock: () => thanksVoucherUnlock,
+      // #169's VIP nudge (docs/design/162-*, "The win's VIP nudge") — a
+      // read-only snapshot; the sweep that actually updates the ledger
+      // already ran inside this same submit's `render()` call above.
+      getVipLedger: () => readVipLedger(storage),
     };
   }
 
