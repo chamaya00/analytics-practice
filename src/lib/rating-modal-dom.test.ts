@@ -555,6 +555,11 @@ describe('the rating sheet — win and reduced motion (AC3, docs/design/162-*, "
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
 
     expect(document.querySelector('[data-testid="rating-sheet-win"]')).not.toBeNull();
+    // #206: the win's stamp is #162's shared rubber-stamp seal, not a bare
+    // glyph — the same svg.stamp-seal stamp.ts draws for the Delivered hero.
+    const winStamp = document.querySelector('.rating-sheet-stamp');
+    expect(winStamp?.querySelector('svg.stamp-seal')).not.toBeNull();
+    expect(winStamp?.querySelector('circle[stroke-dasharray]')).not.toBeNull();
     const rewardSlot = document.querySelector('[data-testid="rating-sheet-reward-slot"]');
     expect(rewardSlot).not.toBeNull();
     expect(rewardSlot?.textContent).toBe('');
