@@ -1385,6 +1385,15 @@
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 8190
   },
+  "public/images/dishes/sawtelle-tonkotsu-bar-tsukemen.jpg": {
+    "id": "yi8e4hZtVXs",
+    "query": "japanese cold noodles dipping",
+    "photographer": "Renji Desh",
+    "photographerUrl": "https://unsplash.com/@renji_d",
+    "photoUrl": "https://unsplash.com/photos/a-woman-eating-a-bowl-of-noodles-with-chopsticks-yi8e4hZtVXs",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 7863
+  },
   "public/images/dishes/silver-lake-poke-counter-classic-ahi-poke-bowl.jpg": {
     "id": "UidPI0eaTV8",
     "query": "ahi tuna poke bowl",
@@ -1402,6 +1411,15 @@
     "photoUrl": "https://unsplash.com/photos/a-bowl-of-food-sitting-on-top-of-a-table-two2tWoUbrI",
     "licence": "Unsplash License (https://unsplash.com/license)",
     "bytes": 6611
+  },
+  "public/images/dishes/temple-street-filipino-kitchen-lumpia-shanghai.jpg": {
+    "id": "IAgbsR7iQBE",
+    "query": "fried spring rolls sauce",
+    "photographer": "dika Mahendra",
+    "photographerUrl": "https://unsplash.com/@dhykamahendra",
+    "photoUrl": "https://unsplash.com/photos/fried-shrimp-with-dipping-sauce-and-garnish-IAgbsR7iQBE",
+    "licence": "Unsplash License (https://unsplash.com/license)",
+    "bytes": 8299
   },
   "public/images/dishes/temple-street-filipino-kitchen-pancit-bihon.jpg": {
     "id": "3JvXLmlaXtw",
