@@ -44,14 +44,18 @@ overall pick.
 
 **Guesses this document is making, called out as such:**
 
-- **One option per family, not more.** The issue invites more ("more than
-  one option in a family is welcome") but doesn't require it. Every
-  additional option multiplies the screenshot cost by four (light/dark ×
-  narrow/wide) for a variation that, per the constraint above, can only ever
-  differ by hue — not by composition, since structure is fixed. Three
-  well-argued options the owner can actually compare beats six thin ones;
-  if the owner wants a second option inside a family they liked, that's a
-  cheap follow-up on a decision already narrowed to one direction.
+- **Two options for red and black-and-green, one for blue.** The first pass
+  of this document shipped one option per family, reasoning that the issue
+  only required "at least one" and didn't ask for more. The owner's actual
+  words when this went back for revision were "some red toned options and
+  some black and green toned options and maybe a blue toned option" —
+  plural for the first two, tentative singular for the third. That's the
+  issue text under-specifying what was actually asked for, not a second
+  guess on top of a correct first read, so it's corrected here rather than
+  argued with: red and black-and-green each get a second, genuinely
+  distinct option (`Ember` and `Moss` below); blue stays at one, per "maybe
+  a blue toned option" reading as satisfied by a single strong option
+  rather than requiring a second.
 - The exact restaurant names, prices, and copy in the two mocks are reused
   unchanged from `docs/design/80-two-city-brand-and-flow.md` and `docs/
   design/162-rating-win-tips-rewards-vip.md` — this document isn't proposing
@@ -98,12 +102,12 @@ overall pick.
   makes the analogous move one register over, rather than landing on the
   generic tone the critique is about.
 
-## Three options, one per family
+## Five options across three families
 
 Each is a direct, no-rename fill of every token role above. Hex values
 below are exactly what's baked into the mocks under "The mocks."
 
-### 1. Red-toned — `#181-red`
+### 1a. Red-toned — `#181-red`
 
 **Direction in three words:** deep, not loud. Refuses fire-engine red (the
 DoorDash/Zomato register #80 already ruled out) and refuses terracotta
@@ -138,7 +142,55 @@ reds already in play for accent-a and danger, a third would make the
 "Deal" badge, the discount line, and the destructive action read as one
 undifferentiated hue group.
 
-### 2. Black-and-green — `#181-green`
+### 1b. Red-toned, option B — `#181-red2` ("Ember")
+
+**Direction in three words:** brighter, more energetic. The owner asked for
+more than one red option; this is the second, deliberately not a hue tweak
+on the wine-red but the other end of what "red" can mean for this app — a
+punchier, more saturated true red rather than a muted cabernet. It's closer
+to the DoorDash/Zomato register `#181-red` spent effort staying away from,
+which is the trade-off of asking for "energetic": kept short of both by
+staying a cooler, more saturated red (`#CC2626`, hue near true red) rather
+than sliding toward DoorDash's orange-red (`#FF3008`) or Zomato's
+pink-leaning coral (`#E23744`).
+
+| Token | Light | Dark |
+|---|---|---|
+| `--color-bg` | `#FFF5F3` | `#1D0E0C` |
+| `--color-surface` | `#FDE4DF` | `#2A1613` |
+| `--color-text` | `#2B0E0C` | `#FBEAE6` |
+| `--color-text-muted` | `#8F4A42` | `#CB958C` |
+| `--color-border` | `#F5CCC4` | `#432420` |
+| `--color-accent-a` | `#CC2626` | `#FF7A6E` |
+| `--color-accent-b` | `#F0A23D` | `#FFC069` |
+| `--color-tab-active-bg` | `#FAD9D2` | `#3A1E1A` |
+| `--color-badge-ink` | `#2B0E0C` | `#1D0E0C` |
+| `--color-danger` | `#B54A12` | `#FF9A5C` |
+| `--color-flash-tile-bg` | `#2B0E0C` (fixed, both themes) | same |
+| `--color-vip-gold` / `-ink` | `#F3D27A` / `#2B0E0C` | `#E0B95A` / `#1D0E0C` |
+| `--color-vip-platinum` / `-ink` | `#D8D8DE` / `#2B0E0C` | `#C9C9D1` / `#1D0E0C` |
+
+**Collision called out:** the same pairing as `#181-red`, but the margin is
+narrower because the brighter accent leaves less room. `--color-accent-a`
+(`#CC2626`, a true red) and `--color-danger` (`#B54A12`, pulled toward
+rust/orange) split the same way — by warmth, not value — but the gap
+between them is smaller than `#181-red`'s (both are more saturated overall),
+so this is the option where the "Remove" fill and the discount line sit
+closest together on the wheel of the five. `./scripts/contrast` doesn't
+check hue separation, only luminance contrast against a shared background —
+this is a judgement call to flag for the owner, not a number that failed.
+`--color-accent-b` stays in amber for the same reason as `#181-red`: a third
+red in the badge role would collapse "Deal," the discount line, and
+"Remove" into one hue family.
+
+**Note on the light-theme accent:** the first pass at this accent
+(`#E23B3B`) read brighter and closer to what "energetic" was reaching for,
+but `--color-bg` on it computed to 3.98 — a fail. Darkened to `#CC2626`
+(5.06) rather than picking a different hue, so the option stays "bright,
+saturated true red" and not a second wine-red with the serial numbers
+filed off.
+
+### 2a. Black-and-green — `#181-green`
 
 **Direction in three words:** dark first, teal-leaning. Designed as a dark
 theme from the base color out, with light given as the fallback the issue
@@ -182,6 +234,64 @@ by saturation contrast even sitting on its own brand hue — checked in the
 deliberate hue shift *away* from Grab's `#00B14F` (a warmer, more yellow-
 green) toward teal — the two are far enough apart that this reads as "an
 emerald/teal palette" rather than "Grab's green, darker."
+
+### 2b. Black-and-green, option B — `#181-green2` ("Moss")
+
+**Direction in three words:** greener, less teal. The owner's second ask for
+this family, and read literally: where `#181-green` deliberately pulls its
+accent toward teal/emerald to put distance between itself and Grab's
+grass-green, this option pulls the other way — toward a mossier, more
+yellow-leaning green — and relies on desaturation and darkness rather than
+hue alone to stay clear of Grab's `#00B14F`. Same dark-first composition as
+`#181-green` (this family's own name is "a dark base with green accents,"
+and nothing about a second option changes that); light is the fallback,
+not a second design idea.
+
+| Token | Dark (primary) | Light (fallback) |
+|---|---|---|
+| `--color-bg` | `#0B0F0A` | `#F6FAF4` |
+| `--color-surface` | `#131A12` | `#EAF2E6` |
+| `--color-text` | `#EEF4EC` | `#16220F` |
+| `--color-text-muted` | `#A2B49B` | `#57684C` |
+| `--color-border` | `#263323` | `#D3E2CB` |
+| `--color-accent-a` | `#5FBF5A` | `#357530` |
+| `--color-accent-b` | `#FFB84D` | `#C97F1D` |
+| `--color-tab-active-bg` | `#1C2A19` | `#DEEAD9` |
+| `--color-badge-ink` | `#0B0F0A` | `#16220F` |
+| `--color-danger` | `#FF6B6B` | `#C4213A` |
+| `--color-flash-tile-bg` | `#16241A` (fixed, both themes) | same |
+| `--color-vip-gold` / `-ink` | `#E0B95A` / `#0B0F0A` | `#F3D27A` / `#16220F` |
+| `--color-vip-platinum` / `-ink` | `#C9C9D1` / `#0B0F0A` | `#D8D8DE` / `#16220F` |
+
+**"If it only works as dark, say so":** same answer as `#181-green` and for
+the same reason — the dark column is the option, light is a faithful
+same-role fallback that clears every contrast pair but reads as a paler,
+weaker version of the idea rather than the idea itself.
+
+**Collision called out:** the same accent-a-is-also-success tension as
+`#181-green`, held the same two ways — `--color-danger` stays pulled to red
+in both themes, and the dark accent (`#5FBF5A`) is lighter and more
+saturated than the near-black base, so it still pops by value and
+saturation rather than needing hue alone to read as "the accent." The
+Grab check is the interesting difference from `#181-green`: this option is
+*closer* to Grab's `#00B14F` in hue than the teal option is, by
+construction — "greener, less teal" moves toward the exact register Grab
+occupies rather than away from it. Distance is kept by value and
+saturation instead: Grab's green is a saturated mid-tone against light
+brand surfaces, and this accent sits either very light against a true
+near-black (dark theme, `#5FBF5A` on `#0B0F0A`) or notably darkened for
+contrast in the light fallback (`#357530`) — neither reads like Grab's own
+usage, but a reader who wants hue-only separation from a delivery
+competitor should treat `#181-green` (the teal option) as the safer of the
+two, and that trade-off is the owner's to weigh, not this document's to
+resolve by picking a different hue than what "greener" asked for.
+
+**Note on the light-theme accent:** the first pass at this accent
+(`#3F8C3B`) computed 3.96 for `--color-bg`-on-`--color-accent-a` — a fail.
+Darkened to `#357530` (5.32) rather than shifting hue, for the same reason
+as `#181-red2`'s correction: the ask was for a color, not for whichever
+color happens to pass, and darkening preserves the "moss" identity a hue
+shift would have quietly abandoned.
 
 ### 3. Blue-toned — `#181-blue`
 
@@ -228,25 +338,27 @@ first four rows per option are the issue's own required pairs; the rest
 mirror `src/lib/contrast.test.ts`'s coverage so this table checks the same
 pairs the real palette is held to, not a subset invented for this issue.
 
-| Pair | Red light | Red dark | Green dark (primary) | Green light (fallback) | Blue light | Blue dark |
-|---|---|---|---|---|---|---|
-| `--color-text` on `--color-bg` | 16.72 | 16.45 | 17.37 | 15.19 | 16.25 | 16.31 |
-| `--color-text` on `--color-surface` | 15.56 | 15.23 | 16.33 | 14.02 | 15.10 | 14.91 |
-| `--color-text-muted` on `--color-bg` | 5.45 | 7.45 | 8.68 | 5.64 | 5.43 | 8.97 |
-| `--color-text-muted` on `--color-surface` | 5.07 | 6.90 | 8.16 | 5.21 | 5.05 | 8.20 |
-| `--color-bg` on `--color-accent-a` (issue AC2 / `.place-order`) | 6.87 | 9.25 | 7.76 | 5.22 | 5.97 | 7.57 |
-| `--color-badge-ink` on `--color-accent-b` (issue AC2) | 8.14 | 11.62 | 11.23 | 4.96 | 7.74 | 10.59 |
-| `--color-bg` on `--color-danger` (cart "Remove" fill) | 4.06 → fixed to **5.03** | 8.35 | 6.96 | 5.52 | 5.44 | 8.23 |
-| `--color-text` on `--color-tab-active-bg` (tab-bar pill) | 13.29 | 13.60 | 13.53 | 13.16 | 13.84 | 12.42 |
-| `#ffffff` on `--color-flash-tile-bg` (fixed tile — one value per option, reused in both themes) | 17.55 | 17.55 | 15.93 | 15.93 | 17.31 | 17.31 |
-| `--color-vip-gold-ink` on `--color-vip-gold` | 11.96 | 10.06 | 10.35 | 10.86 | 11.80 | 9.89 |
-| `--color-vip-platinum-ink` on `--color-vip-platinum` | 12.36 | 11.41 | 11.73 | 11.23 | 12.20 | 11.21 |
+| Pair | Red light | Red dark | Ember light | Ember dark | Green dark (primary) | Green light (fallback) | Moss dark (primary) | Moss light (fallback) | Blue light | Blue dark |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `--color-text` on `--color-bg` | 16.72 | 16.45 | 16.75 | 16.08 | 17.37 | 15.19 | 17.28 | 15.67 | 16.25 | 16.31 |
+| `--color-text` on `--color-surface` | 15.56 | 15.23 | 14.81 | 14.73 | 16.33 | 14.02 | 15.86 | 14.44 | 15.10 | 14.91 |
+| `--color-text-muted` on `--color-bg` | 5.45 | 7.45 | 6.08 | 7.33 | 8.68 | 5.64 | 8.78 | 5.70 | 5.43 | 8.97 |
+| `--color-text-muted` on `--color-surface` | 5.07 | 6.90 | 5.37 | 6.72 | 8.16 | 5.21 | 8.05 | 5.26 | 5.05 | 8.20 |
+| `--color-bg` on `--color-accent-a` (issue AC2 / `.place-order`) | 6.87 | 9.25 | 4.06 → fixed to **5.06** | 7.37 | 7.76 | 5.22 | 8.36 | 3.96 → fixed to **5.32** | 5.97 | 7.57 |
+| `--color-badge-ink` on `--color-accent-b` (issue AC2) | 8.14 | 11.62 | 8.49 | 11.60 | 11.23 | 4.96 | 11.24 | 5.15 | 7.74 | 10.59 |
+| `--color-bg` on `--color-danger` (cart "Remove" fill) | 4.06 → fixed to **5.03** | 8.35 | 4.96 | 8.95 | 6.96 | 5.52 | 6.96 | 5.49 | 5.44 | 8.23 |
+| `--color-text` on `--color-tab-active-bg` (tab-bar pill) | 13.29 | 13.60 | 13.60 | 13.05 | 13.53 | 13.16 | 13.47 | 13.29 | 13.84 | 12.42 |
+| `#ffffff` on `--color-flash-tile-bg` (fixed tile — one value per option, reused in both themes) | 17.55 | 17.55 | 17.94 | 17.94 | 15.93 | 15.93 | 16.14 | 16.14 | 17.31 | 17.31 |
+| `--color-vip-gold-ink` on `--color-vip-gold` | 11.96 | 10.06 | 12.22 | 10.05 | 10.35 | 10.86 | 10.36 | 11.27 | 11.80 | 9.89 |
+| `--color-vip-platinum-ink` on `--color-vip-platinum` | 12.36 | 11.41 | 12.64 | 11.39 | 11.73 | 11.23 | 11.74 | 11.65 | 12.20 | 11.21 |
 
-Every pair clears 4.5:1. The one shown with an arrow is the one candidate
-that didn't on the first try: the red-light danger fill started at
-`#D9491F` (4.06, a fail) and was darkened to `#C23D18` (5.03) before
-anything else in this document was written — kept in the table rather than
-quietly replaced so the check is shown doing its job, not just its answer.
+Every pair clears 4.5:1. Three candidates didn't on the first try, each kept
+in the table with an arrow rather than quietly replaced, so the check is
+shown doing its job and not just its answer: the red-light danger fill
+started at `#D9491F` (4.06) and was darkened to `#C23D18` (5.03); Ember's
+light accent started at `#E23B3B` (4.06) and was darkened to `#CC2626`
+(5.06); Moss's light accent started at `#3F8C3B` (3.96) and was darkened to
+`#357530` (5.32).
 
 **Correction (revision round, driver review on PR #183):** three cells in
 the green columns were wrong on the first pass — a hand-transcription error
@@ -286,11 +398,16 @@ coincidence that it's the pairing that does:
   primary button), `tab-active-bg`, `danger` (the "Remove" fill), and both
   VIP token pairs.
 
-Each of the three options is rendered for both screens, both themes, both
-widths (`./scripts/design-render`, 1280×900 and 375×812) — 24 PNGs total,
+Each of the five options is rendered for both screens, both themes, both
+widths (`./scripts/design-render`, 1280×900 and 375×812) — 40 PNGs total,
 committed beside this document:
 
-`181-{home-feed,checkout}-{red,green,blue}-{light,dark}-{wide,narrow}.png`
+`181-{home-feed,checkout}-{red,red2,green,green2,blue}-{light,dark}-{wide,narrow}.png`
+
+`red2` is `Ember`, `green2` is `Moss` — the two options added in this
+revision, using the same filename pattern rather than the option's name, so
+the family is visible in the filename the way it already was for the first
+three.
 
 Structure and copy are byte-identical across every option and theme for a
 given screen — only the `:root` token values change — so what differs
@@ -340,35 +457,80 @@ Rendering caught two real bugs before this section was written, not after:
   — the engineer issue should confirm the real checkout only ever shows
   the one tier that actually applies, which it already does today.
 
+**Revision round — the discount-line bug, and the two new options:**
+
+- **The discount line's tag icon was unsized in every checkout render, all
+  three original options.** The driver's review caught it: the CSS rule was
+  `.brow.minus .val svg`, but the icon lives in `.lab` (the label span), not
+  `.val` (the price span) — so it matched nothing, the `<svg>` fell back to
+  its intrinsic size, and it rendered roughly 200px square, shoving the
+  price and "You saved" lines out of place. The critique bullet above
+  ("still reads as a distinct line... not from color") was true of the
+  markup's intent and false of what actually rendered — a hand-covering
+  check that never looked at the icon's own size. Fixed to `.brow.minus
+  .lab svg`, sized to match the real component (`src/layouts/BaseLayout.
+  astro`'s `.breakdown-row.discount .icon-tag`: 16px, `vertical-align:
+  -3px`, `margin-right: 4px`) rather than inventing a new size — re-rendered
+  all 12 original checkout PNGs and opened one from each theme family to
+  confirm the icon now sits inline, price and "You saved" back in their
+  rows.
+- **Same hand-covering check, repeated on `Ember` and `Moss`:** both new
+  options' checkout-dark discount lines still read as a distinct line by
+  weight and icon alone with `--color-accent-a` covered — `Ember`'s on a
+  warm near-black rather than `Moss`'s cooler one didn't change the
+  finding. Opened both at wide and narrow before treating either as done.
+- **Header-wrap and flash-tile-digit fixes carried forward, not
+  re-discovered.** `Ember` and `Moss`'s eight HTML files were built from
+  the already-fixed `red`/`green` files (the desktop `.location-bar` rule
+  and the fixed-white flash-tile digits both predate this revision), so
+  neither bug reappeared — confirmed by opening one wide and one dark
+  render of each new option rather than assumed from the copy.
+
 ## Recommendation
 
-**Per family:**
+**Within each two-option family, and per family:**
 
-- **Red-toned:** recommended reading is that this is the strongest fit for
-  a food app specifically (warmth, appetite association) but the one most
-  likely to be second-guessed against DoorDash/Zomato at a glance — it
-  earns that comparison only if the wine-red stays as deep as specified
-  here; a brighter red would collapse the distinction #80 already spent
-  effort establishing.
-- **Black-and-green:** recommended as the most *distinctive* of the three —
-  nothing in the real-brand list #80 checked sits here once the hue is
-  pulled toward teal — at the cost of being the only option where the
-  fallback theme (light) is honestly a weaker version of the design idea
-  than the primary (dark).
-- **Blue-toned:** recommended as the safest of the three — calm, legible,
-  no collision to design around — and, per the research above, also the
-  one most likely to read as generic if the "harbor, not SaaS" depth isn't
-  respected in implementation.
+- **Red-toned — pick `#181-red` (wine-red) over `#181-red2` (Ember).**
+  Ember does what "brighter, more energetic" asked for, but that's also
+  what pulls it closest to the DoorDash/Zomato register #80 spent effort
+  avoiding — its own collision note above says the accent-vs-danger margin
+  is the narrowest of all five options for the same reason. `#181-red`
+  keeps the distinction #80 already paid for; recommended reading is that
+  this is the strongest fit for a food app specifically (warmth, appetite
+  association), and it earns that comparison only if the wine-red stays as
+  deep as specified — Ember is the version of "what if it didn't."
+- **Black-and-green — pick `#181-green` (teal-leaning) over `#181-green2`
+  (Moss).** Moss answers "greener, less teal" honestly, but its own
+  collision note is direct about the cost: it sits closer to Grab's
+  `#00B14F` in hue than the teal option does, by construction, and keeps
+  its distance through value and saturation rather than hue. `#181-green`
+  is the one of the two with no real-brand name near it at all once the
+  hue is pulled toward emerald/teal — recommended as the most
+  *distinctive* option in the whole document — at the cost of being the
+  only option where the fallback theme (light) is honestly a weaker
+  version of the design idea than the primary (dark), true of both green
+  options equally.
+- **Blue-toned:** still the only family with one option. Recommended as
+  the safest of the five — calm, legible, no collision to design around —
+  and, per the research above, also the one most likely to read as generic
+  if the "harbor, not SaaS" depth isn't respected in implementation.
 
-**Overall, this designer's pick is black-and-green (dark).** It's the only
-one of the three that doesn't require re-litigating a comparison #80
-already settled (red vs. DoorDash/Zomato, blue vs. "every SaaS app"), it
+**Overall, this designer's pick is still black-and-green, and still the
+dark, teal-leaning `#181-green` specifically — not `#181-green2`.** Adding
+Moss didn't change the pick; it sharpened the reason for it. `#181-green`
+doesn't require re-litigating a comparison #80 already settled (red vs.
+DoorDash/Zomato, blue vs. "every SaaS app," and now green vs. Grab), it
 photographs as the most distinctive across every rendered screenshot, and
 the accent still reads as a deliberate accent rather than a wash — the
-hand-covering check above found nothing depending on it that shouldn't.
-The trade-off is real, though: it's a bigger swing from the current violet
-than either alternative, and it's the one option where "ship the light
-fallback" would be a visibly weaker decision than "ship the dark primary."
+hand-covering check above found nothing depending on it that shouldn't,
+for both green options. The trade-off is real, though: it's a bigger swing
+from the current violet than any red option, and it's the one design
+where "ship the light fallback" would be a visibly weaker decision than
+"ship the dark primary." If the owner's actual reason for asking for a
+second, greener option was dissatisfaction with how teal-leaning
+`#181-green` reads, that's a real disagreement with this recommendation
+and worth saying on the pull request rather than settled by this document
+picking a side twice.
 
 ## No ADR
 
