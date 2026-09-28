@@ -29,9 +29,11 @@ import {
   getVisitorId,
   placeOrder,
   selectRestaurantCart,
+  sweepVipLedger,
   type CheckoutBreakdown,
   type RestaurantCart,
 } from './order-store';
+import { platinumSpendRemainingMinor, readVipLedger, type VipLedger, type VipLevel } from './vip-level';
 import { ALL_CARTS_PATH, offersPath, restaurantSlugFromSearch } from './cart-routes';
 import type { DeliveryInstructions, DropOffPreset } from './tracking';
 import { track } from './tracking';
@@ -168,6 +170,13 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
   const deliveryLabel = document.createElement('span');
   deliveryLabel.className = 'muted';
   deliveryLabel.textContent = 'Delivery fee';
+  if (breakdown.vipDeliveryWaived) {
+    const vipTag = document.createElement('span');
+    vipTag.className = 'vip-tag';
+    vipTag.setAttribute('data-testid', 'breakdown-delivery-vip-tag');
+    vipTag.textContent = breakdown.vipPlatinumAmountMinor > 0 ? 'Platinum' : 'Gold';
+    deliveryLabel.append(document.createTextNode(' '), vipTag);
+  }
   const deliveryValue = document.createElement('span');
   if (breakdown.deliveryFeeOriginalMinor !== null) {
     const struck = document.createElement('span');
@@ -208,11 +217,25 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
     wrapper.append(rewardRow);
   }
 
-  // The screen's own "You saved" adds the thanks voucher on top of the
-  // catalogue vouchers' saving — order_placed.saved_amount_minor never does
-  // (docs/design/162-*, "Events": "a known, deliberate gap between the
-  // screen's 'You saved' and the event").
-  const displaySavedAmountMinor = breakdown.savedAmountMinor + breakdown.thanksVoucherAmountMinor;
+  if (breakdown.vipPlatinumAmountMinor > 0) {
+    const platinumRow = document.createElement('div');
+    platinumRow.className = 'breakdown-row discount';
+    platinumRow.setAttribute('data-testid', 'breakdown-vip-platinum');
+    const labelEl = document.createElement('span');
+    labelEl.textContent = `Platinum 10% off · of ${formatMoney(breakdown.subtotalMinor, breakdown.currency)}`;
+    const valueEl = document.createElement('span');
+    valueEl.textContent = formatMoney(-breakdown.vipPlatinumAmountMinor, breakdown.currency);
+    platinumRow.append(labelEl, valueEl);
+    wrapper.append(platinumRow);
+  }
+
+  // The screen's own "You saved" adds the thanks voucher and any VIP perk on
+  // top of the catalogue vouchers' saving — order_placed.saved_amount_minor
+  // never does (docs/design/162-*, "Events": "a known, deliberate gap
+  // between the screen's 'You saved' and the event"; #174 keeps perks out
+  // the same way #166 kept the thanks voucher out).
+  const displaySavedAmountMinor =
+    breakdown.savedAmountMinor + breakdown.thanksVoucherAmountMinor + breakdown.vipDeliverySavedMinor + breakdown.vipPlatinumAmountMinor;
   if (displaySavedAmountMinor > 0) {
     const saved = document.createElement('div');
     saved.className = 'saved-line';
@@ -232,6 +255,32 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
   wrapper.append(total);
 
   return wrapper;
+}
+
+/** The VIP line above the breakdown (docs/design/162-*, "Checkout: the perks and the voucher as lines") — absent at no level, so a caller renders it only when non-null. */
+function renderVipCheckoutLine(level: VipLevel, ledger: VipLedger, currency: Currency): HTMLElement | null {
+  if (level === 'none') return null;
+
+  const el = document.createElement('p');
+  el.className = 'vip-checkout-line';
+  el.setAttribute('data-testid', 'checkout-vip-line');
+
+  const stamp = document.createElement('span');
+  stamp.className = `vip-stamp vip-stamp--${level}`;
+  stamp.setAttribute('aria-hidden', 'true');
+  el.append(stamp, document.createTextNode(' '));
+
+  const strong = document.createElement('strong');
+  if (level === 'platinum') {
+    strong.textContent = 'Platinum';
+    el.append(strong, document.createTextNode(' · free delivery and 10% off are on this order.'));
+  } else {
+    strong.textContent = 'Gold';
+    const remainingMinor = platinumSpendRemainingMinor(ledger, currency);
+    el.append(strong, document.createTextNode(` · free delivery is on this order. ${formatMoney(remainingMinor, currency)} more spend to Platinum.`));
+  }
+
+  return el;
 }
 
 export interface CheckoutView {
@@ -543,10 +592,28 @@ export function renderCheckout(
 
   const city: City = lines[0].currency === 'VND' ? 'hcmc' : 'sf';
   const subtotalMinor = cartSubtotalMinor(lines);
+
+  // #174: sweep before reading the ledger, so a level reached since the last
+  // render (or the last placeOrder) is what this checkout perks against —
+  // docs/design/162-*, "The ledger": "It runs on the tracker's render, on
+  // checkout mount, and inside placeOrder before capOrders."
+  sweepVipLedger(storage, now);
+  const vipLedger = readVipLedger(storage);
+  const vipLevel: VipLevel = vipLedger.level;
+  const vipGoldActive = vipLevel === 'gold' || vipLevel === 'platinum';
+  const vipPlatinumActive = vipLevel === 'platinum';
+
   const entries = entriesForCity(city, sessionStorage, now);
   const previousOffers = getOffersState(storage, restaurantSlug);
   const sync = syncOffersState(previousOffers, entries, subtotalMinor);
-  setOffersState(storage, restaurantSlug, sync.state);
+  // Gold's free delivery suppresses the delivery-group voucher entirely
+  // (docs/design/162-*, "Gold's free delivery and the delivery-group
+  // vouchers"): forcing it null here, before it's persisted or read again
+  // below, keeps a stale delivery voucher id from ever stacking with Gold's
+  // own perk in the breakdown, in `applied_voucher_ids`, or in
+  // `saved_amount_minor`.
+  const offersState = vipGoldActive ? { ...sync.state, deliveryId: null } : sync.state;
+  setOffersState(storage, restaurantSlug, offersState);
 
   // #166's thanks voucher: outside the catalogue entirely, so it never goes
   // through syncOffersState/OffersState — it applies by itself, with no
@@ -562,13 +629,16 @@ export function renderCheckout(
     restaurant && flashDraw ? flashFeeForRestaurant(flashDraw, city, restaurant.slug, normalDeliveryFeeMinor, now) : null;
 
   const breakdown = computeCheckoutBreakdown(lines, normalDeliveryFeeMinor, {
-    deliveryVoucherApplied: sync.state.deliveryId !== null,
-    discountAmountMinor: appliedDiscountAmountMinor(sync.state, entries),
+    deliveryVoucherApplied: offersState.deliveryId !== null,
+    discountAmountMinor: appliedDiscountAmountMinor(offersState, entries),
     flashDeliveryFeeMinor,
     thanksVoucherAmountMinor,
+    vipGoldActive,
+    vipPlatinumActive,
   });
   if (breakdown === null) return { cartIsEmpty: true, cart: null };
   const breakdownEl = renderBreakdown(breakdown);
+  const vipLineEl = renderVipCheckoutLine(vipLevel, vipLedger, breakdown.currency);
 
   const offersRow = document.createElement('button');
   offersRow.type = 'button';
@@ -581,7 +651,7 @@ export function renderCheckout(
 
   const offersSummary = document.createElement('span');
   offersSummary.className = 'summary';
-  const appliedCount = appliedVoucherIds(sync.state).length;
+  const appliedCount = appliedVoucherIds(offersState).length;
   offersSummary.append(
     document.createTextNode(
       appliedCount === 0
@@ -660,7 +730,7 @@ export function renderCheckout(
         storage,
         {
           ...currentFields(),
-          appliedVoucherIds: appliedVoucherIds(sync.state),
+          appliedVoucherIds: appliedVoucherIds(offersState),
           savedAmountMinor: breakdown!.savedAmountMinor,
           thanksVoucherMinor: breakdown!.thanksVoucherAmountMinor,
           totalMinor: breakdown!.totalMinor,
@@ -968,6 +1038,7 @@ export function renderCheckout(
 
   const walletConfig = walletDeps.config === undefined ? readWalletEnvConfig() : walletDeps.config;
 
+  const beforeBreakdown = vipLineEl ? [dropNotice, vipLineEl] : [dropNotice];
   root.append(
     restaurantLineEl(),
     etaLineEl(),
@@ -975,7 +1046,7 @@ export function renderCheckout(
     deliveryInstructions.element,
     miniFields,
     offersRow,
-    dropNotice,
+    ...beforeBreakdown,
     breakdownEl,
     walletNotice,
     walletRow,

@@ -11,7 +11,7 @@ import { estimateEtaMinutes } from './eta';
 import { getMenuItem, getRestaurant } from './restaurants';
 import { pickDriver, type Driver } from './drivers';
 import { isDelivered } from './tracker-state';
-import { applyDeliveredOrderToLedger, readVipLedger, writeVipLedger, type VipLedger } from './vip-level';
+import { applyDeliveredOrderToLedger, platinumDiscountMinor, readVipLedger, writeVipLedger, type VipLedger } from './vip-level';
 
 export const VISITOR_ID_KEY = 'parody.visitorId';
 export const SESSION_ID_KEY = 'parody.sessionId';
@@ -252,6 +252,26 @@ export interface CheckoutBreakdown {
    * doesn't qualify at this subtotal, or it has expired (#166). Never part
    * of `savedAmountMinor` above; see that field's own note. */
   thanksVoucherAmountMinor: number;
+  /** Whether VIP Gold or above is what zeroed the delivery fee this order —
+   * `false` whenever a catalogue delivery voucher is what did it instead, or
+   * the fee wasn't zero to begin with (#174). Drives the breakdown row's
+   * "[Gold]"/"[Platinum]" tag; never both this and a catalogue delivery
+   * voucher at once, since checkout-dom.ts forces `deliveryId` null the
+   * moment Gold is reached (docs/design/162-*, "Gold's free delivery and the
+   * delivery-group vouchers"). */
+  vipDeliveryWaived: boolean;
+  /** What Gold's free delivery saved, in minor units — 0 unless
+   * `vipDeliveryWaived` is true and the otherwise-fee was nonzero. Kept out
+   * of `savedAmountMinor` on purpose (a VIP perk is not a catalogue voucher,
+   * and `order_placed.saved_amount_minor` stays catalogue-only); the
+   * screen's own "You saved" line adds it on top, the same way it already
+   * does for `thanksVoucherAmountMinor` (checkout-dom.ts). */
+  vipDeliverySavedMinor: number;
+  /** VIP Platinum's 10% off the subtotal, already floored per #162's
+   * per-currency rounding (`platinumDiscountMinor`) — 0 when Platinum isn't
+   * active. Also kept out of `savedAmountMinor` for the same reason as
+   * `vipDeliverySavedMinor`. */
+  vipPlatinumAmountMinor: number;
   totalMinor: number;
   currency: Currency;
 }
@@ -272,6 +292,10 @@ export interface AppliedVoucherEffect {
   flashDeliveryFeeMinor: number | null;
   /** The thanks voucher's amount, already resolved against the subtotal and expiry by the caller (`thanksVoucherDiscountMinor`, thanks-voucher.ts) — 0 when none applies. Kept out of the catalogue-shaped fields above on purpose: it is not a `VoucherId` (#166). */
   thanksVoucherAmountMinor?: number;
+  /** VIP Gold or above (#174): forces the delivery fee to 0 regardless of any catalogue delivery voucher, and is what `vipDeliveryWaived`/`vipDeliverySavedMinor` on the breakdown report — the caller (checkout-dom.ts) is what suppresses the catalogue `delivery` group while this is true. */
+  vipGoldActive?: boolean;
+  /** VIP Platinum (#174): applies the 10% perk. The amount and its rounding are computed here, from the cart's own subtotal and currency, so the rounding rule lives in one place (`platinumDiscountMinor`, vip-level.ts) rather than being passed in pre-rounded. */
+  vipPlatinumActive?: boolean;
 }
 
 export const NO_VOUCHERS_APPLIED: AppliedVoucherEffect = {
@@ -279,6 +303,8 @@ export const NO_VOUCHERS_APPLIED: AppliedVoucherEffect = {
   discountAmountMinor: 0,
   flashDeliveryFeeMinor: null,
   thanksVoucherAmountMinor: 0,
+  vipGoldActive: false,
+  vipPlatinumActive: false,
 };
 
 /** The fee that would apply absent the delivery voucher — the restaurant's live flash fee if one is live, else its normal fee (#87, "the effective delivery fee," rules 2–3). Exported so the Offers screen's own "You saved" footer (offers-dom.ts) computes the identical figure checkout will show. */
@@ -308,11 +334,16 @@ export function computeCheckoutBreakdown(
   const serviceFeeMinor = SERVICE_FEE_MINOR[currency];
 
   const otherwiseFeeMinor = otherwiseDeliveryFeeMinor(normalDeliveryFeeMinor, applied.flashDeliveryFeeMinor);
-  const deliveryFeeMinor = applied.deliveryVoucherApplied ? 0 : otherwiseFeeMinor;
+  const vipGoldActive = applied.vipGoldActive ?? false;
+  const deliveryWaived = applied.deliveryVoucherApplied || vipGoldActive;
+  const deliveryFeeMinor = deliveryWaived ? 0 : otherwiseFeeMinor;
   const deliveryFeeOriginalMinor = deliveryFeeMinor < normalDeliveryFeeMinor ? normalDeliveryFeeMinor : null;
   const deliverySavedMinor = applied.deliveryVoucherApplied ? otherwiseFeeMinor : 0;
+  const vipDeliveryWaived = !applied.deliveryVoucherApplied && vipGoldActive;
+  const vipDeliverySavedMinor = vipDeliveryWaived ? otherwiseFeeMinor : 0;
   const savedAmountMinor = deliverySavedMinor + applied.discountAmountMinor;
   const thanksVoucherAmountMinor = applied.thanksVoucherAmountMinor ?? 0;
+  const vipPlatinumAmountMinor = applied.vipPlatinumActive ? platinumDiscountMinor(subtotalMinor, currency) : 0;
 
   return {
     subtotalMinor,
@@ -322,7 +353,11 @@ export function computeCheckoutBreakdown(
     discountAmountMinor: applied.discountAmountMinor,
     savedAmountMinor,
     thanksVoucherAmountMinor,
-    totalMinor: subtotalMinor + deliveryFeeMinor + serviceFeeMinor - applied.discountAmountMinor - thanksVoucherAmountMinor,
+    vipDeliveryWaived,
+    vipDeliverySavedMinor,
+    vipPlatinumAmountMinor,
+    totalMinor:
+      subtotalMinor + deliveryFeeMinor + serviceFeeMinor - applied.discountAmountMinor - thanksVoucherAmountMinor - vipPlatinumAmountMinor,
     currency,
   };
 }
