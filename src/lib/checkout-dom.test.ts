@@ -269,6 +269,7 @@ describe('initCheckoutPage — a cart too small to qualify for any voucher (AC1,
     expect(el.querySelector('[data-testid="breakdown-discount"]')).toBeNull();
     expect(el.querySelector('[data-testid="breakdown-saved"]')).toBeNull();
     expect(el.querySelector('[data-testid="offers-row"]')?.textContent).toContain('Select an offer');
+    expect(el.querySelector('[data-testid="offers-row"]')?.classList.contains('offers-row--unset')).toBe(true);
 
     el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
     const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
@@ -516,6 +517,8 @@ describe('initCheckoutPage — one cart per restaurant', () => {
     const pizza = root();
     initCheckoutPage(pizza, window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=north-beach-pizzeria');
     expect(pizza.querySelector('[data-testid="offers-row"]')?.textContent).toContain('2 applied');
+    // The highlight sweep is only for an unset row.
+    expect(pizza.querySelector('[data-testid="offers-row"]')?.classList.contains('offers-row--unset')).toBe(false);
   });
 
   it('the Offers row carries the restaurant through to /offers/', () => {
