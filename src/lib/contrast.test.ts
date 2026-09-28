@@ -120,6 +120,74 @@ describe('first-order banner: white claim text and the light sub-text tint clear
   });
 });
 
+// Light-mode (#199 option C, "Daylight") palette values from src/styles/
+// global.css's `@media (prefers-color-scheme: light)` block and docs/design/
+// 199-light-mode-treatments.md's C column — asserted here rather than
+// imported so this test fails if either file's hex values drift from what
+// it checks. --color-cta/--color-cta-ink keep their dark values in C (the
+// spec keeps the CTA teal as a fill), so CTA/CTA_INK below equal ACCENT_A/
+// BADGE_INK above by value, not by accident.
+const LIGHT_BG = '#f1f4f1';
+const LIGHT_SURFACE = '#ffffff';
+const LIGHT_TEXT = '#0b0f0c';
+const LIGHT_TEXT_MUTED = '#56665b';
+const LIGHT_ACCENT_A = '#0f766e';
+const LIGHT_TAB_ACTIVE_BG = '#d7ede8';
+const LIGHT_DANGER = '#c4213a';
+const LIGHT_ACCENT_B_TEXT = '#8a5300';
+const LIGHT_INDICATOR = '#7d8c82';
+const CTA = '#14b8a6';
+const CTA_INK = '#0b0f0c';
+
+describe('light mode contrast (#199 option C, "Daylight")', () => {
+  it('text and muted text clear 4.5:1 against both bg and surface', () => {
+    expect(contrastRatio(LIGHT_TEXT, LIGHT_BG)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(LIGHT_TEXT, LIGHT_SURFACE)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(LIGHT_TEXT_MUTED, LIGHT_BG)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(LIGHT_TEXT_MUTED, LIGHT_SURFACE)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the accent clears 4.5:1 against both bg and surface, as text (deep-teal accent text/outlines, the swoosh, the active dot, the focus ring, selected-chip border)', () => {
+    expect(contrastRatio(LIGHT_ACCENT_A, LIGHT_BG)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(LIGHT_ACCENT_A, LIGHT_SURFACE)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('--color-bg text on the accent-a fill clears 4.5:1 (.flash-tag, .cart-badge, .reopen-bar, the flash sheet header — kept on accent-a rather than moved to the CTA pair)', () => {
+    expect(contrastRatio(LIGHT_BG, LIGHT_ACCENT_A)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('--color-cta-ink on --color-cta clears 4.5:1 (.place-order and the rest of the CTA-pair consumers)', () => {
+    expect(contrastRatio(CTA_INK, CTA)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('--color-accent-b-text clears 4.5:1 against both bg and surface (.voucher-expiry)', () => {
+    expect(contrastRatio(LIGHT_ACCENT_B_TEXT, LIGHT_BG)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(LIGHT_ACCENT_B_TEXT, LIGHT_SURFACE)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('--color-bg text on the danger fill clears 4.5:1 (the cart\'s swipe-revealed "Remove" and the confirm dialog\'s "Remove")', () => {
+    expect(contrastRatio(LIGHT_BG, LIGHT_DANGER)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('text on tab-active-bg clears 4.5:1', () => {
+    expect(contrastRatio(LIGHT_TEXT, LIGHT_TAB_ACTIVE_BG)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('--color-indicator (the inactive carousel dot) clears the 3:1 non-text floor against bg — a dot is a button, not body text', () => {
+    expect(contrastRatio(LIGHT_INDICATOR, LIGHT_BG)).toBeGreaterThanOrEqual(3.0);
+  });
+});
+
+describe('light mode: two pairs the spec keeps below floor, on purpose (#199 option C, "Contrast, computed")', () => {
+  it('the CTA edge on the ground is below the 3:1 non-text floor — the Place order button is identified by its label, which is 7.76:1, not by its edge (WCAG 1.4.11 asks 3:1 of the visual information needed to identify a component)', () => {
+    expect(contrastRatio(CTA, LIGHT_BG)).toBeLessThan(3.0);
+  });
+
+  it('the white card on the ground is well below the 3:1 non-text floor — cards are identified by their photo and text, not their edge, which is why --color-border is kept rather than removed', () => {
+    expect(contrastRatio(LIGHT_SURFACE, LIGHT_BG)).toBeLessThan(3.0);
+  });
+});
+
 describe('VIP level fills: full ink only, never muted text (#174, docs/design/162-*, "Contrast")', () => {
   const GOLD = '#e0b95a';
   const GOLD_INK = '#0b0f0c';

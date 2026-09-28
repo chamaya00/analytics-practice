@@ -381,7 +381,10 @@ const { title } = Astro.props;
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: var(--color-border);
+    /* Not --color-border: on the light theme a hairline-grey dot is
+       1.15:1, nearly invisible. A dot is a button, so it needs its own
+       3:1 token (#199 option C). */
+    background: var(--color-indicator);
   }
 
   .carousel-dot.is-current .carousel-dot-mark {
@@ -862,8 +865,8 @@ const { title } = Astro.props;
     justify-content: space-between;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-lg);
-    background: var(--color-accent-a);
-    color: var(--color-bg);
+    background: var(--color-cta);
+    color: var(--color-cta-ink);
     text-decoration: none;
   }
 
@@ -1341,8 +1344,8 @@ const { title } = Astro.props;
     font-weight: 800;
     text-align: center;
     text-decoration: none;
-    color: var(--color-bg);
-    background: var(--color-accent-a);
+    color: var(--color-cta-ink);
+    background: var(--color-cta);
     border: none;
     border-radius: 12px;
     cursor: pointer;
@@ -1517,7 +1520,11 @@ const { title } = Astro.props;
     align-items: center;
     gap: 3px;
     font-size: var(--font-size-muted);
-    color: var(--color-accent-b);
+    /* --color-accent-b-text, not --color-accent-b: this is the one place
+       accent-b is used as text rather than a badge fill, and amber text
+       fails on the light theme's ground (1.72:1) at accent-b's own
+       value (#199 option C). */
+    color: var(--color-accent-b-text);
     margin: 3px 0 0;
     font-weight: 700;
   }
@@ -1596,10 +1603,8 @@ const { title } = Astro.props;
   .footer-apply {
     border: none;
     border-radius: 10px;
-    background: var(--color-accent-a);
-    /* --color-bg, not a fixed white (#194) — same accent-a text fix as
-       .flash-tag above. */
-    color: var(--color-bg);
+    background: var(--color-cta);
+    color: var(--color-cta-ink);
     font-weight: 800;
     font-size: var(--font-size-body);
     min-height: 44px;
@@ -1746,9 +1751,12 @@ const { title } = Astro.props;
      width, not the old inset card-style header (#119). Text colour is
      --color-bg rather than a fixed white: contrastRatio(--color-bg,
      --color-accent-a) already clears 4.5:1 in both themes (contrast.test.ts,
-     "the accent ... clears 4.5:1 against both bg and surface"), and this is
-     the same pairing .place-order uses on the same fill. Fixed white failed
-     in dark mode, where --color-accent-a turns light lavender (#126 AC3). */
+     "the accent ... clears 4.5:1 against both bg and surface"). Fixed white
+     failed in dark mode, where --color-accent-a turns light lavender (#126
+     AC3). This is one of the pairs #199 option C keeps on accent-a/bg
+     rather than moving to the CTA tokens (.place-order and friends) —
+     accent-a's own light value is deep enough for --color-bg ink at
+     4.94:1. */
   .flash-sheet-overlay .sheet-header {
     position: relative;
     flex: none;
@@ -2093,8 +2101,8 @@ const { title } = Astro.props;
     min-height: 48px;
     padding: 0 var(--space-xl);
     border-radius: 999px;
-    background: var(--color-accent-a);
-    color: var(--color-bg);
+    background: var(--color-cta);
+    color: var(--color-cta-ink);
     font-weight: 800;
     text-decoration: none;
     -webkit-tap-highlight-color: transparent;
@@ -2888,8 +2896,8 @@ const { title } = Astro.props;
   }
 
   .tracker-action-primary {
-    color: var(--color-bg);
-    background: var(--color-accent-a);
+    color: var(--color-cta-ink);
+    background: var(--color-cta);
     border: none;
   }
 
