@@ -2,7 +2,13 @@
 // (unit-level, against openRatingSheet directly — a mock loadConfetti so
 // nothing here depends on happy-dom's canvas support), plus the multi-order
 // auto-open rule wired through initTrackerPage (integration-level, since
-// that decision only exists at that seam).
+// that decision only exists at that seam). The integration-level tests reach
+// initTrackerPage's own default (un-injected) confetti loading — both for
+// the win screen and, since #189, for the Delivered hero's watched-landing
+// burst — so canvas-confetti is mocked file-wide below rather than per test:
+// happy-dom's canvas has no real 2D context, and the real library's
+// requestAnimationFrame loop throws on it after the assertions that reach it
+// have already run (docs/memory/engineer.md's #178 lesson).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
@@ -10,6 +16,11 @@ import { openRatingSheet } from './rating-sheet-dom';
 import { addToCart, findOrder, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
 import { RATING_TAGS, resetTrack, setTrack } from './tracking';
 import { getThanksVoucher, unlockThanksVoucher } from './thanks-voucher';
+
+vi.mock('canvas-confetti', () => {
+  const cannon = Object.assign(vi.fn(), { create: vi.fn(() => vi.fn()), reset: vi.fn() });
+  return { default: cannon };
+});
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',

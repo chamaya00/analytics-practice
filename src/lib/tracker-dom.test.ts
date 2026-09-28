@@ -9,6 +9,17 @@ import { cartPath } from './cart-routes';
 import type { SupabaseAuthLike } from './auth-client';
 import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
 
+// #189: canvas-confetti is mocked file-wide rather than per test — many
+// tests here advance a watched order straight through Delivered without
+// caring about the landing burst, and happy-dom's canvas has no real 2D
+// context for the real library's requestAnimationFrame loop to draw into
+// (docs/memory/engineer.md's #178 lesson, which the same risk this file's
+// own confetti-specific tests below guard against directly).
+vi.mock('canvas-confetti', () => {
+  const cannon = Object.assign(vi.fn(), { create: vi.fn(() => vi.fn()), reset: vi.fn() });
+  return { default: cannon };
+});
+
 const LINE = {
   itemId: 'one-job-pizza-margherita',
   restaurantSlug: 'one-job-pizza',
