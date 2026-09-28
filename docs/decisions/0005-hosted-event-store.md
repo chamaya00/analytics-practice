@@ -201,6 +201,30 @@ every SQL statement below — nothing here duplicates it, only sequences it.
    entry) against what Supabase's edge actually sends on this project, and
    update the trigger if it differs — the migration's comment already flags
    this as "an assumption to confirm on the first real deploy."
+7. **Export the raw events, on a schedule (recurring, not one-time).** The
+   free plan has no backups and pauses the project after 7 idle days, so the
+   export is the only copy.
+   - **How.** Dashboard → Table Editor → `events` (schema `public`) →
+     Export → Download as CSV. That exports the raw table, including
+     `is_internal` rows, which is what you want in a backup. Confirm the
+     file's row count equals the store's:
+     ```sql
+     select count(*) from public.events;
+     ```
+     (The SQL Editor's results grid caps rows, so do not export from it.)
+   - **How often.** At least weekly, and always before any stretch of 7 days
+     you will not visit the site or the dashboard (travel, a break), since a
+     paused project takes inserts with it.
+   - **Where the file goes.** A private folder you control, named
+     `events-YYYY-MM-DD.csv`. Never the repository: the rows carry
+     `visitor_id` and `session_id`.
+   - **Never delete exported rows from the store.** Do not trim, truncate or
+     `delete` old events after exporting them. Contract M3 defines a
+     returning visitor by a first-seen day taken from *all* their rows, so
+     removing old rows makes returning visitors look new, and the launch
+     queries in `docs/measurement/219-launch-queries.sql` (M3 above all)
+     silently understate returning share. The export is a copy, not a
+     transfer.
 
 ## Alternatives rejected
 
