@@ -415,7 +415,7 @@ function resolveDeliveredHeroAnimation(cache: TrackerImageCache, orderId: string
  * plays at most once per order (`resolveDeliveredHeroAnimation`) and never
  * under reduced motion, in which case the stamp is simply there, exactly as
  * before this issue. */
-function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: number, cache: TrackerImageCache): HTMLElement {
+function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: number, cache: TrackerImageCache, root: HTMLElement): HTMLElement {
   const hero = document.createElement('div');
   hero.className = 'tracker-delivered-hero';
   hero.setAttribute('data-testid', 'tracker-delivered-hero');
@@ -448,10 +448,24 @@ function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: 
   // (#189 AC4), so the two share one dynamic import however many bursts
   // actually play. A failed import (offline, blocked) never blocks the hero
   // itself — the press and the ring have already played without it.
+  //
+  // The tracker rebuilds this whole hero on its 1s tick (`root.innerHTML =
+  // ''`), and this dynamic import can still be in flight when that happens —
+  // most likely on a fresh visit, when the `canvas-confetti` chunk is
+  // uncached. `stamp` is then a detached node whose `getBoundingClientRect()`
+  // is all zeros, which would fire the burst from the viewport's top-left
+  // corner instead of skipping or re-aiming it. Measure from the stamp still
+  // in the document — the rebuilt hero is the same order at the same
+  // position — and skip the burst entirely rather than ever firing from
+  // `{0, 0}` if no such stamp exists any more (#189 driver review).
   if (isLanding) {
     loadConfettiCannon()
       .then((cannon) => {
-        const rect = stamp.getBoundingClientRect();
+        const currentStamp = stamp.isConnected
+          ? stamp
+          : root.querySelector<HTMLElement>('[data-testid="tracker-delivered-stamp"]');
+        if (!currentStamp) return;
+        const rect = currentStamp.getBoundingClientRect();
         cannon({
           particleCount: 26,
           ticks: 80,
@@ -540,6 +554,7 @@ function renderOpenCard(
   onRate: (orderId: string) => void,
   onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
   cache: TrackerImageCache,
+  root: HTMLElement,
   now: number = Date.now(),
 ): HTMLElement {
   const card = document.createElement('section');
@@ -584,7 +599,7 @@ function renderOpenCard(
     card.append(countdown);
     card.append(renderStepper(view.currentStepIndex));
   } else {
-    card.append(renderDeliveredHero(order, city, now, cache));
+    card.append(renderDeliveredHero(order, city, now, cache, root));
     card.append(renderDoneRail());
   }
 
@@ -1161,7 +1176,7 @@ export function renderTrackerView(
     live.append(label);
   }
 
-  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, cache, now));
+  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, cache, root, now));
   for (const order of stack.live) {
     if (order.orderId === openOrderId) continue;
     live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder, cache));

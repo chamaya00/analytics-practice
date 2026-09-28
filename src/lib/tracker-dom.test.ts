@@ -1601,4 +1601,53 @@ describe('initTrackerPage — the Delivered hero\'s landing animation (#189, doc
     const [landingCannon, winCannon] = await Promise.all(loadSpy.mock.results.map((result) => result.value));
     expect(landingCannon).toBe(winCannon); // the same loaded instance, not re-imported
   });
+
+  it("measures the burst's origin from the stamp still in the document, not the one the rebuilt tick detached (#189 driver review)", async () => {
+    // `getBoundingClientRect` answers per-element: the fixed geometry for
+    // whichever stamp is actually connected, all zeros for one that isn't —
+    // the same shape a detached node really returns, rather than assuming
+    // only one stamp is ever queried.
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      if (!this.isConnected) {
+        return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => {} } as DOMRect;
+      }
+      return { left: 100, top: 50, width: 76, height: 76, right: 176, bottom: 126, x: 100, y: 50, toJSON: () => {} } as DOMRect;
+    });
+    vi.stubGlobal('innerWidth', 800);
+    vi.stubGlobal('innerHeight', 600);
+
+    // `loadConfettiCannon` resolves only once the test says so — past at
+    // least one more 1s render tick, so the hero has already been rebuilt
+    // (and the stamp the import started against detached) before the burst
+    // actually fires.
+    let resolveCannon: ((cannon: typeof confetti) => void) | null = null;
+    const pendingCannon = new Promise<typeof confetti>((resolve) => {
+      resolveCannon = resolve;
+    });
+    vi.spyOn(confettiLoader, 'loadConfettiCannon').mockReturnValue(pendingCannon);
+
+    const order = placeAnOrder();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const tickThatCatchesIt = Math.ceil(order.deliveryMs / 1000) * 1000;
+    await vi.advanceTimersByTimeAsync(tickThatCatchesIt);
+    expect(confetti).not.toHaveBeenCalled(); // the import hasn't resolved yet
+
+    // Three more render ticks rebuild the hero — and detach the stamp the
+    // still-pending import started against — well before it resolves.
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(confetti).not.toHaveBeenCalled();
+
+    resolveCannon!(confetti);
+    await pendingCannon;
+    await Promise.resolve(); // flush renderDeliveredHero's own `.then()`
+
+    expect(confetti).toHaveBeenCalledTimes(1);
+    expect(confetti).toHaveBeenCalledWith({
+      particleCount: 26,
+      ticks: 80,
+      origin: { x: (100 + 38) / 800, y: (50 + 38) / 600 },
+    });
+  });
 });
