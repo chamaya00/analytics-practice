@@ -10,7 +10,7 @@
 // the Offers screen and checkout (two separate page loads) agree on what is
 // applied without a live in-memory session between them.
 
-import type { City } from './money';
+import { currencyForCity, type City } from './money';
 import { flashSecondsRemaining, getFlashDraw, isFlashLive } from './flash-deal';
 
 export type StackGroup = 'discount' | 'delivery';
@@ -26,7 +26,12 @@ export type VoucherId =
   | 'sf-discount-t1'
   | 'sf-discount-t2'
   | 'sf-discount-t3'
-  | 'sf-flash';
+  | 'sf-flash'
+  | 'la-delivery-entry'
+  | 'la-discount-t1'
+  | 'la-discount-t2'
+  | 'la-discount-t3'
+  | 'la-flash';
 
 export const VOUCHER_IDS: readonly VoucherId[] = [
   'hcmc-delivery-entry',
@@ -40,6 +45,9 @@ export const VOUCHER_IDS: readonly VoucherId[] = [
   'sf-discount-t3',
   'sf-flash',
 ];
+
+/** LA's five (docs/design/229-la-catalogue.md): SF's ladder under LA's own ids. Kept apart from `VOUCHER_IDS`, which tracking.ts pins to the ten #81 named (#166); tracking.ts's `EVENT_VOUCHER_IDS` adds these. */
+export const LA_VOUCHER_IDS = ['la-delivery-entry', 'la-discount-t1', 'la-discount-t2', 'la-discount-t3', 'la-flash'] as const satisfies readonly VoucherId[];
 
 export interface CatalogueEntry {
   id: VoucherId;
@@ -151,8 +159,21 @@ const SF_CATALOGUE: CatalogueEntry[] = [
   },
 ];
 
+/** LA's tiers are SF's amounts, minimums and expiries under LA's ids (docs/design/229-la-catalogue.md): same currency, comparable prices. */
+const LA_CATALOGUE: CatalogueEntry[] = SF_CATALOGUE.map((entry) => ({
+  ...entry,
+  id: entry.id.replace(/^sf-/, 'la-') as VoucherId,
+  city: 'la',
+}));
+
+const CATALOGUE_BY_CITY: Record<City, CatalogueEntry[]> = {
+  sf: SF_CATALOGUE,
+  hcmc: HCMC_CATALOGUE,
+  la: LA_CATALOGUE,
+};
+
 export function catalogueForCity(city: City): CatalogueEntry[] {
-  return city === 'hcmc' ? HCMC_CATALOGUE : SF_CATALOGUE;
+  return CATALOGUE_BY_CITY[city];
 }
 
 /** The cheapest minimum spend in a city's catalogue — the Offers screen's empty-state copy names this exact figure (#87). */
@@ -160,17 +181,17 @@ export function cheapestMinimumSpendMinor(city: City): number {
   return Math.min(...catalogueForCity(city).map((entry) => entry.minimumSpendMinor));
 }
 
-export const FLASH_MINIMUM_SPEND_MINOR: Record<City, number> = { hcmc: 80000, sf: 1000 };
+export const FLASH_MINIMUM_SPEND_MINOR: Record<City, number> = { hcmc: 80000, sf: 1000, la: 1000 };
 
 /** Builds the flash voucher's own catalogue row for the current session's draw — its amount and expiry aren't fixed (#87), so this is assembled fresh rather than stored as a static table entry. */
 export function flashCatalogueEntry(city: City, amountMinor: number, secondsRemaining: number): CatalogueEntry {
-  const id: VoucherId = city === 'hcmc' ? 'hcmc-flash' : 'sf-flash';
+  const id = `${city}-flash` as const;
   return {
     id,
     city,
     stackGroup: 'discount',
     tier: 'flash',
-    label: city === 'hcmc' ? `${amountMinor.toLocaleString('vi-VN')} ₫ off flash deals` : `$${(amountMinor / 100).toFixed(2)} off flash deals`,
+    label: currencyForCity(city) === 'VND' ? `${amountMinor.toLocaleString('vi-VN')} ₫ off flash deals` : `$${(amountMinor / 100).toFixed(2)} off flash deals`,
     minimumSpendMinor: FLASH_MINIMUM_SPEND_MINOR[city],
     amountMinor,
     expiryMinutes: secondsRemaining / 60,

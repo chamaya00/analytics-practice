@@ -10,7 +10,7 @@
 // own (offers-store.ts keeps one selection per restaurant).
 
 import { formatMoney, type City, type Currency } from './money';
-import { cartSubtotalMinor, getCart, otherwiseDeliveryFeeMinor, selectRestaurantCart } from './order-store';
+import { cartSubtotalMinor, cityForRestaurantSlug, getCart, otherwiseDeliveryFeeMinor, selectRestaurantCart } from './order-store';
 import { ALL_CARTS_PATH, checkoutPath, restaurantSlugFromSearch } from './cart-routes';
 import { getFlashDraw, flashFeeForRestaurant } from './flash-deal';
 import { getRestaurant } from './restaurants';
@@ -152,7 +152,8 @@ export function renderOffers(
   }
 
   const { lines, restaurantSlug, currency } = selection.cart;
-  const city: City = currency === 'VND' ? 'hcmc' : 'sf';
+  // The restaurant's own city, never the currency, which LA shares with SF (#230).
+  const city: City = cityForRestaurantSlug(restaurantSlug);
   const subtotalMinor = cartSubtotalMinor(lines);
   const entries = entriesForCity(city, sessionStorage, now);
 

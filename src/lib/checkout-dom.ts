@@ -23,6 +23,7 @@
 
 import {
   cartSubtotalMinor,
+  cityForRestaurantSlug,
   computeCheckoutBreakdown,
   createOrderId,
   getCart,
@@ -293,9 +294,9 @@ export interface CheckoutView {
   cart: RestaurantCart | null;
 }
 
-/** The basket's city, as the rest of checkout reads it (vouchers, the thanks voucher, the flash fee) — so `city` on #238's events always agrees with the voucher ids they carry. */
+/** The basket's city, as the rest of checkout reads it (vouchers, the thanks voucher, the flash fee) — so `city` on #238's events always agrees with the voucher ids they carry. Its restaurant's own city, never the currency, which LA shares with SF (#230). */
 function checkoutCity(cart: RestaurantCart): City {
-  return cart.currency === 'VND' ? 'hcmc' : 'sf';
+  return cityForRestaurantSlug(cart.restaurantSlug);
 }
 
 function defaultRedirect(path: string): void {

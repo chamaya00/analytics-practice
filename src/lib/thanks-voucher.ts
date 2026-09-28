@@ -8,10 +8,10 @@
 // card and checkout perks that the same design document specifies are #174's,
 // not this module's.
 
-import type { City } from './money';
+import { CITIES, type City } from './money';
 
-export const THANKS_VOUCHER_AMOUNT_MINOR: Record<City, number> = { sf: 300, hcmc: 30000 };
-export const THANKS_VOUCHER_MINIMUM_SPEND_MINOR: Record<City, number> = { sf: 1500, hcmc: 150000 };
+export const THANKS_VOUCHER_AMOUNT_MINOR: Record<City, number> = { sf: 300, hcmc: 30000, la: 300 };
+export const THANKS_VOUCHER_MINIMUM_SPEND_MINOR: Record<City, number> = { sf: 1500, hcmc: 150000, la: 1500 };
 export const THANKS_VOUCHER_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 const THANKS_VOUCHER_KEY = 'parody.thanksVoucher';
@@ -57,7 +57,7 @@ function readStore(storage: Storage): ThanksVoucherStore {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return {};
     const store: ThanksVoucherStore = {};
-    for (const city of ['sf', 'hcmc'] as const) {
+    for (const city of CITIES) {
       const entry = (parsed as Record<string, unknown>)[city];
       if (isThanksVoucher(entry)) store[city] = entry;
     }

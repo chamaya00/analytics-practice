@@ -5,7 +5,7 @@
 // then "Tue, Sep 22" (SF) / "Tue, 22 Sep" (HCMC). Design doc's own guess,
 // called out as such rather than a fixed spec.
 
-import type { City } from './money';
+import { CITY_LOCALE, type City } from './money';
 
 function startOfDay(ms: number): number {
   const date = new Date(ms);
@@ -16,7 +16,7 @@ function startOfDay(ms: number): number {
 export function formatHistoryDate(placedAt: string, city: City, now: number = Date.now()): string {
   const placedMs = new Date(placedAt).getTime();
   const diffDays = Math.round((startOfDay(now) - startOfDay(placedMs)) / 86_400_000);
-  const locale = city === 'hcmc' ? 'vi-VN' : 'en-US';
+  const locale = CITY_LOCALE[city];
   const time = new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
     minute: '2-digit',

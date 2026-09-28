@@ -10,7 +10,7 @@
 // the photographer credit and licence per file.
 
 import type { City, Currency } from './money';
-import { currencyForCity } from './money';
+import { CITIES, currencyForCity } from './money';
 import { HCMC_MORE, SF_MORE } from './catalogue-more';
 
 export interface MenuItem {
@@ -461,12 +461,15 @@ const HCMC_RESTAURANTS: Restaurant[] = [
 
 // The first four per city are the ones #80's mocks and the home feed's
 // first screen are designed around; catalogue-more.ts carries the rest.
+// LA's own 14 are #233's (docs/design/229-la-catalogue.md); until then LA
+// has none, and the city picker doesn't offer it (home-dom.ts).
 export const RESTAURANTS_BY_CITY: Record<City, Restaurant[]> = {
   sf: [...SF_RESTAURANTS, ...SF_MORE],
   hcmc: [...HCMC_RESTAURANTS, ...HCMC_MORE],
+  la: [],
 };
 
-export const ALL_RESTAURANTS: Restaurant[] = [...RESTAURANTS_BY_CITY.sf, ...RESTAURANTS_BY_CITY.hcmc];
+export const ALL_RESTAURANTS: Restaurant[] = CITIES.flatMap((city) => RESTAURANTS_BY_CITY[city]);
 
 export function restaurantsForCity(city: City): Restaurant[] {
   return RESTAURANTS_BY_CITY[city];
@@ -489,4 +492,5 @@ export function getMenuItem(itemId: string): { restaurant: Restaurant; item: Men
 export const CUISINE_SHORTCUTS: Record<City, string[]> = {
   sf: ['Tacos', 'Pizza', 'Dim sum', 'Bowls', 'Burgers', 'Thai', 'Sushi', 'Indian', 'Mediterranean', 'Korean', 'Ramen', 'Breakfast', 'Vegan', 'Seafood'],
   hcmc: ['Phở', 'Bánh mì', 'Cơm', 'Bún', 'Hủ tiếu', 'Gỏi cuốn', 'Lẩu', 'Cà phê', 'Chè', 'Cơm gà', 'Hải sản', 'Bánh xèo', 'Mì Quảng', 'Bò bít tết'],
+  la: ['Tacos', 'Korean BBQ', 'Thai', 'Armenian', 'Smoothie bowls', 'Ramen', 'Filipino', 'Poke', 'Breakfast', 'Hand rolls', 'Soul food', 'Persian', 'Deli', 'Vegan'],
 };

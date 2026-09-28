@@ -14,6 +14,7 @@
 
 import {
   cartSubtotalMinor,
+  cityForRestaurantSlug,
   getCart,
   removeFromCart,
   selectRestaurantCart,
@@ -357,7 +358,7 @@ export function initCartPage(
   track('cart_viewed', {
     item_count: cart.itemCount,
     amount_minor: cart.subtotalMinor,
-    city: getRestaurant(cart.restaurantSlug)?.city ?? (cart.currency === 'VND' ? 'hcmc' : 'sf'),
+    city: cityForRestaurantSlug(cart.restaurantSlug),
     currency: cart.currency,
   });
 }

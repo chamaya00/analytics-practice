@@ -27,6 +27,10 @@ import { gestureAxis } from './swipe-row';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
+/** The cities the picker offers. LA is a `City` (#230) but isn't offered until
+ * its catalogue lands: #233 removes this filter (docs/design/229-la-catalogue.md). */
+const PICKER_CITIES: City[] = CITIES.filter((city) => city !== 'la');
+
 /** The carousel's first-order slide claim (docs/design/80-two-city-brand-and-flow.md's
  * original banner copy, carried forward unchanged — docs/design/137-carousel-header-tiles.md's
  * "seventh slide"), localized per city's own currency. Other code may still read the
@@ -35,6 +39,7 @@ const STORAGE_PROBE_KEY = 'parody.storageProbe';
 const PROMO_BANNER_CLAIM: Record<City, string> = {
   sf: '$2 off your first order',
   hcmc: '10.000 ₫ off your first order',
+  la: '$2 off your first order',
 };
 
 /** Just the amount ("$2 off" / "10.000 ₫ off"), for the ticket graphic's own value/off
@@ -42,6 +47,7 @@ const PROMO_BANNER_CLAIM: Record<City, string> = {
 const PROMO_BANNER_AMOUNT: Record<City, string> = {
   sf: '$2 off',
   hcmc: '10.000 ₫ off',
+  la: '$2 off',
 };
 
 /** HCMC's longer currency string doesn't fit the ticket at the base size and needs the
@@ -50,6 +56,7 @@ const PROMO_BANNER_AMOUNT: Record<City, string> = {
 const PROMO_BANNER_AMOUNT_COMPACT: Record<City, boolean> = {
   sf: false,
   hcmc: true,
+  la: false,
 };
 
 /** Component-scoped mask id for the ticket's notch cutouts (docs/design/137's four mocks
@@ -90,6 +97,10 @@ const CAROUSEL_RESTAURANT_SLIDES: Record<City, Array<{ type: 'ad' | 'promo'; slu
     { type: 'ad', slug: 'quan-lau-ut-hanh' },
     { type: 'promo', slug: 'bo-bit-tet-chu-tam-go-vap', claim: 'Free Khoai tây chiên with a 150.000 ₫ minimum' },
   ],
+  // #233 fills this from docs/design/229-la-catalogue.md's
+  // `CAROUSEL_RESTAURANT_SLIDES.la` table when LA's restaurants land; every
+  // slug here must resolve through getRestaurant, and none of LA's do yet.
+  la: [],
 };
 
 interface CarouselSlide {
@@ -460,7 +471,7 @@ function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (ci
   const cards = document.createElement('div');
   cards.className = 'location-cards';
 
-  for (const city of CITIES) {
+  for (const city of PICKER_CITIES) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'location-card';
@@ -478,7 +489,7 @@ function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (ci
 
     const currencyNote = document.createElement('span');
     currencyNote.className = 'location-card-currency';
-    currencyNote.textContent = city === 'sf' ? 'Prices in USD' : 'Prices in VND';
+    currencyNote.textContent = `Prices in ${CITY_CURRENCY[city]}`;
 
     card.append(img, name, currencyNote);
     card.addEventListener('click', () => {

@@ -22,9 +22,10 @@ export const FLASH_DRAW_SIZE_MAX = 6;
 const AMOUNT_STEPS_MINOR: Record<City, number[]> = {
   hcmc: [10000, 15000, 20000, 25000, 30000],
   sf: [200, 300, 400, 500, 600],
+  la: [200, 300, 400, 500, 600],
 };
 
-export const FLASH_REDUCED_OFF_MINOR: Record<City, number> = { hcmc: 10000, sf: 200 };
+export const FLASH_REDUCED_OFF_MINOR: Record<City, number> = { hcmc: 10000, sf: 200, la: 200 };
 
 export type FlashFeeMode = 'free' | 'reduced';
 

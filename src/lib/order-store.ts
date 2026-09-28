@@ -131,6 +131,15 @@ function generateId(): string {
   });
 }
 
+/**
+ * The city a cart line or order belongs to: its restaurant's own city (#230).
+ * Never inferred from the currency, which LA shares with SF. `sf` only for a
+ * restaurant no longer in the catalogue.
+ */
+export function cityForRestaurantSlug(slug: string): City {
+  return getRestaurant(slug)?.city ?? 'sf';
+}
+
 export function getVisitorId(storage: Storage): string {
   const existing = storage.getItem(VISITOR_ID_KEY);
   if (existing) return existing;
@@ -475,7 +484,7 @@ const LEGACY_DELIVERY_MS = 7 * 60_000;
  */
 function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => number): PlacedOrder {
   const restaurantSlug = order.items[0]?.restaurantSlug ?? '';
-  const city: City = getRestaurant(restaurantSlug)?.city ?? 'sf';
+  const city: City = cityForRestaurantSlug(restaurantSlug);
   return {
     ...order,
     etaMinutes: order.etaMinutes ?? estimateEtaMinutes(getVisitorId(storage), restaurantSlug),
@@ -644,7 +653,7 @@ export function placeOrder(
   const slug = restaurantSlug ?? items[0]?.restaurantSlug ?? '';
   const etaMinutes = estimateEtaMinutes(getVisitorId(storage), slug);
   const amountMinor = cartSubtotalMinor(items);
-  const city: City = getRestaurant(slug)?.city ?? 'sf';
+  const city: City = cityForRestaurantSlug(slug);
   const order: PlacedOrder = {
     orderId: fields.orderId ?? generateId(),
     placedAt: new Date().toISOString(),

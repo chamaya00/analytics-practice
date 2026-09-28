@@ -11,7 +11,18 @@
 // signed-out one render identically (an empty, untouched `.balance-slot`),
 // exactly as docs/design/143-wallet.md's named-states table says.
 
-import { CITY_NAMES, CITY_LOCALE, formatMoneyForCity, formatMoneyCompactForCity, type City } from './money';
+import {
+  CITY_LOCALE,
+  currencyForCity,
+  formatMoney,
+  formatMoneyForCity,
+  formatMoneyCompactForCity,
+  otherCurrencyCitiesLabel,
+  otherCurrencyForCity,
+  walletKicker,
+  type City,
+  type Currency,
+} from './money';
 import { readWalletEnvConfig, type WalletEnvConfig } from './wallet-config';
 import {
   createSupabaseAuth,
@@ -29,8 +40,13 @@ import { WALLET_BALANCE_CHANGED_EVENT, type WalletBalanceChangedDetail } from '.
 
 const DRIP_WINDOW_TIMES = '7:00 AM, 3:00 PM and 11:00 PM';
 
+/** The wallet is per currency, not per city (ADR 0008): LA spends the same USD balance as SF. */
+function amountForCurrency(balances: WalletBalances, currency: Currency): number {
+  return currency === 'USD' ? balances.usdMinor : balances.vndMinor;
+}
+
 function amountForCity(balances: WalletBalances, city: City): number {
-  return city === 'sf' ? balances.usdMinor : balances.vndMinor;
+  return amountForCurrency(balances, currencyForCity(city));
 }
 
 /** The mock's own 9-character threshold (the width of `600.000 ₫`) — past it, the chip switches to `Intl`'s compact notation (money.ts). */
@@ -236,18 +252,20 @@ function renderWalletSheet(
   // fixed SF sentence would be wrong while looking at HCMC's balance.
   const kicker = document.createElement('p');
   kicker.className = 'wallet-sheet-kicker';
-  kicker.textContent = `Play money. ${CITY_NAMES[city]} orders spend ${city === 'sf' ? 'dollars' : 'đồng'}.`;
+  kicker.textContent = walletKicker(city);
 
   const mainBalance = document.createElement('p');
   mainBalance.className = 'wallet-sheet-balance';
   mainBalance.setAttribute('data-testid', 'wallet-sheet-balance');
 
-  const otherCity: City = city === 'sf' ? 'hcmc' : 'sf';
+  // The other *currency*, labelled with every city that spends it
+  // (docs/design/229-la-catalogue.md, "The 'other city' line").
+  const otherCurrency = otherCurrencyForCity(city);
   const otherRow = document.createElement('div');
   otherRow.className = 'wallet-sheet-other-row';
   const otherCityLabel = document.createElement('span');
   otherCityLabel.className = 'wallet-sheet-other-city';
-  otherCityLabel.textContent = CITY_NAMES[otherCity];
+  otherCityLabel.textContent = otherCurrencyCitiesLabel(city);
   const otherAmount = document.createElement('span');
   otherAmount.setAttribute('data-testid', 'wallet-sheet-other-balance');
   otherRow.append(otherCityLabel, otherAmount);
@@ -280,7 +298,7 @@ function renderWalletSheet(
 
   function renderAll(): void {
     mainBalance.textContent = formatMoneyForCity(amountForCity(currentBalances, city), city);
-    otherAmount.textContent = formatMoneyForCity(amountForCity(currentBalances, otherCity), otherCity);
+    otherAmount.textContent = formatMoney(amountForCurrency(currentBalances, otherCurrency), otherCurrency);
     renderDripCard(dripCard, city, dripState(), currentBalances, deps.now, () => void handleCollect());
   }
 
