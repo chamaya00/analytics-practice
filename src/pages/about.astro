@@ -28,6 +28,18 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
       visitors," nothing more.
     </li>
     <li>
+      <strong>How you found this site</strong> — <code>session_started</code>, once per browsing
+      session: the referring site's name only (linkedin.com, say), plus <code>utm_source</code>, <code>utm_medium</code> and <code>utm_campaign</code> from the link you
+      followed. Never the full address you came from, the rest of the link's query string, or click
+      IDs such as <code>gclid</code> or <code>fbclid</code>.
+    </li>
+    <li>
+      <strong>Whether this is the site owner's own browser</strong> — a flag, <code>is_internal</code>,
+      on every event. Visiting with <code>?internal=1</code> marks a browser as the owner's, so the
+      owner's own clicking can be left out of the numbers, and <code>?internal=0</code> unmarks it. It is
+      true/false only, and never an identifier.
+    </li>
+    <li>
       <strong>Which city you're browsing, and when you switch</strong> — <code>location_selected</code>,
       fired only the first time you pick a city or when you pick a different one than the city
       already remembered for this browser, never on every visit.

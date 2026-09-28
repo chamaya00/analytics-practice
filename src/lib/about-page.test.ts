@@ -146,6 +146,26 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
   });
 });
 
+describe('#225 acquisition and the owner-traffic flag (AC4)', () => {
+  it('says acquisition is captured: the referring site name only, the three utm_ values, and never the full address, the rest of the query string, or click IDs', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain('How you found this site — session_started, once per browsing session');
+    expect(text).toContain("the referring site's name only");
+    expect(text).toContain('plus utm_source, utm_medium and utm_campaign from the link you followed');
+    expect(text).toContain(
+      "Never the full address you came from, the rest of the link's query string, or click IDs such as gclid or fbclid.",
+    );
+  });
+
+  it('says the ?internal=1 flag exists, is true/false only, and is never an identifier', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain("Whether this is the site owner's own browser — a flag, is_internal, on every event.");
+    expect(text).toContain("Visiting with ?internal=1 marks a browser as the owner's");
+    expect(text).toContain('and ?internal=0 unmarks it.');
+    expect(text).toContain('It is true/false only, and never an identifier.');
+  });
+});
+
 describe('#236 builder credit', () => {
   it('links to the builder LinkedIn above the event-family list', () => {
     const doc = readAbout();

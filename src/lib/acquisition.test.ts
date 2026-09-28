@@ -124,7 +124,7 @@ describe('session_started on the launch link (AC2)', () => {
     });
     expect(() =>
       startTracking(
-        { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key', fetchImpl },
+        { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key', fetchImpl: fetchImpl as unknown as typeof fetch },
         { search: '?utm_source=linkedin', referrer: '', origin: ORIGIN, localStorage: window.localStorage, sessionStorage: blocked },
       ),
     ).not.toThrow();
@@ -274,7 +274,7 @@ describe('the ?internal= marking (AC3)', () => {
 
     expect(() =>
       startTracking(
-        { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key', fetchImpl },
+        { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key', fetchImpl: fetchImpl as unknown as typeof fetch },
         { search: '?internal=1', referrer: '', origin: ORIGIN, localStorage: throwsOnFlag, sessionStorage: window.sessionStorage },
       ),
     ).not.toThrow();

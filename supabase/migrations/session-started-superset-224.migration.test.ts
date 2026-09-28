@@ -44,7 +44,9 @@ let reversedSeen = 0;
 beforeEach((context) => {
   if (context.task.name === REVERSED_BY_THIS_ISSUE) {
     reversedSeen += 1;
-    context.task.fails = true;
+    // Typed read-only, but the runner reads `fails` only after the test body
+    // has run, so setting it here is what `it.fails` itself sets.
+    (context.task as { fails?: boolean }).fails = true;
   }
 });
 
