@@ -983,10 +983,13 @@ const { title } = Astro.props;
     padding: var(--space-lg);
   }
 
+  /* This and the other sheet scrims/shadows below were rgba(36, 27, 51, …),
+     #80's --color-text as rgb, until #194. Neutral black now, and heavier:
+     on the always-dark #181-green page a 0.45 scrim barely dims anything. */
   .confirm-scrim {
     position: fixed;
     inset: 0;
-    background: rgba(36, 27, 51, 0.45);
+    background: rgba(0, 0, 0, 0.6);
   }
 
   .confirm-dialog {
@@ -999,7 +1002,7 @@ const { title } = Astro.props;
     /* #105's own critique caught a one-off 16px on this sheet and corrected
        it to the system's own 12px card radius (105-cart-remove-modal.html). */
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(36, 27, 51, 0.18);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     animation: confirm-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -1598,7 +1601,7 @@ const { title } = Astro.props;
   .flash-sheet-overlay .scrim {
     position: fixed;
     inset: 0;
-    background: rgba(36, 27, 51, 0.45);
+    background: rgba(0, 0, 0, 0.6);
     border: none;
     padding: 0;
   }
@@ -1619,7 +1622,7 @@ const { title } = Astro.props;
     flex-direction: column;
     background: var(--color-bg);
     border-radius: 12px 12px 0 0;
-    box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
     overflow: hidden;
     /* Snap back to rest after a short drag (#126 AC1) — removed while
        dragging (`.is-dragging`, flash-sheet-dom.ts's attachSheetDragTrigger)
@@ -3014,7 +3017,7 @@ const { title } = Astro.props;
   .rating-sheet-scrim {
     position: fixed;
     inset: 0;
-    background: rgba(36, 27, 51, 0.45);
+    background: rgba(0, 0, 0, 0.6);
     border: none;
     padding: 0;
   }
@@ -3028,7 +3031,7 @@ const { title } = Astro.props;
     padding: var(--space-xl) var(--space-lg) var(--space-lg);
     background: var(--color-bg);
     border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
     animation: rating-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -3423,7 +3426,7 @@ const { title } = Astro.props;
   .wallet-sheet-overlay .scrim {
     position: fixed;
     inset: 0;
-    background: rgba(36, 27, 51, 0.45);
+    background: rgba(0, 0, 0, 0.6);
     border: none;
     padding: 0;
   }
@@ -3440,7 +3443,7 @@ const { title } = Astro.props;
     padding: 0 var(--space-lg) var(--space-lg);
     background: var(--color-bg);
     border-radius: 12px 12px 0 0;
-    box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
     animation: confirm-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -3624,7 +3627,7 @@ const { title } = Astro.props;
   .sign-in-sheet-overlay .scrim {
     position: fixed;
     inset: 0;
-    background: rgba(36, 27, 51, 0.45);
+    background: rgba(0, 0, 0, 0.6);
     border: none;
     padding: 0;
   }
@@ -3641,7 +3644,7 @@ const { title } = Astro.props;
     padding: var(--space-lg);
     background: var(--color-bg);
     border-radius: 12px 12px 0 0;
-    box-shadow: 0 -8px 24px rgba(36, 27, 51, 0.18);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
     animation: confirm-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
