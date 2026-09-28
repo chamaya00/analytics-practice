@@ -288,7 +288,7 @@ describe('home feed contents (AC2)', () => {
 });
 
 describe('the promo carousel (#137 AC2-AC8)', () => {
-  it('shows 7 slides matching the design doc\'s named content for SF: the first-order claim, 3 Ad slides for 3 distinct restaurants, 3 promo slides for 3 other distinct restaurants naming real menu items', () => {
+  it('shows 7 slides matching the design doc\'s named content for SF: 3 Ad slides for 3 distinct restaurants, 3 promo slides for 3 other distinct restaurants naming real menu items, and the first-order claim now 4th of 7 (#184)', () => {
     window.localStorage.setItem('parody.city', 'sf');
     const el = root();
     initHomePage(el, pillRoot(), window.localStorage);
@@ -296,8 +296,10 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     const dots = el.querySelectorAll('[data-testid="carousel-dots"] .carousel-dot');
     expect(dots).toHaveLength(7);
 
-    const expected: Array<{ claim: string; sub: string; isAd: boolean; href: string | null }> = [
-      { claim: '$2 off your first order', sub: 'Applied automatically at checkout', isAd: false, href: null },
+    // #184: the first-order slide moved from index 0 to index 3 — the six
+    // restaurant slides keep CAROUSEL_RESTAURANT_SLIDES' own ad/promo/ad/
+    // promo/ad/promo order, only split around the inserted first-order slide.
+    const expected: Array<{ claim: string; sub: string; isAd: boolean; href: string | null; isFirstOrder?: boolean }> = [
       { claim: 'Mission Taqueria', sub: 'Tacos · ★ 4.6', isAd: true, href: '/restaurants/mission-taqueria/' },
       {
         claim: 'Free Garlic knots with a $20 minimum',
@@ -306,6 +308,7 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
         href: '/restaurants/north-beach-pizzeria/',
       },
       { claim: 'Inner Richmond Sushi Bar', sub: 'Sushi · ★ 4.8', isAd: true, href: '/restaurants/inner-richmond-sushi-bar/' },
+      { claim: 'Your first order', sub: 'Applied automatically at checkout', isAd: false, href: null, isFirstOrder: true },
       {
         claim: 'Buy 1 get 1 free: Buttermilk pancakes',
         sub: 'Noe Valley Morning Kitchen',
@@ -328,7 +331,7 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
       expect(sub, `slide ${index}`).toBe(slide.sub);
       const caption = el.querySelector('.carousel-caption');
       const media = el.querySelector('.carousel-slide-media');
-      if (index === 0) {
+      if (slide.isFirstOrder) {
         // First-order slide: claim/sub render in the panel; the caption
         // strip stays empty rather than repeating the same text. #151: the
         // strip is hidden outright (not just emptied — a 56px blank band
@@ -340,6 +343,21 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
         expect(el.querySelector('[data-testid="carousel-panel"]'), `slide ${index} panel`).not.toBeNull();
         expect(caption?.hasAttribute('hidden'), `slide ${index} caption hidden`).toBe(true);
         expect(media?.classList.contains('carousel-slide-media--first-order'), `slide ${index} media grown`).toBe(true);
+
+        // #184: the amount ("$2 off") is its own element, split from
+        // "Your first order" — and, despite painting on the right
+        // (row-reverse), comes before the claim in the accessibility tree.
+        const amount = el.querySelector('[data-testid="carousel-panel-amount"]')!;
+        const claimEl = el.querySelector('[data-testid="carousel-panel-claim"]')!;
+        expect(amount.querySelector('.carousel-slide-panel-amount-value')?.textContent).toBe('$2');
+        expect(amount.querySelector('.carousel-slide-panel-amount-off')?.textContent).toBe('off');
+        expect(
+          amount.querySelector('.carousel-slide-panel-amount-value')?.classList.contains('carousel-slide-panel-amount-value--compact'),
+        ).toBe(false);
+        expect(amount.compareDocumentPosition(claimEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        // The ticket's decorative svg is aria-hidden; the amount text itself is not.
+        expect(el.querySelector('.carousel-slide-panel-ticket > svg')?.getAttribute('aria-hidden')).toBe('true');
+        expect(amount.hasAttribute('aria-hidden')).toBe(false);
       } else {
         expect(el.querySelector('[data-testid="carousel-panel"]'), `slide ${index} panel`).toBeNull();
         expect(caption?.hasAttribute('hidden'), `slide ${index} caption hidden`).toBe(false);
@@ -352,16 +370,16 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     }
   });
 
-  it('shows 7 slides matching the design doc\'s named content for HCMC', () => {
+  it('shows 7 slides matching the design doc\'s named content for HCMC, the first-order amount at the --compact size (#184)', () => {
     window.localStorage.setItem('parody.city', 'hcmc');
     const el = root();
     initHomePage(el, pillRoot(), window.localStorage);
 
-    const expected: Array<{ claim: string; sub: string; isAd: boolean }> = [
-      { claim: '10.000 ₫ off your first order', sub: 'Applied automatically at checkout', isAd: false },
+    const expected: Array<{ claim: string; sub: string; isAd: boolean; isFirstOrder?: boolean }> = [
       { claim: 'Bến Thành Bánh Mì', sub: 'Bánh mì · ★ 4.8', isAd: true },
       { claim: 'Free Gỏi cuốn with an 80.000 ₫ minimum', sub: 'Sài Gòn Phở Quán', isAd: false },
       { claim: 'Hủ Tiếu Nam Vang Hòa Phát', sub: 'Hủ tiếu · ★ 4.6', isAd: true },
+      { claim: 'Your first order', sub: 'Applied automatically at checkout', isAd: false, isFirstOrder: true },
       { claim: 'Buy 1 get 1 free: Bún chả Hà Nội', sub: 'Bún Chả Cô Ba', isAd: false },
       { claim: 'Quán Lẩu Út Hạnh', sub: 'Lẩu · ★ 4.7', isAd: true },
       { claim: 'Free Khoai tây chiên with a 150.000 ₫ minimum', sub: 'Bò Bít Tết Chú Tám Gò Vấp', isAd: false },
@@ -375,23 +393,32 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
       expect(claim, `slide ${index}`).toBe(slide.claim);
       expect(sub, `slide ${index}`).toBe(slide.sub);
       expect(el.querySelector('[data-testid="carousel-ad-label"]') !== null, `slide ${index} ad label`).toBe(slide.isAd);
+      if (slide.isFirstOrder) {
+        const amount = el.querySelector('[data-testid="carousel-panel-amount"]')!;
+        expect(amount.querySelector('.carousel-slide-panel-amount-value')?.textContent).toBe('10.000 ₫');
+        expect(amount.querySelector('.carousel-slide-panel-amount-off')?.textContent).toBe('off');
+        expect(
+          amount.querySelector('.carousel-slide-panel-amount-value')?.classList.contains('carousel-slide-panel-amount-value--compact'),
+        ).toBe(true);
+      }
     }
   });
 
-  it('tapping a restaurant slide opens that restaurant\'s menu; tapping the first-order slide goes nowhere', () => {
+  it('tapping a restaurant slide opens that restaurant\'s menu; tapping the first-order slide (now index 3, #184) goes nowhere', () => {
     window.localStorage.setItem('parody.city', 'sf');
     const el = root();
     initHomePage(el, pillRoot(), window.localStorage);
 
-    // Slide 0 is the first-order slide — a non-navigable <div>, not an <a>.
-    const firstOrderLink = el.querySelector('[data-testid="carousel-slide-link"]');
-    expect(firstOrderLink?.tagName).toBe('DIV');
-    expect(firstOrderLink?.hasAttribute('href')).toBe(false);
-
-    el.querySelectorAll('[data-testid="carousel-dots"] .carousel-dot')[1].dispatchEvent(new Event('click', { bubbles: true }));
+    // Slide 0 is now an ad slide (Mission Taqueria) — navigable.
     const adLink = el.querySelector('[data-testid="carousel-slide-link"]');
     expect(adLink?.tagName).toBe('A');
     expect((adLink as HTMLAnchorElement).getAttribute('href')).toBe('/restaurants/mission-taqueria/');
+
+    // Slide 3 is the first-order slide — a non-navigable <div>, not an <a>.
+    el.querySelectorAll('[data-testid="carousel-dots"] .carousel-dot')[3].dispatchEvent(new Event('click', { bubbles: true }));
+    const firstOrderLink = el.querySelector('[data-testid="carousel-slide-link"]');
+    expect(firstOrderLink?.tagName).toBe('DIV');
+    expect(firstOrderLink?.hasAttribute('href')).toBe(false);
   });
 
   it('advances automatically while idle, and loops back to the first slide', () => {
@@ -400,14 +427,14 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     const el = root();
     initHomePage(el, pillRoot(), window.localStorage);
 
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
 
     vi.advanceTimersByTime(5000);
-    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
+    expect(currentSlideText(el).claim).toBe('Free Garlic knots with a $20 minimum');
 
     vi.advanceTimersByTime(5000 * 6);
     // 7 total advances from slide 0 lands back on slide 0.
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
   });
 
   it('does not auto-advance under prefers-reduced-motion: reduce', () => {
@@ -434,20 +461,20 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     // Idle time passes while the interaction is ongoing — no advance, since
     // rotation is paused for the interaction's duration.
     vi.advanceTimersByTime(20000);
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
 
     carousel.dispatchEvent(new Event('pointerup', { bubbles: true }));
 
     // Not yet resumed immediately after the interaction ends.
     vi.advanceTimersByTime(4000);
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
 
     // ~5s after the interaction ended, auto-advance resumes (a new 5s
     // interval starts) — its first tick lands 5s after that, so the slide
     // actually changes 10s after the interaction ended.
     vi.advanceTimersByTime(1000);
     vi.advanceTimersByTime(5000);
-    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
+    expect(currentSlideText(el).claim).toBe('Free Garlic knots with a $20 minimum');
   });
 
   it('touch and focus interactions pause auto-advance the same way pointer interaction does', () => {
@@ -458,13 +485,13 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     initHomePage(touchEl, pillRoot(), window.localStorage);
     touchEl.querySelector('[data-testid="carousel"]')!.dispatchEvent(new Event('touchstart', { bubbles: true }));
     vi.advanceTimersByTime(20000);
-    expect(currentSlideText(touchEl).claim).toBe('$2 off your first order');
+    expect(currentSlideText(touchEl).claim).toBe('Mission Taqueria');
 
     const focusEl = root();
     initHomePage(focusEl, pillRoot(), window.localStorage);
     focusEl.querySelector('[data-testid="carousel"]')!.dispatchEvent(new Event('focusin', { bubbles: true }));
     vi.advanceTimersByTime(20000);
-    expect(currentSlideText(focusEl).claim).toBe('$2 off your first order');
+    expect(currentSlideText(focusEl).claim).toBe('Mission Taqueria');
   });
 
   it('a pause-button press is the only interaction that stops rotation for good, outlasting a timer advance that would otherwise resume it', () => {
@@ -482,12 +509,12 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     // A temporary touch pause would have resumed by now (previous test) —
     // the explicit pause button must not.
     vi.advanceTimersByTime(20000);
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
 
     pauseButton.click();
     expect(pauseButton.getAttribute('aria-label')).toBe('Pause carousel');
     vi.advanceTimersByTime(5000);
-    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('Mission Taqueria');
+    expect(el.querySelector('[data-testid="carousel-claim"]')?.textContent).toBe('Free Garlic knots with a $20 minimum');
   });
 
   it('shows a position indicator (7 real dot controls) with the current slide marked', () => {
@@ -550,12 +577,12 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
     // Swipe left (negative dx): advances to the next slide.
     pointer(carousel, 'pointerdown', 200);
     pointer(carousel, 'pointerup', 140);
-    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
+    expect(currentSlideText(el).claim).toBe('Free Garlic knots with a $20 minimum');
 
-    // Swipe right (positive dx): goes to the previous slide, looping to the last.
+    // Swipe right (positive dx): goes to the previous slide, looping back.
     pointer(carousel, 'pointerdown', 100);
     pointer(carousel, 'pointerup', 160);
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
   });
 
   it('a mostly-vertical drag does not change the slide, so the page\'s own scroll wins', () => {
@@ -566,7 +593,22 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
 
     pointer(carousel, 'pointerdown', 100, 100);
     pointer(carousel, 'pointerup', 105, 165);
-    expect(currentSlideText(el).claim).toBe('$2 off your first order');
+    expect(currentSlideText(el).claim).toBe('Mission Taqueria');
+  });
+
+  it('slide 0\'s photo loads eagerly (it\'s now the carousel\'s first paint, #184); every other slide\'s stays lazy', () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    const el = root();
+    initHomePage(el, pillRoot(), window.localStorage);
+
+    const dots = el.querySelectorAll('[data-testid="carousel-dots"] .carousel-dot');
+    expect(el.querySelector<HTMLImageElement>('.carousel-slide-photo')?.loading).toBe('eager');
+
+    for (let index = 1; index < dots.length; index += 1) {
+      dots[index].dispatchEvent(new Event('click', { bubbles: true }));
+      const img = el.querySelector<HTMLImageElement>('.carousel-slide-photo');
+      if (img) expect(img.loading, `slide ${index}`).toBe('lazy');
+    }
   });
 });
 
