@@ -13,6 +13,12 @@
       "height": 64
     },
     {
+      "path": "public/images/cities/la.jpg",
+      "query": "los angeles palm trees street",
+      "width": 96,
+      "height": 64
+    },
+    {
       "path": "public/images/restaurants/mission-taqueria-hero.jpg",
       "query": "street tacos platter spread",
       "width": 343,
@@ -177,6 +183,90 @@
     {
       "path": "public/images/restaurants/bo-bit-tet-chu-tam-go-vap-hero.jpg",
       "query": "sizzling beef steak pan",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/boyle-heights-taco-window-hero.jpg",
+      "query": "birria tacos consomme",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/koreatown-charcoal-house-hero.jpg",
+      "query": "korean bbq grill table",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/thai-town-boat-noodle-house-hero.jpg",
+      "query": "thai boat noodle soup bowls",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/glendale-lavash-bakery-hero.jpg",
+      "query": "armenian bakery lavash bread",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/venice-boardwalk-bowls-hero.jpg",
+      "query": "acai bowl beach",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/sawtelle-tonkotsu-bar-hero.jpg",
+      "query": "ramen bar counter bowls",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/temple-street-filipino-kitchen-hero.jpg",
+      "query": "filipino food spread table",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/silver-lake-poke-counter-hero.jpg",
+      "query": "poke bowls counter",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/echo-park-breakfast-burritos-hero.jpg",
+      "query": "breakfast burrito foil",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/little-tokyo-hand-roll-bar-hero.jpg",
+      "query": "temaki hand roll sushi bar",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/leimert-park-soul-kitchen-hero.jpg",
+      "query": "soul food plate fried chicken",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/westwood-persian-grill-hero.jpg",
+      "query": "persian kebab rice saffron",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/fairfax-pastrami-deli-hero.jpg",
+      "query": "deli counter pastrami sandwiches",
+      "width": 343,
+      "height": 180
+    },
+    {
+      "path": "public/images/restaurants/los-feliz-plant-kitchen-hero.jpg",
+      "query": "vegan food bowls table",
       "width": 343,
       "height": 180
     },
@@ -999,6 +1089,426 @@
     {
       "path": "public/images/dishes/bo-bit-tet-chu-tam-go-vap-soda-chanh.jpg",
       "query": "sparkling lime drink glass ice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-birria-tacos.jpg",
+      "query": "birria tacos consomme dipping",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-carnitas-taco.jpg",
+      "query": "carnitas taco cilantro onion",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-nopales-taco.jpg",
+      "query": "nopales cactus taco",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-elote.jpg",
+      "query": "elote mexican street corn",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/boyle-heights-taco-window-agua-de-jamaica.jpg",
+      "query": "agua de jamaica hibiscus drink",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-galbi-plate.jpg",
+      "query": "galbi korean short ribs",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-pork-belly-set.jpg",
+      "query": "samgyeopsal pork belly grill",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-kimchi-fried-rice.jpg",
+      "query": "kimchi fried rice egg",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-seafood-pancake.jpg",
+      "query": "korean scallion pancake",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/koreatown-charcoal-house-corn-cheese.jpg",
+      "query": "korean corn cheese skillet",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-boat-noodle-soup.jpg",
+      "query": "thai boat noodle soup",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-pad-see-ew.jpg",
+      "query": "pad see ew noodles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-khao-man-gai.jpg",
+      "query": "khao man gai chicken rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-papaya-salad.jpg",
+      "query": "som tam papaya salad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/thai-town-boat-noodle-house-thai-iced-tea.jpg",
+      "query": "thai iced tea glass",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-lahmajun.jpg",
+      "query": "lahmacun flatbread lemon",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-cheese-boereg.jpg",
+      "query": "borek cheese pastry",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-pakhlava.jpg",
+      "query": "baklava walnut honey",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-chicken-shawarma-plate.jpg",
+      "query": "chicken shawarma plate rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-lule-kebab-plate.jpg",
+      "query": "lule kebab grilled skewers",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-acai-bowl.jpg",
+      "query": "acai bowl granola strawberries",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-pitaya-bowl.jpg",
+      "query": "pitaya dragon fruit bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-avocado-toast.jpg",
+      "query": "avocado toast sourdough",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-peanut-butter-banana-smoothie.jpg",
+      "query": "peanut butter banana smoothie",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-green-smoothie.jpg",
+      "query": "green smoothie spinach",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-tonkotsu-ramen.jpg",
+      "query": "tonkotsu ramen chashu egg",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-spicy-miso-ramen.jpg",
+      "query": "spicy miso ramen",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-tsukemen.jpg",
+      "query": "japanese cold noodles dipping",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-gyoza.jpg",
+      "query": "gyoza pan fried dumplings",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-chashu-rice-bowl.jpg",
+      "query": "chashu pork rice bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-chicken-adobo.jpg",
+      "query": "chicken adobo rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-pork-sisig.jpg",
+      "query": "pork sisig sizzling plate",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-pancit-bihon.jpg",
+      "query": "pancit bihon noodles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-lumpia-shanghai.jpg",
+      "query": "fried spring rolls sauce",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-ube-halo-halo.jpg",
+      "query": "halo halo ube dessert",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-classic-ahi-poke-bowl.jpg",
+      "query": "ahi tuna poke bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-spicy-salmon-poke-bowl.jpg",
+      "query": "salmon poke bowl avocado",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-tofu-poke-bowl.jpg",
+      "query": "tofu poke bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-spam-musubi.jpg",
+      "query": "spam musubi",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-bacon-breakfast-burrito.jpg",
+      "query": "bacon egg breakfast burrito",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-chorizo-breakfast-burrito.jpg",
+      "query": "chorizo breakfast burrito",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-veggie-breakfast-burrito.jpg",
+      "query": "vegetarian breakfast burrito",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-chilaquiles.jpg",
+      "query": "chilaquiles verdes fried egg",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-cafe-de-olla.jpg",
+      "query": "cafe de olla clay mug",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-toro-hand-roll.jpg",
+      "query": "toro temaki hand roll",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-blue-crab-hand-roll.jpg",
+      "query": "crab hand roll temaki",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-salmon-hand-roll.jpg",
+      "query": "salmon hand roll",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-yellowtail-hand-roll.jpg",
+      "query": "yellowtail hamachi hand roll",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-edamame.jpg",
+      "query": "steamed soybeans",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-miso-soup.jpg",
+      "query": "miso soup bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-chicken-and-waffles.jpg",
+      "query": "chicken and waffles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-oxtail-plate.jpg",
+      "query": "braised oxtail rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-mac-and-cheese.jpg",
+      "query": "baked mac and cheese",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-collard-greens.jpg",
+      "query": "collard greens bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-peach-cobbler.jpg",
+      "query": "peach cobbler",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-chicken-koobideh-plate.jpg",
+      "query": "koobideh kebab saffron rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-barg-kebab-plate.jpg",
+      "query": "beef kebab rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-ghormeh-sabzi.jpg",
+      "query": "ghormeh sabzi stew",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-tahdig.jpg",
+      "query": "tahdig crispy rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/westwood-persian-grill-doogh.jpg",
+      "query": "doogh yogurt drink mint",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-hot-pastrami-sandwich.jpg",
+      "query": "pastrami sandwich rye",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-reuben.jpg",
+      "query": "reuben sandwich",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-matzo-ball-soup.jpg",
+      "query": "matzo ball soup",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-potato-latkes.jpg",
+      "query": "potato latkes applesauce",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/fairfax-pastrami-deli-black-and-white-cookie.jpg",
+      "query": "black and white cookie",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-jackfruit-tacos.jpg",
+      "query": "jackfruit tacos",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-mushroom-cheesesteak.jpg",
+      "query": "mushroom cheesesteak sandwich",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-kale-caesar.jpg",
+      "query": "kale caesar salad",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-buffalo-cauliflower.jpg",
+      "query": "buffalo cauliflower wings",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/los-feliz-plant-kitchen-oat-milk-horchata.jpg",
+      "query": "horchata cinnamon glass",
       "width": 64,
       "height": 64
     }
