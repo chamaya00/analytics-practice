@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
+import { createSupabaseSender } from './tracking-transport';
 import { initCheckoutPage, type CheckoutWalletDeps } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
 import { addToCart, getCart, getLatestOrder, getVisitorId } from './order-store';
@@ -60,7 +62,7 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
 
     initCheckoutPage(root(), window.localStorage, vi.fn());
 
-    expect(stub).toHaveBeenCalledWith('checkout_viewed', { item_count: 1, amount_minor: 2150, currency: 'USD' });
+    expect(stub).toHaveBeenCalledWith('checkout_viewed', { item_count: 1, amount_minor: 2150, city: 'sf', currency: 'USD' });
   });
 
   it('renders the subtotal and service fee as separate lines, and the delivery/discount/total figures from #87\'s worked example (AC1, AC3 — this cart auto-qualifies for sf-discount-t1 and the delivery voucher)', () => {
@@ -209,6 +211,11 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
       utensils: true,
       applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
       saved_amount_minor: 499,
+      city: 'sf',
+      thanks_voucher_amount_minor: 0,
+      vip_level: 'none',
+      vip_saved_amount_minor: 0,
+      wallet_paid: false,
     });
     expect(getCart(window.localStorage)).toEqual([]);
     expect(getLatestOrder(window.localStorage)).not.toBeNull();
@@ -491,7 +498,7 @@ describe('initCheckoutPage — one cart per restaurant', () => {
     const stub = vi.fn();
     setTrack(stub);
     initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, '?restaurant=mission-taqueria');
-    expect(stub).toHaveBeenCalledWith('checkout_viewed', { item_count: 1, amount_minor: 425, currency: 'USD' });
+    expect(stub).toHaveBeenCalledWith('checkout_viewed', { item_count: 1, amount_minor: 425, city: 'sf', currency: 'USD' });
   });
 
   it('placing the order fires order_placed for that restaurant’s cart and leaves the other restaurant’s cart in place', () => {
@@ -680,6 +687,11 @@ describe('initCheckoutPage — wallet dark because a probe fails at Place order 
       utensils: true,
       applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
       saved_amount_minor: 499,
+      city: 'sf',
+      thanks_voucher_amount_minor: 0,
+      vip_level: 'none',
+      vip_saved_amount_minor: 0,
+      wallet_paid: false,
     });
     expect(el.querySelector('[data-testid="sign-in-prompt"]')).toBeNull();
     expect(el.querySelector('[data-testid="wallet-short-balance"]')).toBeNull();
@@ -1177,5 +1189,347 @@ describe('initCheckoutPage — source of truth when a debit succeeds but the loc
     expect(pendingRaw).not.toBeNull();
     const debitCalls = fetchImpl.mock.calls.filter(([url]) => (url as string).endsWith('/rest/v1/rpc/wallet_debit'));
     expect(debitCalls).toHaveLength(1);
+  });
+});
+
+// --- #238: the #219 contract's events at checkout ---
+
+const SIGNED_IN_BALANCES = { usd_minor: 3000, vnd_minor: 750000, window_start: 'w', next_window_start: 'n', claimed_this_window: false };
+const SHORT_BALANCES = { usd_minor: 1000, vnd_minor: 750000, window_start: 'w', next_window_start: '2026-09-28T06:00:00.000Z', claimed_this_window: false };
+
+/** Every call of one event name the stub received, props only. */
+function propsOf(stub: ReturnType<typeof vi.fn>, eventName: string): Record<string, unknown>[] {
+  return stub.mock.calls.filter(([name]) => name === eventName).map(([, props]) => props as Record<string, unknown>);
+}
+
+/** No new or changed event carries an email, a user id, a balance or a shortfall (the #79 rule, #219 §9). */
+function expectNoIdentityOrBalance(stub: ReturnType<typeof vi.fn>): void {
+  const sent = JSON.stringify(stub.mock.calls);
+  expect(sent).not.toContain(RAW_SESSION.user.email);
+  expect(sent).not.toContain(RAW_SESSION.user.id);
+  expect(sent).not.toContain(RAW_SESSION.access_token);
+  expect(sent).not.toMatch(/balance|shortfall|email|user_id/i);
+}
+
+describe('#238: checkout_viewed and order_placed carry the #219 §8 props, and the store keeps them (AC1)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+  afterAll(closeEventStore);
+
+  it('checkout_viewed is exactly the four §8 props, and the store keeps that object', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, { config: null });
+
+    expect(propsOf(stub, 'checkout_viewed')).toEqual([{ item_count: 1, amount_minor: 2150, city: 'sf', currency: 'USD' }]);
+    const [props] = propsOf(stub, 'checkout_viewed');
+    await expect(storeWhatTheClientSends('checkout_viewed', props as never)).resolves.toEqual(props);
+  });
+
+  it('a dark-wallet order sends all 14 §8 keys, wallet_paid false, and the store keeps that object', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, { config: null });
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+
+    const order = getLatestOrder(window.localStorage)!;
+    expect(propsOf(stub, 'order_placed')).toEqual([
+      {
+        order_id: order.orderId,
+        item_count: 1,
+        amount_minor: 2150,
+        city: 'sf',
+        currency: 'USD',
+        drop_off_preset: 'home',
+        delivery_instructions: 'leave_at_door',
+        utensils: true,
+        applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
+        saved_amount_minor: 499,
+        thanks_voucher_amount_minor: 0,
+        vip_level: 'none',
+        vip_saved_amount_minor: 0,
+        wallet_paid: false,
+      },
+    ]);
+    const [props] = propsOf(stub, 'order_placed');
+    await expect(storeWhatTheClientSends('order_placed', props as never)).resolves.toEqual(props);
+  });
+
+  it('Platinum with a thanks voucher sends vip_level, Gold\'s waived fee plus Platinum\'s 10%, and the voucher amount; the store keeps it', async () => {
+    writeVipLedger(window.localStorage, { v: 1, deliveredCount: 3, spendMinor: { USD: 6000, VND: 0 }, level: 'platinum' });
+    unlockThanksVoucher(window.localStorage, 'sf', 'source-order', Date.now());
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, { config: null });
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+
+    const [props] = propsOf(stub, 'order_placed');
+    // 299 is North Beach Pizzeria's waived delivery fee (Gold's perk), 215 is 10% of the $21.50 subtotal (Platinum's).
+    expect(props).toMatchObject({
+      vip_level: 'platinum',
+      vip_saved_amount_minor: 299 + 215,
+      thanks_voucher_amount_minor: 300,
+      applied_voucher_ids: ['sf-discount-t1'],
+      saved_amount_minor: 200,
+      wallet_paid: false,
+    });
+    await expect(storeWhatTheClientSends('order_placed', props as never)).resolves.toEqual(props);
+  });
+
+  it('Gold sends vip_level gold and the waived delivery fee only', () => {
+    writeVipLedger(window.localStorage, { v: 1, deliveredCount: 3, spendMinor: { USD: 0, VND: 0 }, level: 'gold' });
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, { config: null });
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+
+    expect(propsOf(stub, 'order_placed')[0]).toMatchObject({ vip_level: 'gold', vip_saved_amount_minor: 299 });
+  });
+
+  it('a wallet-paid order sends wallet_paid true, and the store keeps that object', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: SIGNED_IN_BALANCES, debit: [{ status: 'debited' }] });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    const placed = propsOf(stub, 'order_placed');
+    expect(placed).toHaveLength(1);
+    expect(placed[0]).toMatchObject({ wallet_paid: true, order_id: getLatestOrder(window.localStorage)!.orderId });
+    expectNoIdentityOrBalance(stub);
+    await expect(storeWhatTheClientSends('order_placed', placed[0] as never)).resolves.toEqual(placed[0]);
+  });
+
+  it('a wallet-paid double tap still sends exactly one order_placed (§8: exactly one per order_id)', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: SIGNED_IN_BALANCES, debit: [{ status: 'debited' }] });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+    const button = el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')!;
+    button.click();
+    button.click();
+    await flush();
+
+    expect(propsOf(stub, 'order_placed')).toHaveLength(1);
+  });
+});
+
+describe('#238: wallet_short_shown at checkout (AC1, AC3)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+  afterAll(closeEventStore);
+
+  it('fires once with only city and surface when the block first renders on load, and the store keeps that object', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: SHORT_BALANCES });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+
+    expect(propsOf(stub, 'wallet_short_shown')).toEqual([{ city: 'sf', surface: 'checkout' }]);
+    expectNoIdentityOrBalance(stub);
+    const [props] = propsOf(stub, 'wallet_short_shown');
+    await expect(storeWhatTheClientSends('wallet_short_shown', props as never)).resolves.toEqual(props);
+  });
+
+  it('a re-render (Collect that still leaves it short) and a second Place order tap fire no second one', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({
+      providers: { google: true },
+      ready: true,
+      balances: { ...SHORT_BALANCES, usd_minor: 100 },
+      drip: { claimed: true, usd_minor: 600, vnd_minor: 750000, next_window_start: '2026-09-28T06:00:00.000Z' },
+    });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+    el.querySelector<HTMLButtonElement>('[data-testid="wallet-short-balance-collect"]')?.click();
+    await flush();
+    expect(el.querySelector('[data-testid="wallet-short-balance-shortfall"]')?.textContent).toBe('$15.00 short');
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+
+    expect(propsOf(stub, 'wallet_short_shown')).toHaveLength(1);
+  });
+
+  it('fires once after an insufficient debit, and not again on a second insufficient debit', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: SIGNED_IN_BALANCES, debit: [{ status: 'insufficient' }] });
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    await flush();
+    expect(propsOf(stub, 'wallet_short_shown')).toHaveLength(0);
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+    expect(propsOf(stub, 'wallet_short_shown')).toEqual([{ city: 'sf', surface: 'checkout' }]);
+  });
+
+  it('never fires when the balance covers the order, or with the wallet dark', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const fetchImpl = walletFetch({ providers: { google: true }, ready: true, balances: SIGNED_IN_BALANCES });
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, walletDeps({ fetchImpl, auth: signedInAuth() }));
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, { config: null });
+    await flush();
+
+    expect(propsOf(stub, 'wallet_short_shown')).toHaveLength(0);
+  });
+});
+
+describe('#238: sign-in at Place order, across the OAuth round trip (AC1, AC2)', () => {
+  beforeEach(() => addToCart(window.localStorage, LINE));
+  afterAll(closeEventStore);
+
+  async function openSheet(el: HTMLElement, deps: CheckoutWalletDeps): Promise<void> {
+    initCheckoutPage(el, window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, deps);
+    await flush();
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+  }
+
+  it('sign_in_prompt_shown fires once per opening, and dismissing it fires nothing; the store keeps it', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    await openSheet(el, walletDeps({ fetchImpl: walletFetch({ providers: { google: true }, ready: true }) }));
+    expect(propsOf(stub, 'sign_in_prompt_shown')).toEqual([{ surface: 'checkout' }]);
+
+    el.querySelector<HTMLButtonElement>('[data-testid="sign-in-not-now"]')?.click();
+    expect(stub.mock.calls).toHaveLength(2); // checkout_viewed, then the one prompt
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    await flush();
+    expect(propsOf(stub, 'sign_in_prompt_shown')).toEqual([{ surface: 'checkout' }, { surface: 'checkout' }]);
+
+    const [props] = propsOf(stub, 'sign_in_prompt_shown');
+    await expect(storeWhatTheClientSends('sign_in_prompt_shown', props as never)).resolves.toEqual(props);
+  });
+
+  it('a provider tap writes parody.pendingSignIn, then POSTs sign_in_started with keepalive, then navigates; the store keeps it', async () => {
+    const order: string[] = [];
+    const sendFetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+      order.push(`post:${JSON.parse(init.body as string).event_name}`);
+      return Promise.resolve({ ok: true });
+    });
+    vi.stubGlobal('navigator', { webdriver: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' });
+    const stub = vi.fn();
+    const sender = createSupabaseSender({ url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key', fetchImpl: sendFetch });
+    setTrack((name, props) => {
+      stub(name, props);
+      sender(name, props);
+    });
+    const navigateToOAuth = vi.fn().mockImplementation(() => {
+      order.push('navigate');
+      expect(JSON.parse(window.sessionStorage.getItem('parody.pendingSignIn')!)).toEqual({ provider: 'apple', surface: 'checkout' });
+    });
+    const el = root();
+    try {
+      await openSheet(el, walletDeps({ fetchImpl: walletFetch({ providers: { google: true, apple: true }, ready: true }), navigateToOAuth }));
+      el.querySelector<HTMLButtonElement>('[data-testid="apple-signin"]')?.click();
+      await flush();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(order).toEqual(['post:checkout_viewed', 'post:sign_in_prompt_shown', 'post:sign_in_started', 'navigate']);
+    const startedPost = sendFetch.mock.calls.find(([, init]) => JSON.parse((init as RequestInit).body as string).event_name === 'sign_in_started')!;
+    expect((startedPost[1] as RequestInit).keepalive).toBe(true);
+    expect(propsOf(stub, 'sign_in_started')).toEqual([{ provider: 'apple', surface: 'checkout' }]);
+    const [props] = propsOf(stub, 'sign_in_started');
+    await expect(storeWhatTheClientSends('sign_in_started', props as never)).resolves.toEqual(props);
+  });
+
+  it('when beginSignIn returns false, no sign_in_started fires and no pending record is written', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    const navigateToOAuth = vi.fn();
+    await openSheet(
+      el,
+      walletDeps({
+        fetchImpl: walletFetch({ providers: { google: true }, ready: true }),
+        navigateToOAuth,
+        auth: { signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: null }, error: { message: 'nope' } }) },
+      }),
+    );
+    el.querySelector<HTMLButtonElement>('[data-testid="google-signin"]')?.click();
+    await flush();
+
+    expect(navigateToOAuth).not.toHaveBeenCalled();
+    expect(propsOf(stub, 'sign_in_started')).toHaveLength(0);
+    expect(window.sessionStorage.getItem('parody.pendingSignIn')).toBeNull();
+  });
+
+  function returnDeps(query: string, fetchBalances = true): CheckoutWalletDeps {
+    return walletDeps({
+      fetchImpl: walletFetch({ providers: { google: true }, ready: true, balances: fetchBalances ? SIGNED_IN_BALANCES : null }),
+      locationHref: `${CHECKOUT_HREF}${query}`,
+    });
+  }
+
+  it('the return fires exactly one sign_in_completed, success, from the pending record — and a second reader finds nothing; the store keeps it', async () => {
+    window.sessionStorage.setItem('parody.pendingSignIn', JSON.stringify({ provider: 'google', surface: 'checkout' }));
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&code=abc123'));
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&code=abc123'));
+    await flush();
+
+    expect(propsOf(stub, 'sign_in_completed')).toEqual([{ outcome: 'success', provider: 'google', surface: 'checkout' }]);
+    expect(window.sessionStorage.getItem('parody.pendingSignIn')).toBeNull();
+    expectNoIdentityOrBalance(stub);
+    const [props] = propsOf(stub, 'sign_in_completed');
+    await expect(storeWhatTheClientSends('sign_in_completed', props as never)).resolves.toEqual(props);
+  });
+
+  it('a success followed by an unreachable wallet (D1 dark) is still success', async () => {
+    window.sessionStorage.setItem('parody.pendingSignIn', JSON.stringify({ provider: 'google', surface: 'checkout' }));
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&code=abc123', false));
+    await flush();
+
+    expect(propsOf(stub, 'sign_in_completed')).toEqual([{ outcome: 'success', provider: 'google', surface: 'checkout' }]);
+  });
+
+  it('a cancelled or failed return fires one sign_in_completed, failed; the store keeps it', async () => {
+    window.sessionStorage.setItem('parody.pendingSignIn', JSON.stringify({ provider: 'apple', surface: 'checkout' }));
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&error=access_denied'));
+    await flush();
+
+    expect(propsOf(stub, 'sign_in_completed')).toEqual([{ outcome: 'failed', provider: 'apple', surface: 'checkout' }]);
+    const [props] = propsOf(stub, 'sign_in_completed');
+    await expect(storeWhatTheClientSends('sign_in_completed', props as never)).resolves.toEqual(props);
+  });
+
+  it('a reload of the cleaned URL fires nothing, even with a record left over', async () => {
+    window.sessionStorage.setItem('parody.pendingSignIn', JSON.stringify({ provider: 'google', surface: 'checkout' }));
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps(''));
+    await flush();
+
+    expect(propsOf(stub, 'sign_in_completed')).toHaveLength(0);
+  });
+
+  it('a return with no pending record fires nothing', async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    initCheckoutPage(root(), window.localStorage, vi.fn(), window.sessionStorage, undefined, undefined, returnDeps('&code=abc123'));
+    await flush();
+
+    expect(propsOf(stub, 'sign_in_completed')).toHaveLength(0);
   });
 });
