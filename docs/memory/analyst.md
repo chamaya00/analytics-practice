@@ -12,3 +12,7 @@
   restaurant was tapped, when the sheet was instead dismissed) needs a fixed
   sentinel value in that slot (e.g. the literal `"none"`), never an omitted
   key, or the exact-match check refuses the row outright.
+- A flag that must ride on every event (e.g. #219's `is_internal`) belongs in
+  a defaulted store column, not in `props`: exact-match key sets mean a new
+  prop key refuses every shape an already-open tab still sends, and sends
+  fail silently (ADR 0005).
