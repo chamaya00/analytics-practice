@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initTrackerPage } from './tracker-dom';
-import { addToCart, findOrder, getLatestOrder, ORDER_KEY, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
+import { addToCart, findOrder, getCart, getLatestOrder, linesForRestaurant, ORDER_KEY, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
 import { defaultOpenOrderId } from './tracker-state';
 import { resetTrack, setTrack } from './tracking';
 import { setStoredCity } from './location';
 import { formatReviewCount } from './reviews';
+import { cartPath } from './cart-routes';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -581,6 +582,155 @@ describe('initTrackerPage — history (#148 AC3)', () => {
     const row = el.querySelector('[data-testid="tracker-history-row"]');
     expect(row?.querySelector('[data-testid="tracker-history-total"]')?.textContent).toContain('$14.00');
     expect(row?.querySelector('[data-testid="tracker-history-subtotal-label"]')?.textContent).toBe('subtotal');
+  });
+});
+
+describe('initTrackerPage — Order again from history and Delivered (#165 AC3)', () => {
+  const AL_PASTOR = {
+    itemId: 'mission-taqueria-al-pastor',
+    restaurantSlug: 'mission-taqueria',
+    restaurantName: 'Mission Taqueria',
+    name: 'Al pastor taco',
+    amountMinor: 425,
+    currency: 'USD' as const,
+  };
+  const CARNE_ASADA = {
+    itemId: 'mission-taqueria-carne-asada',
+    restaurantSlug: 'mission-taqueria',
+    restaurantName: 'Mission Taqueria',
+    name: 'Carne asada taco',
+    amountMinor: 475,
+    currency: 'USD' as const,
+  };
+  const DELISTED = {
+    itemId: 'mission-taqueria-discontinued-item',
+    restaurantSlug: 'mission-taqueria',
+    restaurantName: 'Mission Taqueria',
+    name: 'A dish no longer on the menu',
+    amountMinor: 500,
+    currency: 'USD' as const,
+  };
+  const PIZZA = {
+    itemId: 'north-beach-pizzeria-margherita',
+    restaurantSlug: 'north-beach-pizzeria',
+    restaurantName: 'North Beach Pizzeria',
+    name: 'Margherita',
+    amountMinor: 1650,
+    currency: 'USD' as const,
+  };
+
+  // The toast renders as a sibling of the tracker root, in document.body
+  // (`root.parentElement ?? root` in tracker-dom.ts) rather than inside it,
+  // so it survives past its own test unless removed explicitly here.
+  afterEach(() => {
+    document.querySelector('[data-testid="tracker-order-again-toast"]')?.remove();
+  });
+
+  /** Places an order for a real restaurant (unlike `placeOrderFor`'s
+   * fictional `LINE`), so its Order again button actually renders — the
+   * button is absent whenever `getRestaurant` can't resolve the slug. */
+  function placeRealOrder(...lines: (typeof AL_PASTOR)[]) {
+    for (const line of lines) addToCart(window.localStorage, line);
+    return placeOrder(
+      window.localStorage,
+      { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true },
+      lines[0].restaurantSlug,
+      () => 0.5,
+    );
+  }
+
+  it('from a history row, refills the order into that restaurant\'s cart at today\'s prices and shows the toast, firing no event', () => {
+    const order = placeRealOrder(AL_PASTOR);
+    vi.setSystemTime(Date.now() + order.deliveryMs + 1000);
+    placeOrderFor(LINE_B); // still active — keeps `order` in Past orders
+
+    const track = vi.fn();
+    setTrack(track);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    track.mockClear(); // drop the page's own load-time events (tracker_viewed, order_delivered)
+
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    expect(row?.textContent).toContain('Mission Taqueria');
+    row?.querySelector<HTMLButtonElement>('[data-testid="tracker-history-order-again"]')?.click();
+
+    const cart = linesForRestaurant(getCart(window.localStorage), 'mission-taqueria');
+    expect(cart).toEqual([{ ...AL_PASTOR, quantity: 1 }]);
+
+    const toast = document.querySelector('[data-testid="tracker-order-again-toast"]');
+    expect(toast?.textContent).toContain('Order again: 1 item from Mission Taqueria are in your cart.');
+    expect(toast?.querySelector('a')?.getAttribute('href')).toBe(cartPath('mission-taqueria'));
+
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('an item no longer on the menu is skipped, and the toast reads "N of M items are still on the menu"', () => {
+    const order = placeRealOrder(AL_PASTOR, DELISTED);
+    vi.setSystemTime(Date.now() + order.deliveryMs + 1000);
+    placeOrderFor(LINE_B);
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    row?.querySelector<HTMLButtonElement>('[data-testid="tracker-history-order-again"]')?.click();
+
+    const cart = linesForRestaurant(getCart(window.localStorage), 'mission-taqueria');
+    expect(cart).toEqual([{ ...AL_PASTOR, quantity: 1 }]);
+
+    const toast = document.querySelector('[data-testid="tracker-order-again-toast"]');
+    expect(toast?.textContent).toContain('1 of 2 items are still on the menu.');
+  });
+
+  it("a cart holding another restaurant's items is untouched — no confirm dialog, both restaurants' lines end up in the cart", () => {
+    const order = placeRealOrder(AL_PASTOR);
+    vi.setSystemTime(Date.now() + order.deliveryMs + 1000);
+    placeOrderFor(LINE_B);
+    addToCart(window.localStorage, PIZZA); // a different restaurant's cart, already populated
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    const row = el.querySelector('[data-testid="tracker-history-row"]');
+    row?.querySelector<HTMLButtonElement>('[data-testid="tracker-history-order-again"]')?.click();
+
+    expect(document.querySelector('[data-testid="confirm-dialog"]')).toBeNull();
+    const cart = getCart(window.localStorage);
+    expect(linesForRestaurant(cart, 'north-beach-pizzeria')).toEqual([{ ...PIZZA, quantity: 1 }]);
+    expect(linesForRestaurant(cart, 'mission-taqueria')).toEqual([{ ...AL_PASTOR, quantity: 1 }]);
+  });
+
+  it('from the Delivered card, goes straight to that restaurant\'s cart — no toast', () => {
+    const order = placeRealOrder(AL_PASTOR, CARNE_ASADA);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+
+    const navigate = vi.fn();
+    const el = root();
+    initTrackerPage(el, window.localStorage, navigate);
+
+    el.querySelector<HTMLButtonElement>('[data-testid="tracker-delivered-order-again"]')?.click();
+
+    expect(navigate).toHaveBeenCalledWith(cartPath('mission-taqueria'));
+    expect(document.querySelector('[data-testid="tracker-order-again-toast"]')).toBeNull();
+    const cart = linesForRestaurant(getCart(window.localStorage), 'mission-taqueria');
+    expect(cart).toEqual([
+      { ...AL_PASTOR, quantity: 1 },
+      { ...CARNE_ASADA, quantity: 1 },
+    ]);
+  });
+
+  it('the button is absent, on both the Delivered card and the history row, once the restaurant slug no longer resolves', () => {
+    const delivered = placeOrderFor(LINE); // LINE's slug is deliberately not in restaurants.ts
+    vi.setSystemTime(Date.now() + delivered.deliveryMs);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    expect(el.querySelector('[data-testid="tracker-delivered-order-again"]')).toBeNull();
+
+    vi.setSystemTime(Date.now() + 1000);
+    placeOrderFor(LINE_B); // still active — pushes `delivered` into history
+    const historyEl = root();
+    initTrackerPage(historyEl, window.localStorage);
+    const row = historyEl.querySelector('[data-testid="tracker-history-row"]');
+    expect(row?.textContent).toContain(LINE.restaurantName);
+    expect(row?.querySelector('[data-testid="tracker-history-order-again"]')).toBeNull();
   });
 });
 
