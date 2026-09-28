@@ -78,6 +78,7 @@ import { formatNextDripHeadline } from './wallet-dom';
 import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
 import { renderSignInPrompt } from './sign-in-prompt-dom';
 import { loadConfettiCannon } from './confetti-loader';
+import { stampSealSvg } from './stamp';
 
 /** #162's fixed tip presets, integer minor units — `wallet_tip` (#164)
  * accepts exactly these six values and nothing else. The order's own
@@ -437,7 +438,7 @@ function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: 
   stamp.className = isLanding ? 'tracker-delivered-stamp tracker-delivered-stamp--landing' : 'tracker-delivered-stamp';
   stamp.setAttribute('aria-hidden', 'true');
   stamp.setAttribute('data-testid', 'tracker-delivered-stamp');
-  stamp.innerHTML = CHECK_ICON;
+  stamp.innerHTML = stampSealSvg('check');
   stampWrap.append(stamp);
   hero.append(stampWrap);
 
