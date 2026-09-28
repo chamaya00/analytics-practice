@@ -9,6 +9,7 @@ import { initTrackerPage } from './tracker-dom';
 import { openRatingSheet } from './rating-sheet-dom';
 import { addToCart, findOrder, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
 import { RATING_TAGS, resetTrack, setTrack } from './tracking';
+import { getThanksVoucher, unlockThanksVoucher } from './thanks-voucher';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -28,6 +29,15 @@ const LINE_B = {
   currency: 'USD' as const,
 };
 
+const LINE_HCMC = {
+  itemId: 'ben-thanh-banh-mi-banh-mi',
+  restaurantSlug: 'ben-thanh-banh-mi',
+  restaurantName: 'Bến Thành Bánh Mì',
+  name: 'Bánh mì',
+  amountMinor: 40000,
+  currency: 'VND' as const,
+};
+
 beforeEach(() => {
   window.localStorage.clear();
   vi.useFakeTimers();
@@ -45,7 +55,7 @@ function root(): HTMLElement {
   return el;
 }
 
-function placeOrderFor(line: typeof LINE) {
+function placeOrderFor(line: typeof LINE | typeof LINE_B | typeof LINE_HCMC) {
   addToCart(window.localStorage, line);
   return placeOrder(
     window.localStorage,
@@ -552,5 +562,144 @@ describe('the rating sheet — win and reduced motion (AC3, docs/design/162-*, "
     expect(document.querySelector('[data-testid="rating-sheet-win"]')).toBeNull();
     expect(document.querySelector('[data-testid="rating-sheet-confetti"]')).toBeNull();
     expect(loadConfetti).not.toHaveBeenCalled();
+  });
+});
+
+describe('the rating sheet — the reward slot renders the thanks voucher unlock (#166)', () => {
+  function seedOrder(): PlacedOrder {
+    const placed = placeOrderFor(LINE);
+    return findOrder(window.localStorage, placed.orderId) as PlacedOrder;
+  }
+
+  it('reads getThanksVoucherUnlock at the win and shows the ticket, role="status", not aria-hidden', () => {
+    mockMatchMedia(true); // the still frame is enough; this test is about the slot, not the burst
+    const order = seedOrder();
+    const unlock = unlockThanksVoucher(window.localStorage, 'sf', order.orderId, Date.now());
+
+    openRatingSheet({
+      order,
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getThanksVoucherUnlock: () => unlock,
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    const rewardSlot = document.querySelector('[data-testid="rating-sheet-reward-slot"]');
+    expect(rewardSlot?.hasAttribute('aria-hidden')).toBe(false);
+    const ticket = document.querySelector('[data-testid="rating-sheet-reward-ticket"]');
+    expect(ticket?.getAttribute('role')).toBe('status');
+    const expiryText = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(
+      new Date(unlock.voucher.expiresAt),
+    );
+    expect(ticket?.textContent).toBe(
+      `Unlocked · $3.00 off · Thanks voucher · For your next San Francisco order over $15.00. Applies by itself at checkout. · Expires ${expiryText} · one per city`,
+    );
+  });
+
+  it('reads "Topped up" when the unlock result says so', () => {
+    mockMatchMedia(true);
+    const order = seedOrder();
+    const unlock = { ...unlockThanksVoucher(window.localStorage, 'sf', order.orderId, Date.now()), toppedUp: true };
+
+    openRatingSheet({
+      order,
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getThanksVoucherUnlock: () => unlock,
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    expect(document.querySelector('[data-testid="rating-sheet-reward-ticket"]')?.textContent).toContain('Topped up ·');
+  });
+
+  it('with no getThanksVoucherUnlock option at all, the slot stays empty and aria-hidden (unchanged from #163)', () => {
+    mockMatchMedia(true);
+    const order = seedOrder();
+
+    openRatingSheet({ order, onSubmitDriverRating: () => {}, onSubmitRestaurant: () => {} });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    const rewardSlot = document.querySelector('[data-testid="rating-sheet-reward-slot"]');
+    expect(rewardSlot?.getAttribute('aria-hidden')).toBe('true');
+    expect(rewardSlot?.textContent).toBe('');
+  });
+});
+
+describe('initTrackerPage — the first rating step submitted unlocks the thanks voucher (#166)', () => {
+  it('driver Next, as the first step, unlocks a voucher in this order\'s city, shown in the win', () => {
+    const order = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+    initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-skip"]')?.click();
+
+    expect(document.querySelector('[data-testid="rating-sheet-reward-ticket"]')?.textContent).toContain('Unlocked ·');
+    const voucher = getThanksVoucher(window.localStorage, 'sf', Date.now());
+    expect(voucher?.sourceOrderId).toBe(order.orderId);
+  });
+
+  it('a restaurant Submit that is the first step (driver skipped) also unlocks one', () => {
+    const order = placeOrderFor(LINE_HCMC);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+    initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    expect(document.querySelector('[data-testid="rating-sheet-reward-ticket"]')?.textContent).toContain('Unlocked ·');
+    expect(getThanksVoucher(window.localStorage, 'hcmc', Date.now())?.sourceOrderId).toBe(order.orderId);
+    // Never in the other city.
+    expect(getThanksVoucher(window.localStorage, 'sf', Date.now())).toBeNull();
+  });
+
+  it('the restaurant step, as the second step for the same order, unlocks nothing more', () => {
+    const order = placeOrderFor(LINE);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+    initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    // Still reads "Unlocked" (the driver step's own unlock, held over), not
+    // a second "Topped up" from the restaurant submit that followed it.
+    expect(document.querySelector('[data-testid="rating-sheet-reward-ticket"]')?.textContent).toContain('Unlocked ·');
+  });
+
+  it('a later order rated in a city that already holds one tops it up rather than unlocking a second', () => {
+    const first = placeOrderFor(LINE);
+    const second = placeOrderFor(LINE_B);
+    patchOrder(first.orderId, { rating: { stars: 5, tags: [] }, driverRating: { stars: 5 } });
+    unlockThanksVoucher(window.localStorage, 'sf', first.orderId, Date.now());
+    vi.setSystemTime(Date.now() + Math.max(first.deliveryMs, second.deliveryMs));
+
+    // first is already fully rated, so the multi-order rule's only eligible
+    // candidate is second — it auto-opens (already delivered at load: 600ms).
+    initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+
+    // Same city, already held: this is the "topped up," not "unlocked," case.
+    expect(document.querySelector('[data-testid="rating-sheet-reward-ticket"]')?.textContent).toContain('Topped up ·');
+    expect(getThanksVoucher(window.localStorage, 'sf', Date.now())?.sourceOrderId).toBe(second.orderId);
   });
 });
