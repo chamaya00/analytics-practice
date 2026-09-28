@@ -344,7 +344,7 @@ describe('isValidEventProps — the six new events (#238, #219 §7-§8)', () => 
   });
 
   it('refuses an email, a user id, a balance or a shortfall riding on any new or changed event (the #79 rule)', () => {
-    const extras = [{ email: 'visitor@example.com' }, { user_id: ORDER_ID }, { balance_minor: 900 }, { shortfall_minor: 1100 }];
+    const extras: EventProps[] = [{ email: 'visitor@example.com' }, { user_id: ORDER_ID }, { balance_minor: 900 }, { shortfall_minor: 1100 }];
     for (const extra of extras) {
       expect(isValidEventProps('sign_in_completed', { outcome: 'success', provider: 'google', surface: 'tip', ...extra })).toBe(
         false,
