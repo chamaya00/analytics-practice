@@ -22,7 +22,7 @@ Same as `204-ad-source.md`, with one addition that the blocked egress made neces
 ## What is fixed, and what was a guess
 
 **Constraints**, checked:
-- The slot is one self-hosted image plus one link with `rel="sponsored noopener"`, labelled "Ad", with no script and no cookie set by this site. This is PR #208's pick, not yet merged.
+- The slot is one self-hosted image plus one link with `rel="sponsored noopener"`, labelled "Ad", with no script and no cookie set by this site. This is PR #208's pick, merged and approved by the owner on 2026-09-28 ("static slots with affiliate links until higher volume", #207).
 - The carousel has 7 slides per city, San Francisco and Ho Chi Minh City. It auto-advances every 5s, and the first-order slide sits 4th (`src/lib/home-dom.ts:76-130`, V).
 - The About page promises "no cross-site tracking cookie" (`src/pages/about.astro:56-58`, V).
 - The #79 rule: no affiliate tag or identifier ever goes into an event.
