@@ -2363,6 +2363,7 @@ const { title } = Astro.props;
 
   .tracker-history-row {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-sm);
     padding: var(--space-md) 0;
     border-top: 1px solid var(--color-border);
@@ -2452,6 +2453,95 @@ const { title } = Astro.props;
     font-size: var(--font-size-muted);
     color: var(--color-text-muted);
     margin: var(--space-sm) var(--space-xs) 0;
+  }
+
+  /* Rate/Order again action strip (#165, docs/design/162-*, "History rows":
+     "indented to the text column") — a full-width row inside the flex-
+     wrapped history item, aligned under the name/meta column past the
+     thumb. */
+  .tracker-history-actions {
+    display: flex;
+    align-items: center;
+    flex: 1 0 100%;
+    gap: var(--space-sm);
+    margin-left: calc(40px + var(--space-sm));
+  }
+
+  .tracker-action-button {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-md);
+    font-family: inherit;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    line-height: 1.15;
+    border-radius: 999px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tracker-action-button:focus-visible {
+    outline: 2px solid var(--color-accent-a);
+    outline-offset: 2px;
+  }
+
+  .tracker-action-primary {
+    color: var(--color-bg);
+    background: var(--color-accent-a);
+    border: none;
+  }
+
+  .tracker-action-secondary {
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .tracker-history-rated-summary {
+    margin: 0;
+    font-size: var(--font-size-muted);
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+
+  /* Reserved for #171's Tip control — collapses to nothing until that
+     control mounts here. */
+  .tracker-history-tip-slot:empty {
+    display: none;
+  }
+
+  .tracker-history-order-again {
+    margin-left: auto;
+  }
+
+  .tracker-delivered-order-again {
+    margin-top: var(--space-sm);
+  }
+
+  .tracker-toast {
+    position: fixed;
+    left: var(--space-md);
+    right: var(--space-md);
+    bottom: calc(var(--space-md) + 64px);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-muted);
+    color: var(--color-bg);
+    background: var(--color-text);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+  }
+
+  .tracker-toast a {
+    flex: none;
+    font-weight: 800;
+    color: inherit;
+    text-decoration: underline;
   }
 
   @media (min-width: 481px) {
