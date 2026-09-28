@@ -52,18 +52,28 @@ describe('committed placeholder images — weight budget (AC3)', () => {
   });
 
   // #137's own "Image budget" section left this slice size to the engineer:
-  // the carousel's current-on-load slide is the first-order slide (text
-  // only — the same "no image" property the old single .promo-banner had),
-  // so it adds nothing here, and the real change is the "Near you" grid
-  // going from one column to two. At 375px, main's own padding is
-  // var(--space-lg) (20px) each side and the header/search/carousel/chips/
-  // heading above the grid run to roughly 480-500px, leaving under half of
-  // the 812px viewport ./scripts/app-render photographs (its own NARROW_SIZE)
-  // for tiles — enough for the grid's first row (2 tiles) in full and a
-  // second row's photos to at least partly enter the viewport, so this
-  // slice counts 4 (two rows of two) rather than the old single-column six,
-  // erring toward the stricter (more images counted) side of that estimate.
-  it("the home feed's first paint (up to 4 restaurant thumbnails: the 2-column tile grid's first two rows, phone width; the carousel's on-load slide is the text-only first-order slide) totals at most 900KB", () => {
+  // the carousel's on-load slide is now `ad1` (#184 reorders the first-order
+  // slide to index 3), a real restaurant photo — but that restaurant is
+  // already `restaurantsForCity(city)[0]` in both cities (`mission-taqueria`
+  // is SF_RESTAURANTS' own first entry, `ben-thanh-banh-mi` is HCMC_RESTAURANTS'
+  // own first entry, and those are exactly CAROUSEL_RESTAURANT_SLIDES' `ad1`
+  // for each city), so it's already inside this slice's existing four-image
+  // sum rather than a fifth image to add. If a future catalogue reorder ever
+  // puts a different restaurant at `restaurantsForCity(city)[0]` than the one
+  // `CAROUSEL_RESTAURANT_SLIDES` names as `ad1`, that restaurant's `heroImage`
+  // would need to be added to this sum explicitly, since it would no longer be
+  // absorbed by the tile grid's own first two rows.
+  //
+  // The rest of this slice's own reasoning is unchanged: the "Near you" grid
+  // is 2 columns, and at 375px main's own padding is var(--space-lg) (20px)
+  // each side with the header/search/carousel/chips/heading above the grid
+  // running to roughly 480-500px, leaving under half of the 812px viewport
+  // ./scripts/app-render photographs (its own NARROW_SIZE) for tiles — enough
+  // for the grid's first row (2 tiles) in full and a second row's photos to at
+  // least partly enter the viewport, so this slice counts 4 (two rows of two)
+  // rather than the old single-column six, erring toward the stricter (more
+  // images counted) side of that estimate.
+  it("the home feed's first paint (up to 4 restaurant thumbnails: the 2-column tile grid's first two rows, phone width; the carousel's on-load slide is now the first ad restaurant, already inside this slice) totals at most 900KB", () => {
     for (const city of ['sf', 'hcmc'] as const) {
       const restaurants = restaurantsForCity(city).slice(0, 4);
       const total = restaurants.reduce(

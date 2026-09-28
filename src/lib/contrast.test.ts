@@ -129,6 +129,20 @@ describe('thanks-voucher ticket: text on tint, the win\'s reward-slot card (#166
   });
 });
 
+describe('first-order banner ticket: amount ink on the ticket\'s white fill (#184, docs/design/137-carousel-header-tiles.md, "Contrast checked")', () => {
+  // #2f1861 is the banner gradient's own darker stop (already checked against
+  // white as the banner's own text color elsewhere in that table) — this row
+  // is the one new pairing #184 introduces: that same ink directly on the
+  // ticket's white fill, unaffected by the --compact size modifier since a
+  // size change doesn't change a color pairing's ratio.
+  const TICKET_INK = '#2f1861';
+  const TICKET_FILL = '#ffffff';
+
+  it('clears 4.5:1 — fixed in both themes, same gradient/ticket in light and dark', () => {
+    expect(contrastRatio(TICKET_INK, TICKET_FILL)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
 describe('VIP level fills: full ink only, never muted text (#174, docs/design/162-*, "Contrast")', () => {
   const LIGHT_GOLD = '#f3d27a';
   const LIGHT_GOLD_INK = '#241b33';

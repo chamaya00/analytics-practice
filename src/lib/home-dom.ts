@@ -29,11 +29,46 @@ const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
 /** The carousel's first-order slide claim (docs/design/80-two-city-brand-and-flow.md's
  * original banner copy, carried forward unchanged — docs/design/137-carousel-header-tiles.md's
- * "seventh slide"), localized per city's own currency. */
+ * "seventh slide"), localized per city's own currency. Other code may still read the
+ * full sentence, so this stays unchanged even though the panel itself now renders the
+ * amount and "Your first order" as two separate elements — see PROMO_BANNER_AMOUNT. */
 const PROMO_BANNER_CLAIM: Record<City, string> = {
   sf: '$2 off your first order',
   hcmc: '10.000 ₫ off your first order',
 };
+
+/** Just the amount ("$2 off" / "10.000 ₫ off"), for the ticket graphic's own value/off
+ * split (docs/design/137-carousel-header-tiles.md, "First-order banner", #184). */
+const PROMO_BANNER_AMOUNT: Record<City, string> = {
+  sf: '$2 off',
+  hcmc: '10.000 ₫ off',
+};
+
+/** HCMC's longer currency string doesn't fit the ticket at the base size and needs the
+ * doc's `--compact` modifier; SF's stays at the base size (design doc, "First-order
+ * banner": the compact size is applied "only for the long (HCMC) string"). */
+const PROMO_BANNER_AMOUNT_COMPACT: Record<City, boolean> = {
+  sf: false,
+  hcmc: true,
+};
+
+/** Component-scoped mask id for the ticket's notch cutouts (docs/design/137's four mocks
+ * each suffix this per file since only one instance of this slide exists in the DOM at
+ * once, this module only ever renders one). */
+const TICKET_NOTCH_MASK_ID = 'carousel-ticket-notch';
+
+/** The ticket/coupon silhouette (docs/design/137-carousel-header-tiles.md, "First-order
+ * banner": 148x104 viewBox, notch circles at cx=8/cx=140, r=9, cy=52, tear line at x=42)
+ * — copied from the four mocks rather than redrawn, decorative so it's aria-hidden. */
+const TICKET_SVG = `<svg viewBox="0 0 148 104" aria-hidden="true">
+  <mask id="${TICKET_NOTCH_MASK_ID}">
+    <rect x="0" y="0" width="148" height="104" fill="#ffffff"/>
+    <circle cx="8" cy="52" r="9" fill="#000000"/>
+    <circle cx="140" cy="52" r="9" fill="#000000"/>
+  </mask>
+  <path fill="#ffffff" mask="url(#${TICKET_NOTCH_MASK_ID})" d="M16,6 L132,6 A8,8 0 0 1 140,14 L140,90 A8,8 0 0 1 132,98 L16,98 A8,8 0 0 1 8,90 L8,14 A8,8 0 0 1 16,6 Z"/>
+  <line x1="42" y1="14" x2="42" y2="90" stroke="#2f1861" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>
+</svg>`;
 
 /** Six restaurants per city, three ad slides and three promo slides, all named and
  * sourced against the catalogue by docs/design/137-carousel-header-tiles.md's "Content
@@ -86,7 +121,10 @@ function carouselSlidesForCity(city: City): CarouselSlide[] {
     };
   });
 
-  return [firstOrder, ...restaurantSlides];
+  // The first-order slide sits 4th of 7, not 1st (docs/design/137-carousel-header-tiles.md,
+  // "Slide order," per #184) — CAROUSEL_RESTAURANT_SLIDES' own six-entry order is unchanged,
+  // only where the first-order slide splices into the combined sequence moves.
+  return [...restaurantSlides.slice(0, 3), firstOrder, ...restaurantSlides.slice(3)];
 }
 
 const CAROUSEL_ADVANCE_MS = 5000;
@@ -251,30 +289,58 @@ function renderCarousel(city: City): { element: HTMLElement; destroy: () => void
     if (slide.photo) {
       const img = document.createElement('img');
       img.className = 'carousel-slide-photo';
-      img.loading = 'lazy';
+      // Slide 0 is now the carousel's on-load, first-paint slide (docs/design/137,
+      // #184's reordering) — its photo can't wait for a lazy decode. Every other
+      // slide's image stays lazy.
+      img.loading = current === 0 ? 'eager' : 'lazy';
       img.alt = '';
       img.src = slide.photo;
       link.append(img);
     } else {
-      // The first-order slide has no photo (docs/design/137's "Image
-      // budget" — it stays text-only). Left as an empty media box it read
-      // as a failed image load (driver review, PR #150 round 1, item 1), so
-      // its claim/sub render here instead, in a tinted panel — the same
-      // surface/border/accent-text treatment the old .promo-banner used.
-      // The caption strip below stays empty for this slide rather than
-      // repeating the same text twice.
+      // The first-order slide has no photo (docs/design/137's "Image budget" — it
+      // stays image-free). Its claim/sub render here instead, in a gradient/ticket
+      // banner (#184, "First-order banner") rather than the old tinted panel — the
+      // caption strip below stays empty for this slide rather than repeating the
+      // same text twice.
       const panel = document.createElement('div');
       panel.className = 'carousel-slide-panel';
       panel.setAttribute('data-testid', 'carousel-panel');
+
+      const ticket = document.createElement('div');
+      ticket.className = 'carousel-slide-panel-ticket';
+      ticket.innerHTML = TICKET_SVG;
+
+      const amount = PROMO_BANNER_AMOUNT[city];
+      const amountValue = amount.replace(/\s*off$/, '');
+      const amountEl = document.createElement('span');
+      amountEl.className = 'carousel-slide-panel-amount';
+      amountEl.setAttribute('data-testid', 'carousel-panel-amount');
+      const amountValueEl = document.createElement('span');
+      amountValueEl.className = 'carousel-slide-panel-amount-value';
+      amountValueEl.classList.toggle('carousel-slide-panel-amount-value--compact', PROMO_BANNER_AMOUNT_COMPACT[city]);
+      amountValueEl.textContent = amountValue;
+      const amountOffEl = document.createElement('span');
+      amountOffEl.className = 'carousel-slide-panel-amount-off';
+      amountOffEl.textContent = 'off';
+      amountEl.append(amountValueEl, amountOffEl);
+      ticket.append(amountEl);
+
+      const copy = document.createElement('div');
+      copy.className = 'carousel-slide-panel-copy';
       const panelClaim = document.createElement('span');
       panelClaim.className = 'carousel-slide-panel-claim';
       panelClaim.setAttribute('data-testid', 'carousel-panel-claim');
-      panelClaim.textContent = slide.claim;
+      panelClaim.textContent = 'Your first order';
       const panelSub = document.createElement('span');
       panelSub.className = 'carousel-slide-panel-sub';
       panelSub.setAttribute('data-testid', 'carousel-panel-sub');
       panelSub.textContent = slide.sub;
-      panel.append(panelClaim, panelSub);
+      copy.append(panelClaim, panelSub);
+
+      // Ticket first in DOM order (screen reader meets the amount before "Your
+      // first order", reconstructing the original sentence) even though CSS
+      // row-reverse paints it last, on the right (docs/design/137, "Reading order").
+      panel.append(ticket, copy);
       link.append(panel);
     }
 
