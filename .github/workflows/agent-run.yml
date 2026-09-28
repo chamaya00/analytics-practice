@@ -64,8 +64,14 @@ jobs:
       # Raised from 80/30 on objective #79: design runs with rendered mocks
       # took 139 turns (~19 min) to finish, and a revision round was cut off
       # at 81. The timeout moves with the cap, or the cap is never reached.
-      max-turns: 160
-      timeout-minutes: 50
+      #
+      # Raised again from 160/50 on objective #135 (D21 on #140): #148, #163
+      # (twice) and #165 (twice) all ended `error_max_turns` at 161 in 16-29
+      # minutes, most of it spent reading before any code, so every UI child
+      # cost two or three attempts. At the observed ~6-11 s per turn, 300
+      # turns needs up to ~55 min; 90 leaves the cap reachable.
+      max-turns: 300
+      timeout-minutes: 90
     secrets:
       claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       app-id: ${{ secrets.AGENT_APP_ID }}
