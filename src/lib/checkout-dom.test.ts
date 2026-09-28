@@ -3,7 +3,7 @@ import { initCheckoutPage, type CheckoutWalletDeps } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
 import { addToCart, getCart, getLatestOrder, getVisitorId } from './order-store';
 import { estimateEtaMinutes } from './eta';
-import { resetTrack, setTrack } from './tracking';
+import { isValidEventProps, resetTrack, setTrack } from './tracking';
 import { getThanksVoucher, unlockThanksVoucher } from './thanks-voucher';
 import { writeVipLedger, type VipLedger } from './vip-level';
 import type { SupabaseAuthLike } from './auth-client';
@@ -399,6 +399,7 @@ describe('initCheckoutPage — VIP perks (AC2, #174)', () => {
     // The delivery voucher never applies once Gold is active — only the discount is a catalogue voucher here.
     expect(props.applied_voucher_ids).toEqual(['sf-discount-t1']);
     expect(props.saved_amount_minor).toBe(200);
+    expect(isValidEventProps('order_placed', props)).toBe(true);
   });
 
   it('Platinum adds its own 10% row, on top of Gold\'s free delivery, and both stay out of the event', () => {
@@ -425,6 +426,7 @@ describe('initCheckoutPage — VIP perks (AC2, #174)', () => {
     const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
     expect(props.applied_voucher_ids).toEqual(['sf-discount-t1']);
     expect(props.saved_amount_minor).toBe(200);
+    expect(isValidEventProps('order_placed', props)).toBe(true);
     expect(getLatestOrder(window.localStorage)?.totalMinor).toBe(1885);
   });
 
