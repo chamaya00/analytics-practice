@@ -1243,9 +1243,10 @@ const { title } = Astro.props;
   }
 
   /* A single highlight sweep across the Offers row shortly after checkout
-     loads, to draw the eye to it. It plays once (the row is built once per
-     page load) and never loops; reduced motion drops it entirely. */
-  .offers-row::after {
+     loads, to draw the eye to it - only while no offer is applied ("Select
+     an offer"). It plays once (the row is built once per page load) and
+     never loops; reduced motion drops it entirely. */
+  .offers-row--unset::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -1270,7 +1271,7 @@ const { title } = Astro.props;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .offers-row::after {
+    .offers-row--unset::after {
       animation: none;
       display: none;
     }

@@ -580,6 +580,8 @@ export function renderCheckout(
     '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5 16 12 9 19" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   offersSummary.append(chevron.firstElementChild!);
 
+  // Only an unset row ("Select an offer") gets the one-time highlight sweep.
+  if (appliedCount === 0) offersRow.classList.add('offers-row--unset');
   offersRow.append(offersLabel, offersSummary);
   offersRow.addEventListener('click', () => navigate(offersPath(restaurantSlug)));
 
