@@ -164,20 +164,6 @@ under the policy where it applies.
 can be answered, and what only the person can decide. This paragraph exists to
 say the role is yours; the skill says how to hold it.
 
-### Lessons for the driving session
-
-The driver has no `docs/memory/` file of its own, so its lessons live here,
-under the memory-protocol's rules: one line each, a reason attached, 15 lines
-at most, deleted once a check or a factory skill enforces it.
-
-- Queue at most one child at a time across *all* objectives: `agent-run` keeps a single pending "run the agent" job, and a newer one (including the orchestrator wake a merge fires) cancels the older - #134's and #136's queued runs were cancelled, and #144 was displaced twice. Re-trigger by removing and re-adding `agent:queued`; `workflow_dispatch` returns 403.
-- One session can drive several objectives at once: sequence engineer children across them through that single queue slot. Run docs-only roles (researcher, designer) locally as subagents, in parallel, on the owner's standing approval (O5 on #140) - #136's research and #135's design landed while engineers held the queue.
-- Before an unattended stretch, ask the owner one round of questions that pre-clear the downstream gates (new dependencies, numbers a spec will need, account defaults), and record the answers as O1-On on the decision log - O1-O6 on #140 let #135 run overnight with no blocker.
-- Driving unattended needs three wakes: subscribe to every child PR, chain a 15-minute `send_later` that re-arms itself first, and keep an hourly routine as a backstop - hourly alone left reviewable PRs idle (owner, 2026-09-27), while the chain ran 22:21-04:03 without a gap. Delete both when the last objective closes.
-- Log every call made on the owner's behalf as a numbered comment on one decision-log issue, with its reversal (#140, D1-D24), and keep a scratchpad ledger of state - the ledger is what survived context compaction mid-night, and the log is the owner's morning review.
-- When an engineer run ends `error_max_turns`, fetch what it pushed before re-queueing, and write the next attempt's brief as "already landed: X; do only Y, in this order; don't re-read" - #163 and #165 both finished on such a brief. Split a child before it runs if it carries more than about four criteria.
-- A merge that touches `.github/` turns the protected-path guard red on every open bot PR that forked earlier (#176 after #175). Clear it with GitHub's update-branch once that PR's agent run has ended, never mid-run.
-
 ## The rules
 
 Not restated here. Two sections used to summarise them and every line had a
@@ -203,3 +189,18 @@ session reads by it, and the section above names them rather than leaving them
 to be discovered.
 
 <!-- agent-factory:end -->
+
+## Lessons for the driving session
+
+The driver has no `docs/memory/` file of its own, so its lessons live here,
+outside the managed block so `/update-agents` never overwrites them, under the
+memory-protocol's rules: one line each, a reason attached, 15 lines
+at most, deleted once a check or a factory skill enforces it.
+
+- Queue at most one child at a time across *all* objectives: `agent-run` keeps a single pending "run the agent" job, and a newer one (including the orchestrator wake a merge fires) cancels the older - #134's and #136's queued runs were cancelled, and #144 was displaced twice. Re-trigger by removing and re-adding `agent:queued`; `workflow_dispatch` returns 403.
+- One session can drive several objectives at once: sequence engineer children across them through that single queue slot. Run docs-only roles (researcher, designer) locally as subagents, in parallel, on the owner's standing approval (O5 on #140) - #136's research and #135's design landed while engineers held the queue.
+- Before an unattended stretch, ask the owner one round of questions that pre-clear the downstream gates (new dependencies, numbers a spec will need, account defaults), and record the answers as O1-On on the decision log - O1-O6 on #140 let #135 run overnight with no blocker.
+- Driving unattended needs three wakes: subscribe to every child PR, chain a 15-minute `send_later` that re-arms itself first, and keep an hourly routine as a backstop - hourly alone left reviewable PRs idle (owner, 2026-09-27), while the chain ran 22:21-04:03 without a gap. Delete both when the last objective closes.
+- Log every call made on the owner's behalf as a numbered comment on one decision-log issue, with its reversal (#140, D1-D24), and keep a scratchpad ledger of state - the ledger is what survived context compaction mid-night, and the log is the owner's morning review.
+- When an engineer run ends `error_max_turns`, fetch what it pushed before re-queueing, and write the next attempt's brief as "already landed: X; do only Y, in this order; don't re-read" - #163 and #165 both finished on such a brief. Split a child before it runs if it carries more than about four criteria.
+- A merge that touches `.github/` turns the protected-path guard red on every open bot PR that forked earlier (#176 after #175). Clear it with GitHub's update-branch once that PR's agent run has ended, never mid-run.
