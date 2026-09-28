@@ -13,7 +13,28 @@ const VALID_ORDER_PLACED = {
   utensils: true,
   applied_voucher_ids: [],
   saved_amount_minor: 0,
+  city: 'sf',
+  thanks_voucher_amount_minor: 0,
+  vip_level: 'none',
+  vip_saved_amount_minor: 0,
+  wallet_paid: false,
 };
+
+/** #81's 9-key shape: the store still takes it (§13), but the client never sends it again (§14). */
+const OLD_ORDER_PLACED = Object.fromEntries(
+  Object.entries(VALID_ORDER_PLACED).filter(
+    ([key]) => !['city', 'thanks_voucher_amount_minor', 'vip_level', 'vip_saved_amount_minor', 'wallet_paid'].includes(key),
+  ),
+) as EventProps;
+
+const SIX_HCMC_SLUGS = [
+  'ben-thanh-banh-mi',
+  'saigon-pho-quan',
+  'com-tam-quan-nha',
+  'bun-cha-co-ba',
+  'hu-tieu-nam-vang-hoa-phat',
+  'goi-cuon-co-hai-cho-cu',
+];
 
 afterEach(() => {
   resetTrack();
@@ -53,13 +74,29 @@ describe('isValidEventProps (AC3)', () => {
     expect(isValidEventProps('restaurant_opened', { city: 'sf', restaurant_slug: 'north-beach-pizzeria' })).toBe(
       true,
     );
-    expect(isValidEventProps('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' })).toBe(true);
-    expect(isValidEventProps('checkout_viewed', { item_count: 1, amount_minor: 100, currency: 'USD' })).toBe(true);
+    expect(isValidEventProps('cart_viewed', { item_count: 0, amount_minor: 0, city: 'sf', currency: 'USD' })).toBe(true);
+    expect(isValidEventProps('checkout_viewed', { item_count: 1, amount_minor: 100, city: 'la', currency: 'USD' })).toBe(
+      true,
+    );
     expect(
       isValidEventProps('tracker_viewed', { order_id: ORDER_ID, minutes_since_order: 0, view_number: 1 }),
     ).toBe(true);
     expect(isValidEventProps('order_delivered', { order_id: ORDER_ID, minutes_since_order: 7 })).toBe(true);
     expect(isValidEventProps('rating_submitted', { order_id: ORDER_ID, stars: 5, tags: [] })).toBe(true);
+    expect(isValidEventProps('sign_in_prompt_shown', { surface: 'checkout' })).toBe(true);
+    expect(isValidEventProps('sign_in_started', { provider: 'google', surface: 'tip' })).toBe(true);
+    expect(isValidEventProps('sign_in_completed', { outcome: 'failed', provider: 'apple', surface: 'checkout' })).toBe(
+      true,
+    );
+    expect(isValidEventProps('wallet_short_shown', { city: 'hcmc', surface: 'tip' })).toBe(true);
+    expect(isValidEventProps('tip_sent', { currency: 'VND', order_id: ORDER_ID, tip_amount_minor: 20000 })).toBe(true);
+    expect(isValidEventProps('driver_rating_submitted', { order_id: ORDER_ID, stars: 1 })).toBe(true);
+  });
+
+  it("refuses #81's old cart_viewed, checkout_viewed and order_placed shapes (#219 §14: the client never sends them again)", () => {
+    expect(isValidEventProps('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' })).toBe(false);
+    expect(isValidEventProps('checkout_viewed', { item_count: 1, amount_minor: 100, currency: 'USD' })).toBe(false);
+    expect(isValidEventProps('order_placed', OLD_ORDER_PLACED)).toBe(false);
   });
 
   it('rejects the retired order_abandoned shape outright — no case accepts it anymore (contract §6)', () => {
@@ -97,19 +134,27 @@ describe('isValidEventProps (AC3)', () => {
   });
 
   it('rejects checkout_viewed with a zero item_count (checkout is only reachable from a populated cart)', () => {
-    expect(isValidEventProps('checkout_viewed', { item_count: 0, amount_minor: 500, currency: 'USD' })).toBe(false);
-  });
-
-  it('accepts a VND cart_viewed and checkout_viewed within the currency’s own bound', () => {
-    expect(isValidEventProps('cart_viewed', { item_count: 3, amount_minor: 250000, currency: 'VND' })).toBe(true);
-    expect(isValidEventProps('checkout_viewed', { item_count: 3, amount_minor: 250000, currency: 'VND' })).toBe(
-      true,
+    expect(isValidEventProps('checkout_viewed', { item_count: 0, amount_minor: 500, city: 'sf', currency: 'USD' })).toBe(
+      false,
     );
   });
 
+  it('accepts a VND cart_viewed and checkout_viewed within the currency’s own bound', () => {
+    expect(isValidEventProps('cart_viewed', { item_count: 3, amount_minor: 250000, city: 'hcmc', currency: 'VND' })).toBe(
+      true,
+    );
+    expect(
+      isValidEventProps('checkout_viewed', { item_count: 3, amount_minor: 250000, city: 'hcmc', currency: 'VND' }),
+    ).toBe(true);
+  });
+
   it('rejects an amount_minor over the currency’s own bound', () => {
-    expect(isValidEventProps('cart_viewed', { item_count: 1, amount_minor: 100001, currency: 'USD' })).toBe(false);
-    expect(isValidEventProps('cart_viewed', { item_count: 1, amount_minor: 5000001, currency: 'VND' })).toBe(false);
+    expect(isValidEventProps('cart_viewed', { item_count: 1, amount_minor: 100001, city: 'sf', currency: 'USD' })).toBe(
+      false,
+    );
+    expect(
+      isValidEventProps('cart_viewed', { item_count: 1, amount_minor: 5000001, city: 'hcmc', currency: 'VND' }),
+    ).toBe(false);
   });
 });
 
@@ -120,15 +165,15 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
         city: 'hcmc',
         amount_minor: 15000,
         currency: 'VND',
-        restaurant_slugs: ['ben-thanh-banh-mi', 'saigon-pho-quan'],
+        restaurant_slugs: SIX_HCMC_SLUGS,
       }),
     ).toBe(true);
     expect(
       isValidEventProps('flash_sheet_shown', {
-        city: 'sf',
+        city: 'la',
         amount_minor: 400,
         currency: 'USD',
-        restaurant_slugs: ['mission-taqueria', 'north-beach-pizzeria'],
+        restaurant_slugs: ['la-one', 'la-two', 'la-three', 'la-four', 'la-five'],
       }),
     ).toBe(true);
   });
@@ -139,52 +184,20 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
         city: 'hcmc',
         amount_minor: 45000, // a valid discount-tier amount, but outside the flash draw's own 10.000–30.000 range
         currency: 'VND',
-        restaurant_slugs: ['ben-thanh-banh-mi', 'saigon-pho-quan'],
+        restaurant_slugs: SIX_HCMC_SLUGS,
       }),
     ).toBe(false);
   });
 
-  it('rejects restaurant_slugs with anything but exactly 2 entries', () => {
-    expect(
-      isValidEventProps('flash_sheet_shown', {
-        city: 'hcmc',
-        amount_minor: 15000,
-        currency: 'VND',
-        restaurant_slugs: ['ben-thanh-banh-mi'],
-      }),
-    ).toBe(false);
-  });
-
-  it('rejects a 5-6 restaurant_slugs payload from #120\'s grown draw — the contract stays at exactly 2, so the event goes quiet rather than being widened or truncated (AC6)', () => {
-    expect(
-      isValidEventProps('flash_sheet_shown', {
-        city: 'hcmc',
-        amount_minor: 15000,
-        currency: 'VND',
-        restaurant_slugs: [
-          'ben-thanh-banh-mi',
-          'saigon-pho-quan',
-          'com-tam-quan-nha',
-          'bun-cha-co-ba',
-          'hu-tieu-nam-vang-hoa-phat',
-        ],
-      }),
-    ).toBe(false);
-    expect(
-      isValidEventProps('flash_sheet_shown', {
-        city: 'hcmc',
-        amount_minor: 15000,
-        currency: 'VND',
-        restaurant_slugs: [
-          'ben-thanh-banh-mi',
-          'saigon-pho-quan',
-          'com-tam-quan-nha',
-          'bun-cha-co-ba',
-          'hu-tieu-nam-vang-hoa-phat',
-          'goi-cuon-co-hai-cho-cu',
-        ],
-      }),
-    ).toBe(false);
+  it('takes 5-6 distinct restaurant_slugs, and refuses 2, 4, 7 or a duplicate (#219 §8, §13 item 5)', () => {
+    const flash = (restaurant_slugs: string[]) =>
+      isValidEventProps('flash_sheet_shown', { city: 'hcmc', amount_minor: 15000, currency: 'VND', restaurant_slugs });
+    expect(flash(SIX_HCMC_SLUGS.slice(0, 5))).toBe(true);
+    expect(flash(SIX_HCMC_SLUGS)).toBe(true);
+    expect(flash(SIX_HCMC_SLUGS.slice(0, 2))).toBe(false);
+    expect(flash(SIX_HCMC_SLUGS.slice(0, 4))).toBe(false);
+    expect(flash([...SIX_HCMC_SLUGS, 'one-more'])).toBe(false);
+    expect(flash([...SIX_HCMC_SLUGS.slice(0, 5), SIX_HCMC_SLUGS[0]])).toBe(false);
   });
 
   it('accepts flash_sheet_closed for each outcome, with restaurant_slug carrying the fixed literal "none" except restaurant_tapped', () => {
@@ -260,8 +273,28 @@ describe('isValidEventProps — order_placed with real vouchers (AC3, AC4, AC6)'
         currency: 'VND',
         amount_minor: 250000,
         saved_amount_minor: 40000,
+        city: 'hcmc',
       }),
     ).toBe(true);
+  });
+
+  it('accepts the five la-* voucher ids on an LA order (#219 §4)', () => {
+    const withIds = (applied_voucher_ids: string[]) =>
+      isValidEventProps('order_placed', { ...VALID_ORDER_PLACED, city: 'la', applied_voucher_ids, saved_amount_minor: 800 });
+    expect(withIds(['la-discount-t3', 'la-flash'])).toBe(true);
+    expect(withIds(['la-delivery-entry', 'la-discount-t1'])).toBe(true);
+    expect(withIds(['la-discount-t2'])).toBe(true);
+    expect(withIds(['la-discount-t4'])).toBe(false);
+  });
+
+  it('checks the four new order_placed props (#219 §8)', () => {
+    const with_ = (extra: EventProps) => isValidEventProps('order_placed', { ...VALID_ORDER_PLACED, ...extra });
+    expect(with_({ vip_level: 'platinum', vip_saved_amount_minor: 480 })).toBe(true);
+    expect(with_({ vip_level: 'silver' })).toBe(false);
+    expect(with_({ wallet_paid: 'yes' })).toBe(false);
+    expect(with_({ thanks_voucher_amount_minor: -1 })).toBe(false);
+    expect(with_({ vip_saved_amount_minor: 100001 })).toBe(false);
+    expect(with_({ city: 'nyc' })).toBe(false);
   });
 
   it('rejects a typed free-text string standing in for a voucher id', () => {
@@ -289,6 +322,37 @@ describe('isValidEventProps — order_placed with real vouchers (AC3, AC4, AC6)'
         applied_voucher_ids: ['hcmc-discount-t1', 'hcmc-discount-t1'],
       }),
     ).toBe(false);
+  });
+});
+
+describe('isValidEventProps — the six new events (#238, #219 §7-§8)', () => {
+  it('refuses an unknown surface, provider or outcome', () => {
+    expect(isValidEventProps('sign_in_prompt_shown', { surface: 'header' })).toBe(false);
+    expect(isValidEventProps('sign_in_started', { provider: 'github', surface: 'tip' })).toBe(false);
+    expect(isValidEventProps('sign_in_completed', { outcome: 'cancelled', provider: 'google', surface: 'tip' })).toBe(false);
+  });
+
+  it("tip_sent takes only its own currency's presets", () => {
+    expect(isValidEventProps('tip_sent', { currency: 'USD', order_id: ORDER_ID, tip_amount_minor: 300 })).toBe(true);
+    expect(isValidEventProps('tip_sent', { currency: 'USD', order_id: ORDER_ID, tip_amount_minor: 250 })).toBe(false);
+    expect(isValidEventProps('tip_sent', { currency: 'VND', order_id: ORDER_ID, tip_amount_minor: 300 })).toBe(false);
+  });
+
+  it('driver_rating_submitted takes 1-5 stars and nothing else', () => {
+    expect(isValidEventProps('driver_rating_submitted', { order_id: ORDER_ID, stars: 6 })).toBe(false);
+    expect(isValidEventProps('driver_rating_submitted', { order_id: ORDER_ID, stars: 4, tags: [] })).toBe(false);
+  });
+
+  it('refuses an email, a user id, a balance or a shortfall riding on any new or changed event (the #79 rule)', () => {
+    const extras = [{ email: 'visitor@example.com' }, { user_id: ORDER_ID }, { balance_minor: 900 }, { shortfall_minor: 1100 }];
+    for (const extra of extras) {
+      expect(isValidEventProps('sign_in_completed', { outcome: 'success', provider: 'google', surface: 'tip', ...extra })).toBe(
+        false,
+      );
+      expect(isValidEventProps('wallet_short_shown', { city: 'sf', surface: 'checkout', ...extra })).toBe(false);
+      expect(isValidEventProps('tip_sent', { currency: 'USD', order_id: ORDER_ID, tip_amount_minor: 100, ...extra })).toBe(false);
+      expect(isValidEventProps('order_placed', { ...VALID_ORDER_PLACED, ...extra })).toBe(false);
+    }
   });
 });
 

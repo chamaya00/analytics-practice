@@ -63,6 +63,7 @@ import {
 import { getWallet, claimDrip, debitWallet, type WalletBalances } from './wallet-client';
 import { formatNextDripHeadline } from './wallet-dom';
 import { renderSignInPrompt } from './sign-in-prompt-dom';
+import { claimPendingSignIn, navigateWithSignInStarted, trackSignInCompleted, trackSignInPromptShown } from './sign-in-events';
 
 interface ChoiceOption<T> {
   value: T;
@@ -292,6 +293,11 @@ export interface CheckoutView {
   cart: RestaurantCart | null;
 }
 
+/** The basket's city, as the rest of checkout reads it (vouchers, the thanks voucher, the flash fee) — so `city` on #238's events always agrees with the voucher ids they carry. */
+function checkoutCity(cart: RestaurantCart): City {
+  return cart.currency === 'VND' ? 'hcmc' : 'sf';
+}
+
 function defaultRedirect(path: string): void {
   // replace, not assign: Back from the list must not land on a checkout URL
   // that immediately redirects to the list again.
@@ -361,13 +367,40 @@ export interface CheckoutWalletDeps {
   navigateToOAuth?: (url: string) => void;
 }
 
+interface ResolvedWalletState {
+  state: WalletCheckoutState;
+  oauthReturned: boolean;
+  oauthFailed: boolean;
+  /** Whether `completeOAuthReturn` produced a session — `sign_in_completed`'s outcome, even when the wallet then goes dark (#219 contract §7). */
+  oauthSession?: boolean;
+}
+
+/**
+ * #238: on an OAuth return, claims `parody.pendingSignIn` synchronously —
+ * before the first `await` below — and fires `sign_in_completed` once the
+ * outcome is known (#219 contract §7).
+ */
 async function resolveWalletState(
   url: URL,
   replaceUrl: (next: string) => void,
   config: WalletEnvConfig,
   createAuth: (config: WalletEnvConfig) => Promise<SupabaseAuthLike>,
   fetchImpl: typeof fetch | undefined,
-): Promise<{ state: WalletCheckoutState; oauthReturned: boolean; oauthFailed: boolean }> {
+  sessionStorage: Storage,
+): Promise<ResolvedWalletState> {
+  const pendingSignIn = isOAuthReturn(url) ? claimPendingSignIn(sessionStorage) : null;
+  const resolved = await resolveWalletStateAfterClaim(url, replaceUrl, config, createAuth, fetchImpl);
+  if (pendingSignIn) trackSignInCompleted(pendingSignIn, resolved.oauthSession === true);
+  return resolved;
+}
+
+async function resolveWalletStateAfterClaim(
+  url: URL,
+  replaceUrl: (next: string) => void,
+  config: WalletEnvConfig,
+  createAuth: (config: WalletEnvConfig) => Promise<SupabaseAuthLike>,
+  fetchImpl: typeof fetch | undefined,
+): Promise<ResolvedWalletState> {
   const oauthReturned = isOAuthReturn(url);
 
   const gate = await probeWalletGate(config, fetchImpl);
@@ -392,6 +425,7 @@ async function resolveWalletState(
   }
 
   if (!session) return { state: { kind: 'signed-out', auth, providers: gate.providers }, oauthReturned, oauthFailed };
+  const oauthSession = oauthReturned;
 
   const balances = await getWallet({
     url: config.url,
@@ -402,9 +436,9 @@ async function resolveWalletState(
   // AC1/D1: the wallet RPC failing here is "the RPC failing... at Place
   // order" — the same fallback as an absent config, not a stuck signed-out
   // screen with no way to tell the visitor anything is wrong.
-  if (!balances) return { state: { kind: 'dark' }, oauthReturned, oauthFailed: false };
+  if (!balances) return { state: { kind: 'dark' }, oauthReturned, oauthFailed: false, oauthSession };
 
-  return { state: { kind: 'signed-in', auth, session, balances }, oauthReturned, oauthFailed };
+  return { state: { kind: 'signed-in', auth, session, balances }, oauthReturned, oauthFailed, oauthSession };
 }
 
 export function renderCheckout(
@@ -506,7 +540,7 @@ export function renderCheckout(
   miniFields.className = 'checkout-field';
   miniFields.append(utensilsField.element);
 
-  const city: City = lines[0].currency === 'VND' ? 'hcmc' : 'sf';
+  const city: City = checkoutCity(cart);
   const subtotalMinor = cartSubtotalMinor(lines);
 
   // #174: sweep before reading the ledger, so a level reached since the last
@@ -664,16 +698,23 @@ export function renderCheckout(
       // reaches this line, so the voucher is not spent then).
       if (breakdown!.thanksVoucherAmountMinor > 0) consumeThanksVoucher(storage, city);
 
+      // #219 contract §8's 14 keys. `vip_level` is the level this checkout
+      // perked against, so it always agrees with `vip_saved_amount_minor`.
       track('order_placed', {
         order_id: order.orderId,
         item_count: order.itemCount,
         amount_minor: order.amountMinor,
+        city,
         currency: order.currency,
         drop_off_preset: order.dropOffPreset,
         delivery_instructions: order.deliveryInstructions,
         utensils: order.utensils,
         applied_voucher_ids: order.appliedVoucherIds,
         saved_amount_minor: order.savedAmountMinor,
+        thanks_voucher_amount_minor: breakdown!.thanksVoucherAmountMinor,
+        vip_level: vipLevel,
+        vip_saved_amount_minor: breakdown!.vipDeliverySavedMinor + breakdown!.vipPlatinumAmountMinor,
+        wallet_paid: walletPaid,
       });
 
       navigate('/order-placed/');
@@ -695,6 +736,8 @@ export function renderCheckout(
   let currentBalances: WalletBalances | null = null;
   let signInPromptHandle: { close: () => void; element: HTMLElement } | null = null;
   let debitInFlight = false;
+  /** `wallet_short_shown` fires at most once per page load for this surface (#219 contract §8), however often the block re-renders. */
+  let shortShownFired = false;
 
   function cityBalanceMinor(balances: WalletBalances): number {
     return breakdown!.currency === 'USD' ? balances.usdMinor : balances.vndMinor;
@@ -748,6 +791,12 @@ export function renderCheckout(
     disclosure.hidden = true;
     shortBalanceActive = true;
     placeOrderButton.setAttribute('aria-disabled', 'true');
+
+    // No shortfall and no balance in the event (the #79 rule, contract §9).
+    if (!shortShownFired) {
+      shortShownFired = true;
+      track('wallet_short_shown', { city, surface: 'checkout' });
+    }
   }
 
   function renderWalletRow(balances: WalletBalances): void {
@@ -815,6 +864,7 @@ export function renderCheckout(
     );
     root.append(signInPromptHandle.element);
     signInPromptHandle.element.querySelector<HTMLElement>('.sheet')?.focus();
+    trackSignInPromptShown('checkout');
   }
 
   async function handleProviderTap(provider: OAuthProvider): Promise<void> {
@@ -828,7 +878,12 @@ export function renderCheckout(
     writePendingOrder(sessionStorage, restaurantSlug, pending);
 
     const currentHref = walletDeps.locationHref ?? window.location.href;
-    const started = await beginSignIn(resolvedState.auth, provider, redirectUrlFor(currentHref, restaurantSlug), walletNavigate);
+    const started = await beginSignIn(
+      resolvedState.auth,
+      provider,
+      redirectUrlFor(currentHref, restaurantSlug),
+      navigateWithSignInStarted(sessionStorage, provider, 'checkout', walletNavigate),
+    );
     if (!started) {
       // Never observed in practice against Supabase, but kept honest: leave
       // checkout exactly as it was rather than sending the visitor nowhere.
@@ -998,7 +1053,7 @@ export function renderCheckout(
       walletDeps.replaceUrl ??
       ((next: string) => window.history.replaceState({}, '', next));
 
-    walletStateReady = resolveWalletState(url, replaceUrl, walletConfig, createAuth, walletDeps.fetchImpl).then(({ state, oauthReturned, oauthFailed }) => {
+    walletStateReady = resolveWalletState(url, replaceUrl, walletConfig, createAuth, walletDeps.fetchImpl, sessionStorage).then(({ state, oauthReturned, oauthFailed }) => {
       resolvedState = state;
 
       if (oauthReturned) {
@@ -1061,6 +1116,7 @@ export function initCheckoutPage(
   track('checkout_viewed', {
     item_count: view.cart.itemCount,
     amount_minor: view.cart.subtotalMinor,
+    city: checkoutCity(view.cart),
     currency: view.cart.currency,
   });
 }

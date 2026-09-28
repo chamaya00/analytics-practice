@@ -7,11 +7,9 @@
 // matching order-store.ts's existing storage pattern.
 //
 // #119/#120: the draw grew from a fixed 2 restaurants to 5–6, to match the
-// Grab-sized sheet's scrolling list. `flash_sheet_shown`'s own contract
-// still requires exactly 2 slugs (docs/design/119-flash-sheet-tall-and-
-// collapsed-bar.md's own scope line, and CLAUDE.md's "event tracking comes
-// last") — unchanged deliberately, so a 5–6 draw's event goes quiet rather
-// than firing a truncated or widened shape (see home-dom.ts and tracking.ts).
+// Grab-sized sheet's scrolling list. `flash_sheet_shown` carries the whole
+// 5–6 draw since #238 (docs/measurement/219-analytics-readiness-contract.md
+// §8), after going quiet from #120 until then.
 
 import type { City } from './money';
 import { restaurantsForCity } from './restaurants';

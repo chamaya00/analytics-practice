@@ -77,6 +77,7 @@ import { getWallet, claimDrip, tipWallet, type WalletBalances } from './wallet-c
 import { formatNextDripHeadline } from './wallet-dom';
 import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
 import { renderSignInPrompt } from './sign-in-prompt-dom';
+import { claimPendingSignIn, navigateWithSignInStarted, trackSignInCompleted, trackSignInPromptShown } from './sign-in-events';
 import { loadConfettiCannon } from './confetti-loader';
 import { stampSealSvg } from './stamp';
 
@@ -130,6 +131,8 @@ interface TipRowState {
   onSend: (orderId: string) => void;
   onCancel: (orderId: string) => void;
   onCollectDrip: () => void;
+  /** Called each time the short-balance block renders; the page fires `wallet_short_shown` from it at most once (#238). */
+  onShortShown: (city: Restaurant['city']) => void;
 }
 
 /** The middle preset, or the largest one the balance actually covers
@@ -865,6 +868,7 @@ function renderTipControl(
 
   if (isShort) {
     panel.append(renderTipShortBlock(order.currency, balanceMinor, selectedMinor, balances, city, now, tip.onCollectDrip));
+    tip.onShortShown(city);
   }
 
   if (tip.errorMessage) {
@@ -1130,6 +1134,7 @@ export function renderTrackerView(
     onSend: () => {},
     onCancel: () => {},
     onCollectDrip: () => {},
+    onShortShown: () => {},
   }),
   // Not persisted by default (#193) — a caller across several ticks (only
   // `initTrackerPage` today) has to create one cache and keep passing the
@@ -1307,13 +1312,29 @@ export function initTrackerPage(
   const tipErrors = new Map<string, string>();
   const tipBlocked = new Set<string>();
   let signInPromptHandle: { close: () => void; element: HTMLElement } | null = null;
+  /** `wallet_short_shown` fires at most once per page load for the tip surface (#219 contract §8), however often the tick re-renders the block. */
+  let tipShortShownFired = false;
 
   function walletNavigate(url: string): void {
     if (walletDeps.navigateToOAuth) walletDeps.navigateToOAuth(url);
     else window.location.href = url;
   }
 
+  /**
+   * #238: on an OAuth return, claims `parody.pendingSignIn` synchronously —
+   * before the gate probe's `await` — and fires `sign_in_completed` once
+   * the outcome is known (#219 contract §7).
+   */
   async function resolveWalletState(config: WalletEnvConfig): Promise<TrackerWalletState> {
+    const returnUrl = new URL(walletDeps.locationHref ?? window.location.href);
+    const pendingSignIn = isOAuthReturn(returnUrl) ? claimPendingSignIn(tipSessionStorage) : null;
+    const outcome = { signedIn: false };
+    const resolved = await resolveWalletStateAfterClaim(config, outcome);
+    if (pendingSignIn) trackSignInCompleted(pendingSignIn, outcome.signedIn);
+    return resolved;
+  }
+
+  async function resolveWalletStateAfterClaim(config: WalletEnvConfig, outcome: { signedIn: boolean }): Promise<TrackerWalletState> {
     const createAuth = walletDeps.createAuth ?? createSupabaseAuth;
     const fetchImpl = walletDeps.fetchImpl;
 
@@ -1332,6 +1353,7 @@ export function initTrackerPage(
     if (isOAuthReturn(url)) {
       const result = await completeOAuthReturn(auth, url);
       session = result.session;
+      outcome.signedIn = session !== null;
       const replaceUrl = walletDeps.replaceUrl ?? ((next: string) => window.history.replaceState({}, '', next));
       replaceUrl(stripOAuthParams(url).toString());
       // #162's "Returning from OAuth lands on /tracker/ with that row's tip
@@ -1367,6 +1389,7 @@ export function initTrackerPage(
     );
     (root.parentElement ?? root).append(signInPromptHandle.element);
     signInPromptHandle.element.querySelector<HTMLElement>('.sheet')?.focus();
+    trackSignInPromptShown('tip');
   }
 
   async function handleTipProviderTap(provider: OAuthProvider, orderId: string): Promise<void> {
@@ -1374,7 +1397,12 @@ export function initTrackerPage(
     if (!signedOut || signedOut.kind !== 'signed-out') return;
     writePendingTipOrderId(orderId);
     const currentHref = walletDeps.locationHref ?? window.location.href;
-    const started = await beginSignIn(signedOut.auth, provider, currentHref, walletNavigate);
+    const started = await beginSignIn(
+      signedOut.auth,
+      provider,
+      currentHref,
+      navigateWithSignInStarted(tipSessionStorage, provider, 'tip', walletNavigate),
+    );
     if (!started) signInPromptHandle?.close();
   }
 
@@ -1460,7 +1488,12 @@ export function initTrackerPage(
     // 'tipped' or 'already_tipped' — the RPC's own echoed amount, not
     // necessarily the preset this tap sent (docs/design/162-* on
     // `storeTip`).
-    storeTip(storage, orderId, result.amountMinor);
+    const stored = storeTip(storage, orderId, result.amountMinor);
+    // `tip_sent` only for `tipped`, and only the first time this order
+    // records one (#219 contract §8): `already_tipped` fires nothing.
+    if (stored && result.status === 'tipped') {
+      track('tip_sent', { currency: target.currency, order_id: orderId, tip_amount_minor: result.amountMinor });
+    }
     openTipPanels.delete(orderId);
     tipSelectedPreset.delete(orderId);
     document.dispatchEvent(new CustomEvent(WALLET_BALANCE_CHANGED_EVENT, { detail: { usdMinor: result.usdMinor, vndMinor: result.vndMinor } }));
@@ -1512,6 +1545,11 @@ export function initTrackerPage(
         render();
       },
       onCollectDrip: () => void handleCollectTipDrip(),
+      onShortShown: (city) => {
+        if (tipShortShownFired) return;
+        tipShortShownFired = true;
+        track('wallet_short_shown', { city, surface: 'tip' });
+      },
     };
   }
 
@@ -1593,7 +1631,12 @@ export function initTrackerPage(
     return {
       onSubmitDriverRating: (stars) => {
         maybeUnlockThanksVoucher();
-        submitDriverRating(storage, orderId, stars);
+        // `driver_rating_submitted` at most once per order (#219 contract
+        // §8): a second submit, from the sheet or a history re-rate, stores
+        // nothing and fires nothing.
+        if (submitDriverRating(storage, orderId, stars)) {
+          track('driver_rating_submitted', { order_id: orderId, stars });
+        }
         render();
       },
       onSubmitRestaurant: (stars, tags) => {

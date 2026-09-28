@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initCartPage } from './cart-dom';
 import { addToCart, getCart } from './order-store';
 import { resetTrack, setTrack } from './tracking';
@@ -56,7 +57,7 @@ describe('initCartPage (AC1, AC3)', () => {
 
     expect(el.querySelector('[data-testid="cart-empty"]')).not.toBeNull();
     expect(el.querySelector('a[href="/"]')).not.toBeNull();
-    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' });
+    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 0, amount_minor: 0, city: 'sf', currency: 'USD' });
   });
 
   it('fires cart_viewed with the populated cart’s item_count, amount_minor, and currency', () => {
@@ -67,7 +68,7 @@ describe('initCartPage (AC1, AC3)', () => {
 
     initCartPage(root(), window.localStorage, '');
 
-    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 2, amount_minor: 2800, currency: 'USD' });
+    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 2, amount_minor: 2800, city: 'sf', currency: 'USD' });
   });
 
   it('removing the last item switches to the empty state', () => {
@@ -158,7 +159,7 @@ describe('initCartPage — one cart per restaurant', () => {
     setTrack(stub);
     initCartPage(root(), window.localStorage, '?restaurant=saigon-pho-quan');
     expect(stub).toHaveBeenCalledTimes(1);
-    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 1, amount_minor: 55000, currency: 'VND' });
+    expect(stub).toHaveBeenCalledWith('cart_viewed', { item_count: 1, amount_minor: 55000, city: 'hcmc', currency: 'VND' });
   });
 
   it('changing a quantity re-renders the same restaurant’s cart and fires no second cart_viewed', () => {
@@ -282,5 +283,31 @@ describe('removing a line: swipe-revealed Remove, or minus at quantity 1 with a 
     expect(el.querySelector('[data-testid="cart-subtotal"]')?.textContent).toBe('Subtotal$14.00');
     expect(document.activeElement?.getAttribute('data-testid')).toBe('cart-heading');
     expect(stub).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('cart_viewed carries city, and the store keeps the exact object (#238 AC1)', () => {
+  afterAll(closeEventStore);
+
+  it('the empty state sends the stored city, and its own currency', async () => {
+    window.localStorage.setItem('parody.city', 'hcmc');
+    const stub = vi.fn();
+    setTrack(stub);
+    initCartPage(root(), window.localStorage, '');
+
+    expect(stub.mock.calls).toEqual([['cart_viewed', { item_count: 0, amount_minor: 0, city: 'hcmc', currency: 'VND' }]]);
+    const [[, props]] = stub.mock.calls;
+    await expect(storeWhatTheClientSends('cart_viewed', props)).resolves.toEqual(props);
+  });
+
+  it('a populated cart sends its restaurant\'s city, and the store keeps that object', async () => {
+    addToCart(window.localStorage, LINE);
+    const stub = vi.fn();
+    setTrack(stub);
+    initCartPage(root(), window.localStorage, '');
+
+    expect(stub.mock.calls).toEqual([['cart_viewed', { item_count: 1, amount_minor: 1400, city: 'sf', currency: 'USD' }]]);
+    const [[, props]] = stub.mock.calls;
+    await expect(storeWhatTheClientSends('cart_viewed', props)).resolves.toEqual(props);
   });
 });

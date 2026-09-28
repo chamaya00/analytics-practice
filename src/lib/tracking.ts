@@ -17,6 +17,16 @@
 // is retired outright (#83, contract §6) — its old name is no longer a case
 // below, so a call using it falls to the `default: false` branch and is
 // simply dropped by `isValidEventProps` rather than reaching the sender.
+//
+// #238 moves the changed and new shapes onto
+// docs/measurement/219-analytics-readiness-contract.md §8: `city` on
+// `cart_viewed`/`checkout_viewed`/`order_placed`, `order_placed`'s
+// `wallet_paid`/`vip_level`/`vip_saved_amount_minor`/
+// `thanks_voucher_amount_minor`, `flash_sheet_shown`'s 5-6 slugs, the `la-*`
+// voucher ids, and the six new events (§7's three sign-in events,
+// `wallet_short_shown`, `tip_sent`, `driver_rating_submitted`). The client
+// never sends #81's old shapes again (§14), so they are refused here even
+// though the store still accepts them (§13).
 
 import { isValidReferrerHost, isValidUtmValue } from './acquisition';
 import { CITIES } from './money';
@@ -34,7 +44,13 @@ export type EventName =
   | 'tracker_viewed'
   | 'order_delivered'
   | 'rating_submitted'
-  | 'session_started';
+  | 'session_started'
+  | 'sign_in_prompt_shown'
+  | 'sign_in_started'
+  | 'sign_in_completed'
+  | 'wallet_short_shown'
+  | 'tip_sent'
+  | 'driver_rating_submitted';
 
 export type EventProps = Record<string, string | number | boolean | string[]>;
 
@@ -52,6 +68,33 @@ export type RatingTag = (typeof RATING_TAGS)[number];
 
 /** The ten fixed catalogue voucher ids §7's `order_placed` row names, and `flash_sheet_shown`/`flash_sheet_closed`'s own `restaurant_slugs` draw from — vouchers.ts (#87's catalogue) is the single source, re-exported here so this shape mirror doesn't drift from it. */
 export const VOUCHER_IDS = CATALOGUE_VOUCHER_IDS;
+
+/** #219 contract §4: the five LA ids the store already accepts. LA's catalogue isn't in vouchers.ts yet, so they are named here until it is. */
+export const LA_VOUCHER_IDS = ['la-delivery-entry', 'la-discount-t1', 'la-discount-t2', 'la-discount-t3', 'la-flash'] as const;
+
+/** #219 contract §4: the only values an `applied_voucher_ids` element may take (15). */
+export const EVENT_VOUCHER_IDS: readonly string[] = [...VOUCHER_IDS, ...LA_VOUCHER_IDS];
+
+/** #219 contract §4: `city` on every new or changed shape. `la` is accepted ahead of LA's own screens. */
+export const EVENT_CITIES = ['sf', 'hcmc', 'la'] as const;
+export type EventCity = (typeof EVENT_CITIES)[number];
+
+/** `order_placed.vip_level` (#219 contract §8). */
+export const VIP_LEVELS = ['none', 'gold', 'platinum'] as const;
+
+/** §7: where the sign-in sheet was opened. */
+export const SIGN_IN_SURFACES = ['checkout', 'tip'] as const;
+export type SignInSurface = (typeof SIGN_IN_SURFACES)[number];
+
+export const SIGN_IN_PROVIDERS = ['google', 'apple'] as const;
+const SIGN_IN_OUTCOMES = ['success', 'failed'] as const;
+
+/** `tip_sent.tip_amount_minor` (§8): one of the fixed presets for that currency. */
+export const TIP_PRESETS_MINOR = { USD: [100, 200, 300], VND: [10000, 20000, 30000] } as const;
+
+/** `flash_sheet_shown.restaurant_slugs` length (§8): the sheet's actual draw. */
+const FLASH_SLUGS_MIN = 5;
+const FLASH_SLUGS_MAX = 6;
 
 const FLASH_OUTCOMES = ['restaurant_tapped', 'dismissed', 'expired'] as const;
 
@@ -85,10 +128,10 @@ function isAmountMinorInBounds(value: unknown, currency: unknown, allowZero: boo
   return isIntInRange(value, allowZero ? 0 : 1, hi);
 }
 
-/** `applied_voucher_ids`: 0–2 known catalogue ids, no duplicates (contract §7). */
+/** `applied_voucher_ids`: 0–2 of #219 §4's 15 ids, no duplicates. */
 function isValidVoucherIds(value: unknown): value is string[] {
   if (!Array.isArray(value) || value.length > 2) return false;
-  if (!value.every((id) => isOneOf(id, VOUCHER_IDS))) return false;
+  if (!value.every((id) => isOneOf(id, EVENT_VOUCHER_IDS))) return false;
   return new Set(value).size === value.length;
 }
 
@@ -99,13 +142,21 @@ function isValidRatingTags(value: unknown): value is RatingTag[] {
   return new Set(value).size === value.length;
 }
 
-/** `restaurant_slugs`: exactly 2 valid slugs (contract §7, `flash_sheet_shown`). */
+/** `restaurant_slugs`: 5-6 distinct valid slugs, the whole draw (#219 contract §8, `flash_sheet_shown`). */
 function isValidRestaurantSlugs(value: unknown): value is string[] {
   return (
     Array.isArray(value) &&
-    value.length === 2 &&
+    value.length >= FLASH_SLUGS_MIN &&
+    value.length <= FLASH_SLUGS_MAX &&
+    new Set(value).size === value.length &&
     value.every((slug) => typeof slug === 'string' && slug.length >= 1 && slug.length <= 60 && SLUG_RE.test(slug))
   );
+}
+
+/** `tip_sent.tip_amount_minor`: one of that currency's fixed presets (§8). */
+function isTipPreset(value: unknown, currency: unknown): boolean {
+  if (currency !== 'USD' && currency !== 'VND') return false;
+  return (TIP_PRESETS_MINOR[currency] as readonly number[]).includes(value as number);
 }
 
 /** `flash_sheet_shown.amount_minor`: bounded to the city's own drawn range (contract §7), not the general per-currency bound. */
@@ -143,14 +194,16 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
       );
     case 'cart_viewed':
       return (
-        hasOnly(['amount_minor', 'currency', 'item_count']) &&
+        hasOnly(['amount_minor', 'city', 'currency', 'item_count']) &&
+        isOneOf(props.city, EVENT_CITIES) &&
         isOneOf(props.currency, ['USD', 'VND']) &&
         isIntInRange(props.item_count, 0, 999) &&
         isAmountMinorInBounds(props.amount_minor, props.currency, true)
       );
     case 'checkout_viewed':
       return (
-        hasOnly(['amount_minor', 'currency', 'item_count']) &&
+        hasOnly(['amount_minor', 'city', 'currency', 'item_count']) &&
+        isOneOf(props.city, EVENT_CITIES) &&
         isOneOf(props.currency, ['USD', 'VND']) &&
         isIntInRange(props.item_count, 1, 999) &&
         isAmountMinorInBounds(props.amount_minor, props.currency, false)
@@ -158,7 +211,7 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
     case 'flash_sheet_shown':
       return (
         hasOnly(['city', 'amount_minor', 'currency', 'restaurant_slugs']) &&
-        isOneOf(props.city, CITIES) &&
+        isOneOf(props.city, EVENT_CITIES) &&
         isOneOf(props.currency, ['USD', 'VND']) &&
         isFlashAmountInRange(props.amount_minor, props.currency) &&
         isValidRestaurantSlugs(props.restaurant_slugs)
@@ -182,14 +235,24 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
         hasOnly([
           'amount_minor',
           'applied_voucher_ids',
+          'city',
           'currency',
           'delivery_instructions',
           'drop_off_preset',
           'item_count',
           'order_id',
           'saved_amount_minor',
+          'thanks_voucher_amount_minor',
           'utensils',
+          'vip_level',
+          'vip_saved_amount_minor',
+          'wallet_paid',
         ]) &&
+        isOneOf(props.city, EVENT_CITIES) &&
+        isOneOf(props.vip_level, VIP_LEVELS) &&
+        isAmountMinorInBounds(props.vip_saved_amount_minor, props.currency, true) &&
+        isAmountMinorInBounds(props.thanks_voucher_amount_minor, props.currency, true) &&
+        isBoolean(props.wallet_paid) &&
         isUuid(props.order_id) &&
         isIntInRange(props.item_count, 1, 999) &&
         isOneOf(props.currency, ['USD', 'VND']) &&
@@ -229,6 +292,33 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
         isValidUtmValue(props.utm_medium) &&
         isValidUtmValue(props.utm_campaign)
       );
+    case 'sign_in_prompt_shown':
+      return hasOnly(['surface']) && isOneOf(props.surface, SIGN_IN_SURFACES);
+    case 'sign_in_started':
+      return (
+        hasOnly(['provider', 'surface']) &&
+        isOneOf(props.provider, SIGN_IN_PROVIDERS) &&
+        isOneOf(props.surface, SIGN_IN_SURFACES)
+      );
+    case 'sign_in_completed':
+      return (
+        hasOnly(['outcome', 'provider', 'surface']) &&
+        isOneOf(props.outcome, SIGN_IN_OUTCOMES) &&
+        isOneOf(props.provider, SIGN_IN_PROVIDERS) &&
+        isOneOf(props.surface, SIGN_IN_SURFACES)
+      );
+    case 'wallet_short_shown':
+      // No shortfall and no balance (§9): the city and where it showed, only.
+      return hasOnly(['city', 'surface']) && isOneOf(props.city, EVENT_CITIES) && isOneOf(props.surface, SIGN_IN_SURFACES);
+    case 'tip_sent':
+      return (
+        hasOnly(['currency', 'order_id', 'tip_amount_minor']) &&
+        isUuid(props.order_id) &&
+        isOneOf(props.currency, ['USD', 'VND']) &&
+        isTipPreset(props.tip_amount_minor, props.currency)
+      );
+    case 'driver_rating_submitted':
+      return hasOnly(['order_id', 'stars']) && isUuid(props.order_id) && isIntInRange(props.stars, 1, 5);
     default:
       return false;
   }

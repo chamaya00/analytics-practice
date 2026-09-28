@@ -348,10 +348,16 @@ export function initCartPage(
   const selection = renderCart(root, storage, restaurantSlugFromSearch(search));
   if (selection.kind === 'several') return;
   if (selection.kind === 'empty') {
-    const currency = currencyForCity(getStoredCity(storage) ?? 'sf');
-    track('cart_viewed', { item_count: 0, amount_minor: 0, currency });
+    // #219 contract §8: the empty state's city is the stored one, `sf` if none.
+    const city = getStoredCity(storage) ?? 'sf';
+    track('cart_viewed', { item_count: 0, amount_minor: 0, city, currency: currencyForCity(city) });
     return;
   }
   const { cart } = selection;
-  track('cart_viewed', { item_count: cart.itemCount, amount_minor: cart.subtotalMinor, currency: cart.currency });
+  track('cart_viewed', {
+    item_count: cart.itemCount,
+    amount_minor: cart.subtotalMinor,
+    city: getRestaurant(cart.restaurantSlug)?.city ?? (cart.currency === 'VND' ? 'hcmc' : 'sf'),
+    currency: cart.currency,
+  });
 }
