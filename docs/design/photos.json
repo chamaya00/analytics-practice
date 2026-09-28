@@ -1199,6 +1199,114 @@
       "query": "baklava walnut honey",
       "width": 64,
       "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-chicken-shawarma-plate.jpg",
+      "query": "chicken shawarma plate rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/glendale-lavash-bakery-lule-kebab-plate.jpg",
+      "query": "lule kebab grilled skewers",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-acai-bowl.jpg",
+      "query": "acai bowl granola strawberries",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-pitaya-bowl.jpg",
+      "query": "pitaya dragon fruit bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-avocado-toast.jpg",
+      "query": "avocado toast sourdough",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-peanut-butter-banana-smoothie.jpg",
+      "query": "peanut butter banana smoothie",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/venice-boardwalk-bowls-green-smoothie.jpg",
+      "query": "green smoothie spinach",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-tonkotsu-ramen.jpg",
+      "query": "tonkotsu ramen chashu egg",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-spicy-miso-ramen.jpg",
+      "query": "spicy miso ramen",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-tsukemen.jpg",
+      "query": "tsukemen dipping noodles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-gyoza.jpg",
+      "query": "gyoza pan fried dumplings",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/sawtelle-tonkotsu-bar-chashu-rice-bowl.jpg",
+      "query": "chashu pork rice bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-chicken-adobo.jpg",
+      "query": "chicken adobo rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-pork-sisig.jpg",
+      "query": "pork sisig sizzling plate",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-pancit-bihon.jpg",
+      "query": "pancit bihon noodles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-lumpia-shanghai.jpg",
+      "query": "lumpia spring rolls",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/temple-street-filipino-kitchen-ube-halo-halo.jpg",
+      "query": "halo halo ube dessert",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-classic-ahi-poke-bowl.jpg",
+      "query": "ahi tuna poke bowl",
+      "width": 64,
+      "height": 64
     }
   ]
 }
