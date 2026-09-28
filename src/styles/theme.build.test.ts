@@ -9,7 +9,7 @@ import { deliveredCss } from '../../test-support/dist-css';
 // test run in vitest.global-setup.ts, not here - see that file for why.
 const css = deliveredCss('dist/index.html');
 
-describe('the site is always dark: one palette, no OS-follows toggle (#194: #181-green, section 2a)', () => {
+describe('dark mode: #181-green\'s dark values, unchanged since #194 (section 2a)', () => {
   it(':root declares #181-green\'s dark values directly, including the tab-active-bg and badge-ink tokens the spec leaves to the engineer', () => {
     const rootBlock = css.match(/:root\{[^}]*\}/)?.[0] ?? '';
     expect(rootBlock).toContain('color-scheme:dark');
@@ -27,9 +27,52 @@ describe('the site is always dark: one palette, no OS-follows toggle (#194: #181
     expect(rootBlock).toContain('--color-accent-a:#14b8a6');
     expect(rootBlock).toContain('--color-accent-b:#ffb84d');
   });
+});
 
-  it('no prefers-color-scheme block redeclares a palette token — there is only one theme', () => {
-    expect(css).not.toContain('prefers-color-scheme');
+describe('light mode: #199 option C ("Daylight"), under prefers-color-scheme only (#199 O1-O4: no toggle, no stored preference)', () => {
+  // The dark :root block above always matches first, so pull the block
+  // that sits inside the light media query specifically rather than the
+  // first `:root{...}` in the file.
+  function lightRootBlock(): string {
+    const mediaBlock = css.match(/@media \(prefers-color-scheme:light\)\{[\s\S]*?:root\{[^}]*\}[\s\S]*?\}/)?.[0] ?? '';
+    return mediaBlock.match(/:root\{[^}]*\}/)?.[0] ?? '';
+  }
+
+  it('a prefers-color-scheme: light block exists and its :root declares color-scheme: light', () => {
+    expect(css).toContain('prefers-color-scheme:light');
+    expect(lightRootBlock()).toContain('color-scheme:light');
+  });
+
+  it('the light :root declares every value in the spec\'s C table', () => {
+    const rootBlock = lightRootBlock();
+    expect(rootBlock).toContain('--color-bg:#f1f4f1');
+    // The build's CSS minifier shortens #ffffff to #fff.
+    expect(rootBlock).toContain('--color-surface:#fff');
+    expect(rootBlock).toContain('--color-text:#0b0f0c');
+    expect(rootBlock).toContain('--color-text-muted:#56665b');
+    expect(rootBlock).toContain('--color-border:#dfe5e0');
+    expect(rootBlock).toContain('--color-accent-a:#0f766e');
+    expect(rootBlock).toContain('--color-tab-active-bg:#d7ede8');
+    expect(rootBlock).toContain('--color-danger:#c4213a');
+    expect(rootBlock).toContain('--color-accent-b-text:#8a5300');
+    expect(rootBlock).toContain('--color-indicator:#7d8c82');
+  });
+
+  it('the light :root redeclares none of the tokens the spec keeps at their dark value', () => {
+    const rootBlock = lightRootBlock();
+    expect(rootBlock).not.toContain('--color-accent-b:');
+    expect(rootBlock).not.toContain('--color-badge-ink');
+    expect(rootBlock).not.toContain('--color-flash-tile-bg');
+    expect(rootBlock).not.toContain('--color-cta:');
+    expect(rootBlock).not.toContain('--color-cta-ink');
+    expect(rootBlock).not.toContain('--color-vip-gold');
+    expect(rootBlock).not.toContain('--color-vip-platinum');
+  });
+
+  it('.place-order resolves its fill and ink through --color-cta / --color-cta-ink, not the accent', () => {
+    const rule = css.match(/\.place-order\{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toContain('background:var(--color-cta)');
+    expect(rule).toContain('color:var(--color-cta-ink)');
   });
 });
 
