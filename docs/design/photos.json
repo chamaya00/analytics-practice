@@ -1307,6 +1307,108 @@
       "query": "ahi tuna poke bowl",
       "width": 64,
       "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-spicy-salmon-poke-bowl.jpg",
+      "query": "salmon poke bowl avocado",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-tofu-poke-bowl.jpg",
+      "query": "tofu poke bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/silver-lake-poke-counter-spam-musubi.jpg",
+      "query": "spam musubi",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-bacon-breakfast-burrito.jpg",
+      "query": "bacon egg breakfast burrito",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-chorizo-breakfast-burrito.jpg",
+      "query": "chorizo breakfast burrito",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-veggie-breakfast-burrito.jpg",
+      "query": "vegetarian breakfast burrito",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-chilaquiles.jpg",
+      "query": "chilaquiles verdes fried egg",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/echo-park-breakfast-burritos-cafe-de-olla.jpg",
+      "query": "cafe de olla clay mug",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-toro-hand-roll.jpg",
+      "query": "toro temaki hand roll",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-blue-crab-hand-roll.jpg",
+      "query": "crab hand roll temaki",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-salmon-hand-roll.jpg",
+      "query": "salmon hand roll",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-yellowtail-hand-roll.jpg",
+      "query": "yellowtail hamachi hand roll",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-edamame.jpg",
+      "query": "edamame bowl sea salt",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/little-tokyo-hand-roll-bar-miso-soup.jpg",
+      "query": "miso soup bowl",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-chicken-and-waffles.jpg",
+      "query": "chicken and waffles",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-oxtail-plate.jpg",
+      "query": "braised oxtail rice",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "public/images/dishes/leimert-park-soul-kitchen-mac-and-cheese.jpg",
+      "query": "baked mac and cheese",
+      "width": 64,
+      "height": 64
     }
   ]
 }

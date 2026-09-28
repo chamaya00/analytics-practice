@@ -248,6 +248,23 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/temple-street-filipino-kitchen-lumpia-shanghai.svg` | "fried spring rolls sauce" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/temple-street-filipino-kitchen-ube-halo-halo.svg` | "halo halo ube dessert" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/silver-lake-poke-counter-classic-ahi-poke-bowl.svg` | "ahi tuna poke bowl" | Pending fetch (#231, batch 3) |
+| `public/images/dishes/silver-lake-poke-counter-spicy-salmon-poke-bowl.svg` | "salmon poke bowl avocado" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/silver-lake-poke-counter-tofu-poke-bowl.svg` | "tofu poke bowl" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/silver-lake-poke-counter-spam-musubi.svg` | "spam musubi" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/echo-park-breakfast-burritos-bacon-breakfast-burrito.svg` | "bacon egg breakfast burrito" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/echo-park-breakfast-burritos-chorizo-breakfast-burrito.svg` | "chorizo breakfast burrito" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/echo-park-breakfast-burritos-veggie-breakfast-burrito.svg` | "vegetarian breakfast burrito" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/echo-park-breakfast-burritos-chilaquiles.svg` | "chilaquiles verdes fried egg" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/echo-park-breakfast-burritos-cafe-de-olla.svg` | "cafe de olla clay mug" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-toro-hand-roll.svg` | "toro temaki hand roll" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-blue-crab-hand-roll.svg` | "crab hand roll temaki" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-salmon-hand-roll.svg` | "salmon hand roll" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-yellowtail-hand-roll.svg` | "yellowtail hamachi hand roll" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-edamame.svg` | "edamame bowl sea salt" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/little-tokyo-hand-roll-bar-miso-soup.svg` | "miso soup bowl" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/leimert-park-soul-kitchen-chicken-and-waffles.svg` | "chicken and waffles" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/leimert-park-soul-kitchen-oxtail-plate.svg` | "braised oxtail rice" | Pending fetch (#231, batch 4) |
+| `public/images/dishes/leimert-park-soul-kitchen-mac-and-cheese.svg` | "baked mac and cheese" | Pending fetch (#231, batch 4) |
 
 ## Weight budget (#80: home feed first paint ≤ 900KB total)
 
