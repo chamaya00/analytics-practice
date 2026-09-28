@@ -42,6 +42,7 @@ import { createVehicleIcon } from './vehicle-icon';
 import { flashFeeForRestaurant, getFlashDraw } from './flash-deal';
 import { clearOffersState, getOffersState, setOffersState } from './offers-store';
 import { appliedDiscountAmountMinor, appliedVoucherIds, entriesForCity, syncOffersState } from './vouchers';
+import { consumeThanksVoucher, getThanksVoucher, thanksVoucherDiscountMinor } from './thanks-voucher';
 import type { City } from './money';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { readWalletEnvConfig, type WalletEnvConfig } from './wallet-config';
@@ -195,11 +196,28 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
     wrapper.append(discountRow);
   }
 
-  if (breakdown.savedAmountMinor > 0) {
+  if (breakdown.thanksVoucherAmountMinor > 0) {
+    const rewardRow = document.createElement('div');
+    rewardRow.className = 'breakdown-row discount';
+    rewardRow.setAttribute('data-testid', 'breakdown-thanks-voucher');
+    const labelEl = document.createElement('span');
+    labelEl.textContent = 'Thanks voucher · for rating';
+    const valueEl = document.createElement('span');
+    valueEl.textContent = formatMoney(-breakdown.thanksVoucherAmountMinor, breakdown.currency);
+    rewardRow.append(labelEl, valueEl);
+    wrapper.append(rewardRow);
+  }
+
+  // The screen's own "You saved" adds the thanks voucher on top of the
+  // catalogue vouchers' saving — order_placed.saved_amount_minor never does
+  // (docs/design/162-*, "Events": "a known, deliberate gap between the
+  // screen's 'You saved' and the event").
+  const displaySavedAmountMinor = breakdown.savedAmountMinor + breakdown.thanksVoucherAmountMinor;
+  if (displaySavedAmountMinor > 0) {
     const saved = document.createElement('div');
     saved.className = 'saved-line';
     saved.setAttribute('data-testid', 'breakdown-saved');
-    saved.textContent = `You saved ${formatMoney(breakdown.savedAmountMinor, breakdown.currency)}`;
+    saved.textContent = `You saved ${formatMoney(displaySavedAmountMinor, breakdown.currency)}`;
     wrapper.append(saved);
   }
 
@@ -530,6 +548,13 @@ export function renderCheckout(
   const sync = syncOffersState(previousOffers, entries, subtotalMinor);
   setOffersState(storage, restaurantSlug, sync.state);
 
+  // #166's thanks voucher: outside the catalogue entirely, so it never goes
+  // through syncOffersState/OffersState — it applies by itself, with no
+  // checkbox, whenever this city holds an unexpired one and the subtotal
+  // clears its own minimum (docs/design/162-*, "The thanks voucher").
+  const thanksVoucher = getThanksVoucher(storage, city, now);
+  const thanksVoucherAmountMinor = thanksVoucherDiscountMinor(thanksVoucher, subtotalMinor);
+
   const restaurant = getRestaurant(restaurantSlug);
   const normalDeliveryFeeMinor = restaurant?.deliveryFeeMinor ?? 0;
   const flashDraw = getFlashDraw(sessionStorage, city);
@@ -540,6 +565,7 @@ export function renderCheckout(
     deliveryVoucherApplied: sync.state.deliveryId !== null,
     discountAmountMinor: appliedDiscountAmountMinor(sync.state, entries),
     flashDeliveryFeeMinor,
+    thanksVoucherAmountMinor,
   });
   if (breakdown === null) return { cartIsEmpty: true, cart: null };
   const breakdownEl = renderBreakdown(breakdown);
@@ -636,6 +662,7 @@ export function renderCheckout(
           ...currentFields(),
           appliedVoucherIds: appliedVoucherIds(sync.state),
           savedAmountMinor: breakdown!.savedAmountMinor,
+          thanksVoucherMinor: breakdown!.thanksVoucherAmountMinor,
           totalMinor: breakdown!.totalMinor,
           orderId,
           walletPaid,
@@ -644,6 +671,10 @@ export function renderCheckout(
       );
       clearOffersState(storage, restaurantSlug);
       clearPendingOrder(sessionStorage, restaurantSlug);
+      // Consumed only here, on a write that actually succeeded (docs/design/
+      // 162-*, "Consumed": a failed placement or a refused debit never
+      // reaches this line, so the voucher is not spent then).
+      if (breakdown!.thanksVoucherAmountMinor > 0) consumeThanksVoucher(storage, city);
 
       track('order_placed', {
         order_id: order.orderId,
