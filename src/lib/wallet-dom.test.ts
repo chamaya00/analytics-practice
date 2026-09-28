@@ -10,6 +10,7 @@ import {
 import type { WalletEnvConfig } from './wallet-config';
 import type { RawSession, SupabaseAuthLike } from './auth-client';
 import type { WalletBalances } from './wallet-client';
+import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
 
 const CONFIG: WalletEnvConfig = { url: 'https://abcdefgh.supabase.co', publishableKey: 'sb_publishable_test_key' };
 
@@ -301,6 +302,42 @@ describe('initWallet (AC4: the OAuth-redirect return)', () => {
 
     expect(chipRoot.querySelector('[data-testid="wallet-chip"]')).toBeNull();
     expect(chipRoot.hasAttribute('aria-hidden')).toBe(true);
+  });
+
+  it('#171: WALLET_BALANCE_CHANGED_EVENT updates the chip from a tip sent elsewhere, without a second wallet_get', async () => {
+    const chipRoot = document.querySelector<HTMLElement>('[data-testid="balance-slot"]')!;
+    const auth = fakeAuth();
+    const fetchImpl = fetchReturning(RAW_BALANCES);
+
+    await initWallet(chipRoot, document.body, () => 'sf', CONFIG, {
+      createAuth: async () => auth,
+      fetchImpl,
+      locationHref: 'https://site.example/',
+    });
+    expect(chipRoot.querySelector('[data-testid="wallet-chip-amount"]')?.textContent).toBe('$20.00');
+    const callsBefore = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    document.dispatchEvent(
+      new CustomEvent(WALLET_BALANCE_CHANGED_EVENT, { detail: { usdMinor: 1800, vndMinor: 600000 } }),
+    );
+
+    expect(chipRoot.querySelector('[data-testid="wallet-chip-amount"]')?.textContent).toBe('$18.00');
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
+  });
+
+  it('#171: the same event is a no-op while signed out (dark) — nothing to update, nothing thrown', async () => {
+    const chipRoot = document.querySelector<HTMLElement>('[data-testid="balance-slot"]')!;
+    const auth = fakeAuth({ getSession: vi.fn().mockResolvedValue({ data: { session: null } }) });
+
+    await initWallet(chipRoot, document.body, () => 'sf', CONFIG, {
+      createAuth: async () => auth,
+      locationHref: 'https://site.example/',
+    });
+
+    expect(() =>
+      document.dispatchEvent(new CustomEvent(WALLET_BALANCE_CHANGED_EVENT, { detail: { usdMinor: 1800, vndMinor: 600000 } })),
+    ).not.toThrow();
+    expect(chipRoot.querySelector('[data-testid="wallet-chip"]')).toBeNull();
   });
 
   it('"start over" (clearOrder) calls no wallet function — it only touches order-store keys', async () => {

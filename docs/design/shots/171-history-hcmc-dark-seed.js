@@ -1,0 +1,126 @@
+// Tracker history rows, Ho Chi Minh City dark (#171, docs/design/162-*,
+// "Tips"/"History rows") — same reasoning as 171-history-sf-seed.js: this
+// build has no PUBLIC_WALLET_ENABLED, so the gate is dark and every tip
+// control renders as D1's "absent"; the one difference this shot can show is
+// a wallet-paid order with no stored tip next to one that already has a
+// `tipMinor` (shown regardless of the gate). Run with app-render's dark flag.
+
+/* global window, addEventListener, setTimeout, scrollTo, document -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
+window.localStorage.setItem('parody.city', 'hcmc');
+window.localStorage.setItem(
+  'parody.orders',
+  JSON.stringify([
+    {
+      orderId: '11111111-1111-4171-9171-111111111171',
+      placedAt: new Date().toISOString(),
+      etaMinutes: 20,
+      deliveryMs: 20 * 60_000,
+      items: [
+        {
+          itemId: 'com-tam-quan-nha-suon-nuong',
+          restaurantSlug: 'com-tam-quan-nha',
+          restaurantName: 'Cơm Tấm Quán Nhà',
+          name: 'Cơm tấm sườn nướng',
+          amountMinor: 45000,
+          currency: 'VND',
+          quantity: 1,
+        },
+      ],
+      itemCount: 1,
+      amountMinor: 45000,
+      totalMinor: 57000,
+      currency: 'VND',
+      driver: { id: 'hcmc-driver-09', name: 'Long D.', rating: 4.9, ratingCount: 2214 },
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 1,
+      deliveredEventFired: false,
+      rating: null,
+      driverRating: null,
+      ratingPromptedAt: null,
+      walletPaid: false,
+      thanksVoucherMinor: 0,
+      vipCounted: false,
+      tipMinor: null,
+    },
+    {
+      orderId: '22222222-2222-4171-9171-222222222171',
+      placedAt: new Date(Date.now() - 26 * 60 * 60_000).toISOString(),
+      etaMinutes: 20,
+      deliveryMs: 5 * 60_000,
+      items: [
+        {
+          itemId: 'ben-thanh-banh-mi-thit-nuong',
+          restaurantSlug: 'ben-thanh-banh-mi',
+          restaurantName: 'Bến Thành Bánh Mì',
+          name: 'Bánh mì thịt nướng',
+          amountMinor: 35000,
+          currency: 'VND',
+          quantity: 2,
+        },
+      ],
+      itemCount: 2,
+      amountMinor: 70000,
+      totalMinor: 82000,
+      currency: 'VND',
+      driver: { id: 'hcmc-driver-01', name: 'Minh T.', rating: 4.9, ratingCount: 3312 },
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 1,
+      deliveredEventFired: true,
+      rating: { stars: 5, tags: ['fast'] },
+      driverRating: { stars: 5 },
+      ratingPromptedAt: new Date(Date.now() - 25 * 60 * 60_000).toISOString(),
+      walletPaid: true,
+      thanksVoucherMinor: 0,
+      vipCounted: true,
+      tipMinor: null,
+    },
+    {
+      orderId: '33333333-3333-4171-9171-333333333171',
+      placedAt: new Date(Date.now() - 50 * 60 * 60_000).toISOString(),
+      etaMinutes: 25,
+      deliveryMs: 6 * 60_000,
+      items: [
+        {
+          itemId: 'saigon-pho-quan-bo',
+          restaurantSlug: 'saigon-pho-quan',
+          restaurantName: 'Sài Gòn Phở Quán',
+          name: 'Phở bò',
+          amountMinor: 55000,
+          currency: 'VND',
+          quantity: 1,
+        },
+      ],
+      itemCount: 1,
+      amountMinor: 55000,
+      totalMinor: 70000,
+      currency: 'VND',
+      driver: { id: 'hcmc-driver-11', name: 'Khánh N.', rating: 4.8, ratingCount: 1655 },
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 1,
+      deliveredEventFired: true,
+      rating: { stars: 5, tags: [] },
+      driverRating: { stars: 5 },
+      ratingPromptedAt: new Date(Date.now() - 49 * 60 * 60_000).toISOString(),
+      walletPaid: true,
+      thanksVoucherMinor: 0,
+      vipCounted: true,
+      tipMinor: 20000,
+    },
+  ]),
+);
+
+// Scrolls to the bottom so both Past-orders rows land in the 812px viewport
+// this is photographed at, rather than being cut off below it.
+addEventListener('load', () => setTimeout(() => scrollTo(0, document.body.scrollHeight), 300));
