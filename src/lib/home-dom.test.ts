@@ -275,9 +275,10 @@ describe('home feed contents (AC2)', () => {
     expect(el.querySelector('[data-testid="restaurant-list"]')?.hasAttribute('hidden')).toBe(true);
   });
 
-  it('shows a "Near you" heading above the tile grid, and every restaurant for the city (#104; 14 each since catalogue-more.ts)', () => {
+  it('shows a "Near you" heading above the tile grid, and every restaurant for the city (#104; 14 each since catalogue-more.ts, LA\'s 14 since #233)', () => {
     expect(restaurantsForCity('sf')).toHaveLength(14);
     expect(restaurantsForCity('hcmc')).toHaveLength(14);
+    expect(restaurantsForCity('la')).toHaveLength(14);
 
     window.localStorage.setItem('parody.city', 'sf');
     const el = root();
@@ -285,6 +286,18 @@ describe('home feed contents (AC2)', () => {
 
     expect(el.querySelector('[data-testid="near-you-heading"]')?.textContent).toBe('Near you');
     expect(el.querySelectorAll('[data-testid^="restaurant-card-"]')).toHaveLength(14);
+  });
+
+  it("LA's feed shows LA's own 14 restaurants and none of SF's (#233 AC3)", () => {
+    window.localStorage.setItem('parody.city', 'la');
+    const el = root();
+    initHomePage(el, pillRoot(), window.localStorage);
+
+    const cards = Array.from(el.querySelectorAll('[data-testid^="restaurant-card-"]'));
+    expect(cards.map((card) => card.getAttribute('data-testid'))).toEqual(
+      restaurantsForCity('la').map((restaurant) => `restaurant-card-${restaurant.slug}`),
+    );
+    expect(el.querySelector('[data-testid="restaurant-card-mission-taqueria"]')).toBeNull();
   });
 });
 
@@ -402,6 +415,40 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
           amount.querySelector('.carousel-slide-panel-amount-value')?.classList.contains('carousel-slide-panel-amount-value--compact'),
         ).toBe(true);
       }
+    }
+  });
+
+  it("shows 7 slides for LA, the six restaurant slides exactly docs/design/229-la-catalogue.md's CAROUSEL_RESTAURANT_SLIDES.la table (#233)", () => {
+    window.localStorage.setItem('parody.city', 'la');
+    const el = root();
+    initHomePage(el, pillRoot(), window.localStorage);
+
+    const expected: Array<{ claim: string; sub: string; isAd: boolean; href: string | null }> = [
+      { claim: 'Boyle Heights Taco Window', sub: 'Tacos · ★ 4.7', isAd: true, href: '/restaurants/boyle-heights-taco-window/' },
+      { claim: 'Free Corn cheese with a $25 minimum', sub: 'Koreatown Charcoal House', isAd: false, href: '/restaurants/koreatown-charcoal-house/' },
+      { claim: 'Little Tokyo Hand Roll Bar', sub: 'Hand rolls · ★ 4.8', isAd: true, href: '/restaurants/little-tokyo-hand-roll-bar/' },
+      { claim: 'Your first order', sub: 'Applied automatically at checkout', isAd: false, href: null },
+      {
+        claim: 'Buy 1 get 1 free: Chorizo breakfast burrito',
+        sub: 'Echo Park Breakfast Burritos',
+        isAd: false,
+        href: '/restaurants/echo-park-breakfast-burritos/',
+      },
+      { claim: 'Thai Town Boat Noodle House', sub: 'Thai · ★ 4.6', isAd: true, href: '/restaurants/thai-town-boat-noodle-house/' },
+      { claim: 'Free Pakhlava with a $15 minimum', sub: 'Glendale Lavash Bakery', isAd: false, href: '/restaurants/glendale-lavash-bakery/' },
+    ];
+
+    const dots = el.querySelectorAll('[data-testid="carousel-dots"] .carousel-dot');
+    expect(dots).toHaveLength(7);
+    for (const [index, slide] of expected.entries()) {
+      dots[index].dispatchEvent(new Event('click', { bubbles: true }));
+      const { claim, sub } = currentSlideText(el);
+      expect(claim, `slide ${index}`).toBe(slide.claim);
+      expect(sub, `slide ${index}`).toBe(slide.sub);
+      expect(el.querySelector('[data-testid="carousel-ad-label"]') !== null, `slide ${index} ad label`).toBe(slide.isAd);
+      const link = el.querySelector('[data-testid="carousel-slide-link"]');
+      expect(link?.tagName, `slide ${index} tag`).toBe(slide.href ? 'A' : 'DIV');
+      if (slide.href) expect((link as HTMLAnchorElement).getAttribute('href')).toBe(slide.href);
     }
   });
 

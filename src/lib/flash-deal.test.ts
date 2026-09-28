@@ -18,7 +18,8 @@ import {
   setFlashDrawState,
   type FlashDraw,
 } from './flash-deal';
-import type { City } from './money';
+import { CITIES, type City } from './money';
+import { restaurantsForCity } from './restaurants';
 
 /** Returns 0, then the next value, ... cycling — lets a test predict exactly which array index `pickIndex`/the fee-mode coin flip lands on. */
 function seededRandom(sequence: number[]): () => number {
@@ -226,11 +227,18 @@ describe('drawFlashDeal never draws an already-free restaurant at all (#126 AC4,
   const ZERO_FEE_SLUGS: Record<City, string[]> = {
     hcmc: ['ca-phe-nha-go-18', 'banh-xeo-co-nam-tan-dinh'],
     sf: ['valencia-street-tandoor', 'noe-valley-morning-kitchen'],
-    // docs/design/229-la-catalogue.md; exercised once #233 adds LA's restaurants.
+    // docs/design/229-la-catalogue.md: LA's two `deliveryFeeMinor: 0` restaurants.
     la: ['echo-park-breakfast-burritos', 'los-feliz-plant-kitchen'],
   };
 
-  it.each(['hcmc', 'sf'] as City[])('%s: no zero-delivery-fee restaurant is ever drawn, across many seeded draws', (city) => {
+  it.each(CITIES)('%s: no zero-delivery-fee restaurant is ever drawn, across many seeded draws', (city) => {
+    // The fixture names every zero-fee restaurant the catalogue has, so a new one can't slip past it.
+    expect(
+      restaurantsForCity(city)
+        .filter((restaurant) => restaurant.deliveryFeeMinor === 0)
+        .map((restaurant) => restaurant.slug)
+        .sort(),
+    ).toEqual([...ZERO_FEE_SLUGS[city]].sort());
     for (let seed = 0; seed < 50; seed++) {
       // A long, varied sequence so the amount step, the size pick, every
       // pool-index pick, and every fee-mode coin flip all land somewhere
