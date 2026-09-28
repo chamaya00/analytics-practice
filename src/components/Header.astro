@@ -56,10 +56,12 @@ const TAB_ICON_PATHS: Record<string, string> = {
   </nav>
   {
     isHome && (
-      <p class="home-intro" data-testid="home-intro">
-        <strong>A parody delivery app for practicing product analytics.</strong> Every tap fires a real,
-        anonymous event — nothing's charged, no food arrives. Pick a city and place a fake order.
-      </p>
+      <div class="home-intro-row">
+        <p class="home-intro" data-testid="home-intro">
+          <strong>A parody delivery app for practicing product analytics.</strong> Every tap fires a real,
+          anonymous event — nothing's charged, no food arrives. Pick a city and place a fake order.
+        </p>
+      </div>
     )
   }
 </header>
@@ -169,8 +171,14 @@ const TAB_ICON_PATHS: Record<string, string> = {
 
   /* docs/design/235-first-screen-intro.md: home only, on its own line under
      the wordmark row. The first sentence is full-contrast, the rest muted. */
-  .home-intro {
+  /* The full-width row is its own element: a flex item's max-width caps the
+     hypothetical size line-breaking uses, so `flex: 0 0 100%` plus max-width
+     on the <p> itself let it sit beside the nav on desktop. */
+  .home-intro-row {
     flex: 0 0 100%;
+  }
+
+  .home-intro {
     max-width: 30rem;
     margin: 2px 0 0;
     font-size: var(--font-size-muted);
