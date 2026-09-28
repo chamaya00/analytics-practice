@@ -13,8 +13,9 @@
 // chance to be refused, and one that slips past here still meets the
 // database's own CHECK constraints, RLS policy, and rate limit.
 
+import { applyInternalMarking, readIsInternal, sessionStartedProps, SESSION_STARTED_KEY } from './acquisition';
 import { getSessionId, getVisitorId } from './order-store';
-import { isValidEventProps, setTrack, type EventName, type EventProps, type Track } from './tracking';
+import { isValidEventProps, setTrack, track, type EventName, type EventProps, type Track } from './tracking';
 
 const EVENTS_PATH = '/rest/v1/events';
 
@@ -47,11 +48,12 @@ export interface SupabaseSenderConfig {
  * Builds the row one insert sends — ADR 0005 §1's columns. `id` is the
  * client-generated retry key; `variant` is always null this round
  * (docs/measurement/66-parody-event-contract.md §3 — no experiment ships).
+ * `is_internal` is the owner-traffic flag (#225, ADR 0013): true/false only.
  */
 export function buildEventRow(
   eventName: EventName,
   props: EventProps,
-  ids: { visitorId: string; sessionId: string },
+  ids: { visitorId: string; sessionId: string; isInternal: boolean },
 ): Record<string, unknown> {
   return {
     id: crypto.randomUUID(),
@@ -60,6 +62,7 @@ export function buildEventRow(
     visitor_id: ids.visitorId,
     session_id: ids.sessionId,
     variant: null,
+    is_internal: ids.isInternal,
     props,
   };
 }
@@ -85,6 +88,7 @@ export function createSupabaseSender(config: SupabaseSenderConfig): Track {
     const row = buildEventRow(eventName, props, {
       visitorId: getVisitorId(localStorage),
       sessionId: getSessionId(sessionStorage),
+      isInternal: readIsInternal(localStorage),
     });
 
     fetchImpl(`${config.url}${EVENTS_PATH}`, {
@@ -101,15 +105,81 @@ export function createSupabaseSender(config: SupabaseSenderConfig): Track {
   };
 }
 
+/** What the site-wide initialiser reads from the page it runs on. */
+export interface PageContext {
+  search: string;
+  referrer: string;
+  origin: string;
+  localStorage: Storage | undefined;
+  sessionStorage: Storage | undefined;
+}
+
+/**
+ * Fires `session_started` once per session (#225, contract §6): only on
+ * the page load that first sees a `session_id` it hasn't started yet. The
+ * key is set as the event is handed to `send`. If sessionStorage is
+ * unavailable nothing is sent, because the sender couldn't build a
+ * `session_id` for it either.
+ */
+export function startSessionOnce(page: PageContext, send: Track): void {
+  const storage = page.sessionStorage;
+  if (!storage) return;
+  try {
+    const sessionId = getSessionId(storage);
+    if (storage.getItem(SESSION_STARTED_KEY) === sessionId) return;
+    storage.setItem(SESSION_STARTED_KEY, sessionId);
+  } catch {
+    return;
+  }
+  send('session_started', sessionStartedProps(page.search, page.referrer, page.origin));
+}
+
+/**
+ * The site-wide initialiser's body, with the page passed in. In order: the
+ * `?internal=` marking (always, before anything is sent), then — only when
+ * the store is configured — the real sender, then `session_started`, so it
+ * is the first event this page load sends.
+ */
+export function startTracking(
+  config: Pick<SupabaseSenderConfig, 'url' | 'publishableKey' | 'fetchImpl'> | null,
+  page: PageContext,
+): void {
+  applyInternalMarking(page.search, page.localStorage);
+  if (!config) return;
+  setTrack(
+    createSupabaseSender({ ...config, localStorage: page.localStorage, sessionStorage: page.sessionStorage }),
+  );
+  startSessionOnce(page, track);
+}
+
+function storageOrUndefined(read: () => Storage): Storage | undefined {
+  try {
+    return read();
+  } catch {
+    return undefined;
+  }
+}
+
+function currentPage(): PageContext {
+  return {
+    search: window.location.search,
+    referrer: document.referrer,
+    origin: window.location.origin,
+    localStorage: storageOrUndefined(() => window.localStorage),
+    sessionStorage: storageOrUndefined(() => window.sessionStorage),
+  };
+}
+
 /**
  * Reads the store's URL and publishable key from the environment and, if
  * both are present, swaps `track` to send there. Absent either — CI, local
  * dev, an unconfigured preview deploy — `track` stays the no-op default:
  * "When the key or URL is absent, the sender does nothing" (ADR 0005).
+ * `BaseLayout.astro` runs this on every page; see `startTracking` for the
+ * `?internal=` marking and `session_started` it also does (#225).
  */
 export function initTracking(): void {
   const url = import.meta.env.PUBLIC_SUPABASE_URL;
   const publishableKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !publishableKey) return;
-  setTrack(createSupabaseSender({ url, publishableKey }));
+  startTracking(url && publishableKey ? { url, publishableKey } : null, currentPage());
 }

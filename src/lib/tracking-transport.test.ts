@@ -101,7 +101,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
 
 describe('buildEventRow', () => {
   it('always sets variant to null (docs/measurement/81-two-city-event-contract.md §5: no experiment ships)', () => {
-    const row = buildEventRow('home_viewed', { city: 'sf' }, { visitorId: 'v', sessionId: 's' });
+    const row = buildEventRow('home_viewed', { city: 'sf' }, { visitorId: 'v', sessionId: 's', isInternal: false });
     expect(row.variant).toBeNull();
   });
 });
@@ -174,8 +174,10 @@ describe('initTracking (AC2: env var absent leaves track at its no-op default)',
     initTracking();
     track('home_viewed', { city: 'sf' });
 
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl.mock.calls[0][0]).toBe('https://abcdefgh.supabase.co/rest/v1/events');
+    // #225: the initialiser itself sends the session's session_started first.
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[1][0]).toBe('https://abcdefgh.supabase.co/rest/v1/events');
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body).event_name).toBe('home_viewed');
   });
 });
 

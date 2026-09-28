@@ -17,6 +17,7 @@
 // below, so a call using it falls to the `default: false` branch and is
 // simply dropped by `isValidEventProps` rather than reaching the sender.
 
+import { isValidReferrerHost, isValidUtmValue } from './acquisition';
 import { CITIES } from './money';
 import { VOUCHER_IDS as CATALOGUE_VOUCHER_IDS } from './vouchers';
 
@@ -31,7 +32,8 @@ export type EventName =
   | 'order_placed'
   | 'tracker_viewed'
   | 'order_delivered'
-  | 'rating_submitted';
+  | 'rating_submitted'
+  | 'session_started';
 
 export type EventProps = Record<string, string | number | boolean | string[]>;
 
@@ -216,6 +218,15 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
         isUuid(props.order_id) &&
         isIntInRange(props.stars, 1, 5) &&
         isValidRatingTags(props.tags)
+      );
+    case 'session_started':
+      // #225, contract §6: acquisition and nothing else.
+      return (
+        hasOnly(['referrer_host', 'utm_source', 'utm_medium', 'utm_campaign']) &&
+        isValidReferrerHost(props.referrer_host) &&
+        isValidUtmValue(props.utm_source) &&
+        isValidUtmValue(props.utm_medium) &&
+        isValidUtmValue(props.utm_campaign)
       );
     default:
       return false;
