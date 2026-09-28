@@ -54,6 +54,21 @@ that thing.
 local build command and Vercel's are the same program. No divergence to
 document.
 
+## Event tracking
+
+**Event tracking comes last, as its own objective.** The owner's rule, set on
+#79. An objective that builds or changes screens ships the product only: no
+event-contract revision, no analyst child, no store migration and no new
+`track()` wiring inside it. What those screens should log gets its own
+follow-up objective, an analytics-readiness pass that runs after the product
+objective is merged. Wiring events into screens that are still being designed
+made #79's split longer, its children larger, and every design change a change
+to the contract as well. Until the readiness objective lands, the product
+objective has to leave existing tracking harmless rather than wrong, because
+the store rejects shapes it doesn't know without reporting it (ADR 0005). Say
+which events will stop or go quiet in the product objective's own
+"For the orchestrator" section.
+
 <!-- agent-factory:begin -->
 <!-- Everything from here to the agent-factory:end marker describes the shared
      process rather than this project, and /update-agents replaces the whole
@@ -85,19 +100,6 @@ each role file says what that role does, and a summary of it in this file could
 only drift. A run started too early refuses, correctly, and still spends one of
 that issue's three attempts. That check is now the orchestrator's to make before
 it queues anything.
-
-**Event tracking comes last, as its own objective.** The owner's rule, set on
-#79. An objective that builds or changes screens ships the product only: no
-event-contract revision, no analyst child, no store migration and no new
-`track()` wiring inside it. What those screens should log gets its own
-follow-up objective, an analytics-readiness pass that runs after the product
-objective is merged. Wiring events into screens that are still being designed
-made #79's split longer, its children larger, and every design change a change
-to the contract as well. Until the readiness objective lands, the product
-objective has to leave existing tracking harmless rather than wrong, because
-the store rejects shapes it doesn't know without reporting it (ADR 0005). Say
-which events will stop or go quiet in the product objective's own
-"For the orchestrator" section.
 
 The human still decides what merges. The orchestrator queues work and reports on
 it; it does not merge a pull request, and it cannot break a child down further -
@@ -158,6 +160,12 @@ session, a scheduled wake, or a subscribed pull request's activity firing one,
 it runs the same catch-up: what is waiting on the person first, then the state
 of every child, then the two reading passes over each waiting diff, merging
 under the policy where it applies.
+
+**Long autonomous runs are `/self-driving`.** When the person wants one or more
+objectives taken to done without them in the loop - overnight, or a day spent
+elsewhere - that command starts the stretch: one round of questions first, a
+decision log for every call made on their behalf, wakes on a clock as well as on
+events, and a close-out when it ends. It never begins on its own.
 
 **Read `.claude/skills/driving-an-objective/` whenever an objective is in play**
 - what to do with its merge policy, how to report, how to put a blocker so it
