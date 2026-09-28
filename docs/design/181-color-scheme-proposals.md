@@ -234,19 +234,33 @@ pairs the real palette is held to, not a subset invented for this issue.
 | `--color-text` on `--color-surface` | 15.56 | 15.23 | 16.33 | 14.02 | 15.10 | 14.91 |
 | `--color-text-muted` on `--color-bg` | 5.45 | 7.45 | 8.68 | 5.64 | 5.43 | 8.97 |
 | `--color-text-muted` on `--color-surface` | 5.07 | 6.90 | 8.16 | 5.21 | 5.05 | 8.20 |
-| `--color-bg` on `--color-accent-a` (issue AC2 / `.place-order`) | 6.87 | 9.25 | 8.47 | 5.14 | 5.97 | 7.57 |
+| `--color-bg` on `--color-accent-a` (issue AC2 / `.place-order`) | 6.87 | 9.25 | 7.76 | 5.22 | 5.97 | 7.57 |
 | `--color-badge-ink` on `--color-accent-b` (issue AC2) | 8.14 | 11.62 | 11.23 | 4.96 | 7.74 | 10.59 |
 | `--color-bg` on `--color-danger` (cart "Remove" fill) | 4.06 → fixed to **5.03** | 8.35 | 6.96 | 5.52 | 5.44 | 8.23 |
 | `--color-text` on `--color-tab-active-bg` (tab-bar pill) | 13.29 | 13.60 | 13.53 | 13.16 | 13.84 | 12.42 |
 | `#ffffff` on `--color-flash-tile-bg` (fixed tile — one value per option, reused in both themes) | 17.55 | 17.55 | 15.93 | 15.93 | 17.31 | 17.31 |
 | `--color-vip-gold-ink` on `--color-vip-gold` | 11.96 | 10.06 | 10.35 | 10.86 | 11.80 | 9.89 |
-| `--color-vip-platinum-ink` on `--color-vip-platinum` | 12.36 | 11.41 | 11.73 | 12.20 | 12.20 | 11.21 |
+| `--color-vip-platinum-ink` on `--color-vip-platinum` | 12.36 | 11.41 | 11.73 | 11.23 | 12.20 | 11.21 |
 
 Every pair clears 4.5:1. The one shown with an arrow is the one candidate
 that didn't on the first try: the red-light danger fill started at
 `#D9491F` (4.06, a fail) and was darkened to `#C23D18` (5.03) before
 anything else in this document was written — kept in the table rather than
 quietly replaced so the check is shown doing its job, not just its answer.
+
+**Correction (revision round, driver review on PR #183):** three cells in
+the green columns were wrong on the first pass — a hand-transcription error
+copying the script's output into the table, not a re-run with different
+inputs. All three are corrected above: green-dark `bg`-on-`accent-a` was
+8.47, is **7.76**; green-light the same pair was 5.14, is **5.22** (both
+caught by the driver's own recompute); green-light `vip-platinum-ink`-on-
+`vip-platinum` was 12.20, is **11.23** (found re-running every cell in this
+pass, not flagged by the review — the review's recompute didn't happen to
+touch this one). Every corrected value still clears 4.5:1, so no palette
+value changed, only what the table says about it. Every cell in this table
+was re-run against `./scripts/contrast` for this revision, not just the
+three the review named, since a table caught wrong once isn't evidence the
+rest is right.
 
 ## Rendered mocks and screenshots
 
