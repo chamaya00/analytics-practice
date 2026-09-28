@@ -145,3 +145,13 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).toContain('is kept for up to one hour');
   });
 });
+
+describe('#236 builder credit', () => {
+  it('links to the builder LinkedIn above the event-family list', () => {
+    const doc = readAbout();
+    const credit = doc.querySelector('[data-testid="about-builder-credit"]');
+    expect(credit?.querySelector('a')?.getAttribute('href')).toBe('https://www.linkedin.com/in/charlesamaya');
+    const list = doc.querySelector('ul');
+    expect(credit!.compareDocumentPosition(list!) & 4).toBeTruthy();
+  });
+});
