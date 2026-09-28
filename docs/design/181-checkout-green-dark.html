@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+  Palette-comparison mock for issue #181 — checkout, San Francisco.
+  Self-contained, no build step, nothing imports it. TEMPLATE: every
+  {{TOKEN}} placeholder is substituted with one proposed option's hex
+  value to produce the committed mocks (181-checkout-<option>-<light|
+  dark>.html). Only the :root block's values change between them.
+
+  Covers the token roles 181-home-feed-template.html doesn't reach:
+  --color-danger (the cart line's swipe-revealed "Remove", filled per
+  contrast.test.ts's "danger fill carries --color-bg text" pairing) and
+  --color-vip-gold(-ink)/--color-vip-platinum(-ink) (docs/design/162-*'s
+  VIP pills — both shown side by side in one labelled reference row,
+  same "more than one state in one static frame" convention 137's
+  slide-ref-row uses, since a single order can only be one tier at once).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#181 palette option: Black-and-green (dark, primary) — checkout</title>
+<style>
+  :root {
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+
+    --color-bg: #0b0f0c;
+    --color-surface: #121712;
+    --color-text: #edf5ee;
+    --color-text-muted: #9fb3a2;
+    --color-border: #243328;
+    --color-accent-a: #14b8a6;
+    --color-tab-active-bg: #1b2a1e;
+    --color-danger: #ff6b6b;
+    --color-vip-gold: #e0b95a;
+    --color-vip-gold-ink: #0b0f0c;
+    --color-vip-platinum: #c9c9d1;
+    --color-vip-platinum-ink: #0b0f0c;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
+  body { margin: 0; font-family: var(--font-family-base); font-size: 0.9375rem; line-height: 1.4; color: var(--color-text); background: var(--color-bg); }
+  button { font: inherit; color: inherit; }
+
+  .site-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1.25rem; min-height: 2.5rem; border-bottom: 1px solid var(--color-border); }
+  .wordmark { margin: 0; font-size: 0.9375rem; font-weight: 500; }
+  .wordmark b { font-weight: 800; }
+  .site-nav { display: none; gap: 0.875rem; }
+  .site-nav a { color: var(--color-text); text-decoration: none; }
+  .site-nav a.current { text-decoration: underline; }
+
+  main { max-width: 26rem; margin: 0 auto; padding: 0.75rem 1.25rem calc(56px + 1.25rem); }
+  h1 { font-size: 1rem; font-weight: 800; margin: 0 0 0.75rem; }
+  .section-label { margin: 1.25rem 0 0.5rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+
+  /* ---- cart line, with the swipe-revealed Remove now shown open (105-cart-*.html's pattern) ---- */
+  .cart-line { display: flex; align-items: center; gap: 0.625rem; background: var(--color-surface); border-radius: 12px; padding: 0.625rem 0.75rem; margin-bottom: 0.5rem; }
+  .cart-line .thumb { flex: none; width: 40px; height: 40px; border-radius: 8px; background: var(--color-border); }
+  .cart-line .mid { flex: 1; min-width: 0; }
+  .cart-line .name { font-weight: 700; }
+  .cart-line .qty { font-size: 0.75rem; color: var(--color-text-muted); }
+  .remove-btn { flex: none; min-height: 36px; padding: 0 0.75rem; border: none; border-radius: 10px; background: var(--color-danger); color: var(--color-bg); font-weight: 800; font-size: 0.8125rem; }
+
+  /* ---- VIP applied banner + reference pill row ---- */
+  .vip-applied { display: flex; align-items: center; gap: 0.5rem; background: var(--color-surface); border-radius: 12px; padding: 0.5rem 0.75rem; margin: 0.75rem 0; font-size: 0.8125rem; }
+  .pill { display: inline-flex; align-items: center; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 999px; padding: 0.125rem 0.5rem; }
+  .pill.gold { background: var(--color-vip-gold); color: var(--color-vip-gold-ink); }
+  .pill.plat { background: var(--color-vip-platinum); color: var(--color-vip-platinum-ink); }
+  .vip-ref-row { display: flex; gap: 0.5rem; align-items: center; margin: 0.375rem 0 0.875rem; }
+
+  /* ---- price breakdown ---- */
+  .breakdown { background: var(--color-surface); border-radius: 16px; padding: 0.625rem 0.875rem; }
+  .brow { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; padding: 0.3rem 0; font-variant-numeric: tabular-nums; }
+  .brow .lab { display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap; }
+  .brow s { color: var(--color-text-muted); margin-right: 0.25rem; }
+  .brow.minus .val { font-weight: 700; color: var(--color-accent-a); }
+  .brow.minus .val svg { width: 12px; height: 12px; vertical-align: -1px; margin-right: 2px; }
+  .brow.total { border-top: 1px solid var(--color-border); margin-top: 0.25rem; padding-top: 0.5rem; font-weight: 800; font-size: 1.125rem; }
+  .saved { font-size: 0.8125rem; font-weight: 700; color: var(--color-accent-a); text-align: right; padding: 0.125rem 0 0.25rem; }
+
+  .place { width: 100%; min-height: 52px; margin-top: 0.75rem; border: none; border-radius: 12px; background: var(--color-accent-a); color: var(--color-bg); font-weight: 800; font-size: 1rem; }
+
+  .tab-bar { display: none; }
+
+  @media (max-width: 480px) {
+    .tab-bar {
+      display: flex;
+      position: fixed; left: 0; right: 0; bottom: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+    }
+    .tab-bar a { flex: 1; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.75rem; color: var(--color-text-muted); text-decoration: none; }
+    .tab-bar svg { width: 20px; height: 20px; }
+    .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+    .tab-bar a.current .tab-label { background: var(--color-tab-active-bg); padding: 1px 0.875rem; border-radius: 999px; }
+  }
+
+  @media (min-width: 481px) {
+    .tab-bar { display: none !important; }
+    .site-header { padding: 0.75rem 2rem; }
+    .site-nav { display: flex; }
+    main { padding: 1.75rem 2rem 2.5rem; }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <p class="wordmark"><b>dont</b>dropthatpromo</p>
+  <nav class="site-nav" aria-label="Primary"><a href="#">Home</a><a href="#" class="current" aria-current="page">Cart</a><a href="#">Tracker</a></nav>
+</header>
+<main>
+  <h1>Checkout · Mission Taqueria</h1>
+
+  <p class="section-label">Your order</p>
+  <div class="cart-line">
+    <span class="thumb"></span>
+    <span class="mid">
+      <span class="name">Al pastor tacos (3)</span>
+      <span class="qty">$14.25</span>
+    </span>
+    <button type="button" class="remove-btn">Remove</button>
+  </div>
+
+  <div class="vip-applied">
+    <span class="pill plat">Platinum</span>
+    <span>Free delivery and 10% off are on this order.</span>
+  </div>
+  <p class="section-label" style="margin-top:0">VIP tiers (reference — not both applied at once)</p>
+  <div class="vip-ref-row">
+    <span class="pill gold">Gold</span>
+    <span class="pill plat">Platinum</span>
+  </div>
+
+  <div class="breakdown" aria-label="Price breakdown">
+    <div class="brow"><span>Subtotal</span><span class="val">$23.75</span></div>
+    <div class="brow"><span class="lab">Delivery fee <span class="pill plat">Platinum</span></span><span class="val"><s>$1.99</s>Free</span></div>
+    <div class="brow"><span>Service fee</span><span class="val">$1.50</span></div>
+    <div class="brow minus"><span class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12 12 4H5v7l8 8z"/><circle cx="8.5" cy="8.5" r="1"/></svg>Platinum 10% off</span><span class="val">−$2.37</span></div>
+    <div class="saved">You saved $6.36</div>
+    <div class="brow total"><span>Total</span><span>$21.38</span></div>
+  </div>
+  <button type="button" class="place">Place order</button>
+</main>
+<nav class="tab-bar" aria-label="Primary">
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">Home</span></a>
+  <a href="#" class="current" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><span class="tab-label">Cart</span></a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg><span class="tab-label">Tracker</span></a>
+</nav>
+</body>
+</html>
