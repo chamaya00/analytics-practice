@@ -25,6 +25,7 @@ import {
 } from './auth-client';
 import { getWallet, claimDrip, type WalletBalances } from './wallet-client';
 import { CITY_CHANGED_EVENT } from './city-events';
+import { WALLET_BALANCE_CHANGED_EVENT, type WalletBalanceChangedDetail } from './wallet-events';
 
 const DRIP_WINDOW_TIMES = '7:00 AM, 3:00 PM and 11:00 PM';
 
@@ -461,6 +462,20 @@ export async function initWallet(
   // render, including a city switch through the location picker.
   document.addEventListener(CITY_CHANGED_EVENT, () => {
     if (!liveSession || sheetHandle) return;
+    renderChip(chipRoot, getCity(), liveBalances, openSheet);
+  });
+
+  // #171: the tracker's tip control fires this after `wallet_tip` succeeds,
+  // so this page's own header chip — resolved independently, from its own
+  // session lookup above, never shared state with the tracker — reflects the
+  // new balance without a second `wallet_get` (docs/design/162-*, "Send":
+  // "update the header balance"). Same guard as the city-change listener:
+  // nothing to update while signed out, and the open sheet re-reads balances
+  // through its own `onBalancesChanged` path instead.
+  document.addEventListener(WALLET_BALANCE_CHANGED_EVENT, (event) => {
+    if (!liveSession || sheetHandle) return;
+    const detail = (event as CustomEvent<WalletBalanceChangedDetail>).detail;
+    liveBalances = { ...liveBalances, usdMinor: detail.usdMinor, vndMinor: detail.vndMinor };
     renderChip(chipRoot, getCity(), liveBalances, openSheet);
   });
 }
