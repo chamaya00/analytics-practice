@@ -182,6 +182,12 @@ So tips get their own idempotency key and their own table, `private.wallet_tips`
 
 **Owner step, once #164 merges:** apply `20260928000000_wallet_tip.sql` the same way as step 12 below — Supabase → SQL Editor → New query → paste the whole file → Run. It is additive; the three earlier migration files are not re-run.
 
+### Amendment (#188): closing the anon-execute hole `revoke ... from public` left open
+
+Supabase grants `execute` on every new `public` function directly to `anon` and `authenticated` at creation time, not only through the `PUBLIC` pseudo-role. `20260927000000_wallet.sql` and `20260928000000_wallet_tip.sql` only ever ran `revoke all/execute ... from public` before granting execute back to `authenticated` alone, which revokes `PUBLIC`'s own grant but never touches a grant already made directly to a named role — so on the live database `anon` still held execute on `wallet_get`, `wallet_claim_drip`, `wallet_debit` and `wallet_tip`, contrary to line 123's "`revoke execute ... from public, anon`" and line 273's "`anon` gains exactly one executable function, `wallet_ready()`". `20260929000000_wallet_revoke_anon_execute.sql` revokes execute from `anon` directly on those four functions. `wallet_ready()` is untouched, and stays reachable by `anon` (D1's fallback, #140).
+
+**Owner step, once #188 merges:** apply `20260929000000_wallet_revoke_anon_execute.sql` the same way as step 12 below — Supabase → SQL Editor → New query → paste the whole file → Run. It is additive; the four earlier migration files are not re-run. Afterwards, verify with `select has_function_privilege('anon', 'public.wallet_get()', 'execute');` — it should return `false`.
+
 ### Drip windows
 
 - The windows are local `America/Los_Angeles` time: **[07:00, 15:00), [15:00, 23:00) and [23:00, 07:00)**, each half-open.
