@@ -2,7 +2,7 @@
 // floor — so /tracker/'s VIP card renders state 5, "Platinum" — docs/design/
 // 162-*, "The VIP card": the platinum stamp, "Platinum", and no spend bar.
 
-/* global window -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
+/* global window, document -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
 window.localStorage.setItem('parody.city', 'sf');
 window.localStorage.setItem(
   'parody.orders',

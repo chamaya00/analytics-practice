@@ -3,7 +3,7 @@
 // docs/design/162-*, "The VIP card". Run with the dark flag alongside this
 // seed.
 
-/* global window -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
+/* global window, document -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
 window.localStorage.setItem('parody.city', 'hcmc');
 window.localStorage.setItem(
   'parody.orders',
