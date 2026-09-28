@@ -1,0 +1,31 @@
+-- #222: additive migration fixing the rate-limit trigger's search_path for
+-- Supabase's real schema layout — ADR 0005
+-- (docs/decisions/0005-hosted-event-store.md). Strictly additive per house
+-- rules: 20260925000000_events.sql (and every other file in this directory)
+-- is untouched; this file only ALTERs the function it created.
+--
+-- On Supabase, pgcrypto is installed into an `extensions` schema, not
+-- `public` — the platform's own default, not a project setting — and the
+-- platform's own default `search_path` (`"$user", public, extensions`) is
+-- what makes `digest()`/`gen_random_bytes()` resolve ambiently everywhere.
+-- `public.enforce_write_rate_limit()` is `security definer set search_path =
+-- public, private, pg_temp`, deliberately pinned (that migration's own
+-- comment) so a same-named object earlier on some other role's path can't
+-- hijack it — but a pinned search_path ignores the session/platform default
+-- entirely, and this pin never listed `extensions`. Every insert as `anon`
+-- fires this trigger, which calls `digest()` to hash the rate-limit key, and
+-- on Supabase's real layout that call fails with "function digest(bytea,
+-- unknown) does not exist" — silently, since the browser swallows the error
+-- (ADR 0005), so the store looks fine and records nothing. Reproduced in
+-- rate-limit-search-path.migration.test.ts (AC1), watched failing before
+-- this file existed — see that test and the pull request for the exact
+-- failure — and passing once this file is applied (AC2).
+--
+-- Adding `extensions` to the pinned list keeps the same protection this
+-- search_path was written for (no unpinned schema, no `$user`) while
+-- resolving `digest()` on both layouts: the top-level PGlite layout every
+-- other test in this directory uses (pgcrypto in `public`) still finds it
+-- through `public`, unaffected by `extensions` also being on the path
+-- (rate-limit-search-path.migration.test.ts, AC3).
+alter function public.enforce_write_rate_limit()
+  set search_path = public, private, extensions, pg_temp;
