@@ -46,6 +46,7 @@ beforeEach(() => {
 afterEach(() => {
   resetTrack();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   document.body.innerHTML = '';
 });
 
@@ -141,6 +142,10 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
   });
 
   it('does not reopen once both steps are submitted and the page is reloaded', () => {
+    // Reduced motion: this test reaches the win screen via the tracker's own
+    // wiring (no loadConfetti override available there), and happy-dom's
+    // canvas has no real 2D context for the real library to draw into.
+    mockMatchMedia(true);
     const order = placeOrderFor(LINE);
     vi.setSystemTime(Date.now() + order.deliveryMs);
 
@@ -150,7 +155,9 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
-    expect(document.querySelector('[data-testid="rating-sheet-win"]')).not.toBeNull();
+    // The still variant under the reduced motion stubbed above — this test
+    // is about the reopen guard, not which win variant renders.
+    expect(document.querySelector('[data-testid="rating-sheet-win-still"]')).not.toBeNull();
     document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-done"]')?.click();
 
     initTrackerPage(root(), window.localStorage);
@@ -255,6 +262,11 @@ describe('initTrackerPage — the rating sheet auto-opens once (AC1, docs/design
 });
 
 describe('initTrackerPage — Rate from a history row (#165 AC2)', () => {
+  // Reduced motion: these tests reach the win via the tracker's own wiring,
+  // which has no loadConfetti override — see the note in the auto-open
+  // describe above.
+  beforeEach(() => mockMatchMedia(true));
+
   it('opens the sheet at the first unrated step for that order, and never marks it prompted — unlike the auto-open rule', () => {
     const orderA = placeOrderFor(LINE);
     // Outside the 24h auto-open window (qualifiesForRatingPrompt), so this
@@ -321,6 +333,9 @@ describe('initTrackerPage — Rate from a history row (#165 AC2)', () => {
   });
 
   it('the auto-opened sheet and a later history Rate together fire rating_submitted at most once per order_id', () => {
+    // Reduced motion: reaches the win via the tracker's own wiring, which has
+    // no loadConfetti override — see the note on the test above.
+    mockMatchMedia(true);
     const orderA = placeOrderFor(LINE);
     vi.setSystemTime(Date.now() + orderA.deliveryMs);
     placeOrderFor(LINE_B);
@@ -440,6 +455,9 @@ describe('the rating sheet — driver then restaurant (AC2, docs/design/162-*, "
   });
 
   it('a second restaurant submit for the same order, via the tracker-wired path, fires nothing (submitRating\'s own guard)', () => {
+    // Reduced motion: reaches the win via the tracker's own wiring — see the
+    // note in the auto-open describe above.
+    mockMatchMedia(true);
     const order = seedOrder();
     const track = vi.fn();
     setTrack(track);
@@ -634,7 +652,76 @@ describe('the rating sheet — the reward slot renders the thanks voucher unlock
   });
 });
 
+describe('the rating sheet — the win\'s VIP nudge reads a read-only ledger snapshot (#169, docs/design/162-*, "The win\'s VIP nudge")', () => {
+  function seedOrder(): PlacedOrder {
+    const placed = placeOrderFor(LINE);
+    return findOrder(window.localStorage, placed.orderId) as PlacedOrder;
+  }
+
+  function submitBothSteps(): void {
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+  }
+
+  it('shows the Gold meter below Gold, the remaining spend to Platinum at Gold, and nothing at Platinum', () => {
+    mockMatchMedia(true); // the still frame is enough; this is about the nudge, not the burst
+
+    openRatingSheet({
+      order: seedOrder(),
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getVipLedger: () => ({ v: 1, deliveredCount: 2, spendMinor: { USD: 0, VND: 0 }, level: 'none' }),
+    });
+    submitBothSteps();
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-slot"]')?.hasAttribute('aria-hidden')).toBe(
+      false,
+    );
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-meter"]')?.getAttribute('aria-label')).toBe(
+      '2 of 3 delivered orders',
+    );
+    expect(document.querySelector('.rating-sheet-vip-nudge-text')?.textContent).toBe('1 more delivered order to Gold');
+
+    openRatingSheet({
+      order: seedOrder(),
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getVipLedger: () => ({ v: 1, deliveredCount: 3, spendMinor: { USD: 5230, VND: 0 }, level: 'gold' }),
+    });
+    submitBothSteps();
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-meter"]')).toBeNull();
+    expect(document.querySelector('.rating-sheet-vip-nudge-text')?.textContent).toBe('$7.70 to Platinum');
+
+    openRatingSheet({
+      order: seedOrder(),
+      onSubmitDriverRating: () => {},
+      onSubmitRestaurant: () => {},
+      getVipLedger: () => ({ v: 1, deliveredCount: 5, spendMinor: { USD: 6000, VND: 0 }, level: 'platinum' }),
+    });
+    submitBothSteps();
+    expect(document.querySelector('[data-testid="rating-sheet-vip-nudge-slot"]')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+  });
+
+  it('with no getVipLedger option at all, the slot stays empty and aria-hidden', () => {
+    mockMatchMedia(true);
+
+    openRatingSheet({ order: seedOrder(), onSubmitDriverRating: () => {}, onSubmitRestaurant: () => {} });
+    submitBothSteps();
+
+    const nudgeSlot = document.querySelector('[data-testid="rating-sheet-vip-nudge-slot"]');
+    expect(nudgeSlot?.getAttribute('aria-hidden')).toBe('true');
+    expect(nudgeSlot?.textContent).toBe('');
+  });
+});
+
 describe('initTrackerPage — the first rating step submitted unlocks the thanks voucher (#166)', () => {
+  // Reduced motion: every test here reaches the win via the tracker's own
+  // wiring, which has no loadConfetti override — see the note in the
+  // auto-open describe above.
+  beforeEach(() => mockMatchMedia(true));
+
   it('driver Next, as the first step, unlocks a voucher in this order\'s city, shown in the win', () => {
     const order = placeOrderFor(LINE);
     vi.setSystemTime(Date.now() + order.deliveryMs);

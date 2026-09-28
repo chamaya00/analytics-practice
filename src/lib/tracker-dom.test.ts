@@ -177,28 +177,31 @@ describe('initTrackerPage — active order (AC1, AC2, AC4)', () => {
 });
 
 describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
-  it('ends at Delivered with the demo disclosure and an interactive rating prompt, no countdown shown', () => {
+  it('ends at the celebratory Delivered hero and done rail, with the demo disclosure and a Rate entry point, no countdown or full stepper shown', () => {
     const order = placeAnOrder();
     vi.setSystemTime(Date.now() + order.deliveryMs);
     const el = root();
 
     initTrackerPage(el, window.localStorage);
 
-    expect(el.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
-      'Delivered',
-    );
     expect(el.querySelector('[data-testid="tracker-countdown"]')).toBeNull();
+    expect(el.querySelector('[data-testid="tracker-stepper"]')).toBeNull();
+    expect(el.querySelector('[data-testid="tracker-delivered-hero"]')?.textContent).toContain('Delivered');
+    expect(el.querySelector('[data-testid="tracker-done-rail"]')?.getAttribute('aria-label')).toBe(
+      'All five steps done',
+    );
     const disclosure = el.querySelector('[data-testid="demo-disclosure"]');
-    const ratingPrompt = el.querySelector('[data-testid="rating-prompt"]');
+    const actions = el.querySelector('[data-testid="tracker-delivered-actions"]');
+    const rate = el.querySelector('[data-testid="tracker-delivered-rate"]');
     expect(disclosure).not.toBeNull();
-    expect(ratingPrompt).not.toBeNull();
+    expect(rate?.textContent).toBe('Rate this order');
     expect(disclosure?.textContent).toContain('This is a demo. No payment is taken and no food is sent.');
     expect(disclosure?.querySelector('a')?.getAttribute('href')).toBe('/about/');
-    // The disclosure sits directly above the rating prompt (AC4), both inside
-    // the open order card.
+    // The actions (Rate/Order again) sit directly above the disclosure
+    // (docs/design/162-*, "Delivered"), both inside the open order card.
     const card = el.querySelector('[data-testid="tracker-open-card"]');
     const children = Array.from(card?.children ?? []);
-    expect(children.indexOf(disclosure as Element) + 1).toBe(children.indexOf(ratingPrompt as Element));
+    expect(children.indexOf(actions as Element) + 1).toBe(children.indexOf(disclosure as Element));
   });
 
   it('fires exactly one order_delivered, even across repeated renders/refreshes for the same order, with minutes_since_order reflecting the early-delivery distribution (AC5)', () => {
@@ -227,9 +230,8 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
     const el = root();
     initTrackerPage(el, window.localStorage);
 
-    expect(el.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
-      'Delivered',
-    );
+    expect(el.querySelector('[data-testid="tracker-delivered-hero"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="tracker-done-rail"]')).not.toBeNull();
     expect(stub.mock.calls.filter(([name]) => name === 'order_delivered')).toHaveLength(1);
   });
 
@@ -244,7 +246,7 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
     expect(stub.mock.calls.some(([name]) => name === 'order_abandoned')).toBe(false);
   });
 
-  it('Submit is disabled until a star is picked, then fires rating_submitted with the chosen stars and tags', () => {
+  it('Rate this order opens the rating sheet; Submit is disabled until a star is picked, then fires rating_submitted with the chosen stars and tags', () => {
     const order = placeAnOrder();
     vi.setSystemTime(Date.now() + order.deliveryMs);
     const stub = vi.fn();
@@ -252,29 +254,37 @@ describe('initTrackerPage — Delivered, unrated (AC1, AC2, AC4, AC5)', () => {
     const el = root();
 
     initTrackerPage(el, window.localStorage);
+    el.querySelector<HTMLButtonElement>('[data-testid="tracker-delivered-rate"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
 
-    const submit = el.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]');
-    expect(submit?.disabled).toBe(true);
+    expect(document.querySelector('[data-testid="rating-sheet-restaurant-submit"]')?.getAttribute('aria-disabled')).toBe(
+      'true',
+    );
 
-    el.querySelector<HTMLButtonElement>('[data-testid="star-4"]')?.click();
-    el.querySelector<HTMLButtonElement>('[data-testid="rating-tag-fast"]')?.click();
-    expect(submit?.disabled).toBe(false);
-    submit?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-tag-fast"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
 
     expect(stub).toHaveBeenCalledWith('rating_submitted', { order_id: order.orderId, stars: 4, tags: ['fast'] });
   });
 
-  it('after submitting, re-renders as already-rated with no interactive controls', () => {
+  it('after fully rating both steps, the Delivered card shows the rated summary with no Rate button (AC2)', () => {
     const order = placeAnOrder();
     vi.setSystemTime(Date.now() + order.deliveryMs);
     const el = root();
 
     initTrackerPage(el, window.localStorage);
-    el.querySelector<HTMLButtonElement>('[data-testid="star-5"]')?.click();
-    el.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]')?.click();
+    el.querySelector<HTMLButtonElement>('[data-testid="tracker-delivered-rate"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-done"]')?.click();
 
-    expect(el.querySelector('[data-testid="rating-submit"]')).toBeNull();
-    expect(el.textContent).toContain('Thanks for rating this order');
+    expect(el.querySelector('[data-testid="tracker-delivered-rate"]')).toBeNull();
+    expect(el.querySelector('[data-testid="tracker-history-rated-summary"]')?.textContent).toBe(
+      `${order.driver.name} ★★★★☆ · Food ★★★★★`,
+    );
   });
 });
 
@@ -324,15 +334,14 @@ describe('initTrackerPage — an order stored before #121 (no etaMinutes/deliver
     const el = root();
     initTrackerPage(el, window.localStorage);
 
-    expect(el.querySelector('[data-testid="tracker-stepper"] li.current .step-label')?.textContent).toBe(
-      'Delivered',
-    );
+    expect(el.querySelector('[data-testid="tracker-delivered-hero"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="tracker-done-rail"]')).not.toBeNull();
     expect(stub.mock.calls.filter(([name]) => name === 'order_delivered')).toHaveLength(1);
   });
 });
 
 describe('initTrackerPage — already rated, return visit (AC1)', () => {
-  it('shows the static thanks line, filled stars, and no inputs — a second Submit is impossible', () => {
+  it('shows the rated summary and no Rate button — a second rating is impossible', () => {
     const order = placeAnOrder();
     vi.setSystemTime(Date.now() + order.deliveryMs);
     const stub = vi.fn();
@@ -340,15 +349,20 @@ describe('initTrackerPage — already rated, return visit (AC1)', () => {
 
     const firstVisit = root();
     initTrackerPage(firstVisit, window.localStorage);
-    firstVisit.querySelector<HTMLButtonElement>('[data-testid="star-3"]')?.click();
-    firstVisit.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]')?.click();
+    firstVisit.querySelector<HTMLButtonElement>('[data-testid="tracker-delivered-rate"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-3"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-done"]')?.click();
 
     const secondVisit = root();
     initTrackerPage(secondVisit, window.localStorage);
 
-    expect(secondVisit.textContent).toContain('Thanks for rating this order');
-    expect(secondVisit.querySelector('[data-testid="rating-submit"]')).toBeNull();
-    expect(secondVisit.querySelectorAll('.star.selected')).toHaveLength(3);
+    expect(secondVisit.querySelector('[data-testid="tracker-delivered-rate"]')).toBeNull();
+    expect(secondVisit.querySelector('[data-testid="tracker-history-rated-summary"]')?.textContent).toBe(
+      `${order.driver.name} ★★★★☆ · Food ★★★☆☆`,
+    );
 
     const ratingCalls = stub.mock.calls.filter(([name]) => name === 'rating_submitted');
     expect(ratingCalls).toHaveLength(1);
@@ -364,8 +378,10 @@ describe('AC3: the tracker completes with no error when the sender is unconfigur
     expect(() => {
       const el = root();
       initTrackerPage(el, window.localStorage);
-      el.querySelector<HTMLButtonElement>('[data-testid="star-5"]')?.click();
-      el.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]')?.click();
+      el.querySelector<HTMLButtonElement>('[data-testid="tracker-delivered-rate"]')?.click();
+      document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+      document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+      document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
     }).not.toThrow();
 
     expect(getLatestOrder(window.localStorage)?.rating).toEqual({ stars: 5, tags: [] });
@@ -756,12 +772,15 @@ describe('initTrackerPage — events with several live orders (#148 AC5)', () =>
     );
 
     // Advance past orderA's own deliveryMs while it's the order being
-    // watched — it stays open, rating prompt included ("Order stack rules").
+    // watched — it stays open ("Order stack rules"), and #163's multi-order
+    // rule auto-opens the rating sheet for it 1.4s after Delivered first
+    // renders ("Timing").
     vi.advanceTimersByTime(5 * 60_000 + 2000);
-    expect(el.querySelector('[data-testid="rating-prompt"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
 
-    el.querySelector<HTMLButtonElement>('[data-testid="star-5"]')?.click();
-    el.querySelector<HTMLButtonElement>('[data-testid="rating-submit"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-restaurant-submit"]')?.click();
 
     expect(stub).toHaveBeenCalledWith('rating_submitted', { order_id: orderA.orderId, stars: 5, tags: [] });
     expect(findOrder(window.localStorage, orderB.orderId)?.rating).toBeNull();
