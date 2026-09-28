@@ -1,0 +1,20 @@
+// Los Angeles picked with a $26.95 LA cart (Koreatown Charcoal House's galbi
+// plate), so /offers/ lists LA's own voucher ladder (la-delivery-entry,
+// la-discount-t1..t3) rather than "Nothing qualifies yet" - #233 criterion 3.
+
+/* global window -- run in a browser page's own context, not Node; the repo's lint config declares no browser globals. */
+window.localStorage.setItem('parody.city', 'la');
+window.localStorage.setItem(
+  'parody.cart',
+  JSON.stringify([
+    {
+      itemId: 'koreatown-charcoal-house-galbi-plate',
+      restaurantSlug: 'koreatown-charcoal-house',
+      restaurantName: 'Koreatown Charcoal House',
+      name: 'Galbi plate',
+      amountMinor: 2695,
+      currency: 'USD',
+      quantity: 1,
+    },
+  ]),
+);

@@ -345,21 +345,24 @@ describe('the "other city" line is the other currency (#229, #230 AC4)', () => {
   });
 });
 
-describe('LA is not offered in the picker yet (#230 AC4; #233 adds it)', () => {
-  it('the city picker offers exactly San Francisco and Ho Chi Minh City', () => {
+describe('the picker offers LA as the third city (#233 AC3; #230 had pinned it at 2)', () => {
+  it('the city picker offers San Francisco, Ho Chi Minh City and Los Angeles, in CITIES order', () => {
     const el = root();
     initHomePage(el, root(), window.localStorage);
     const cards = el.querySelectorAll('[data-testid^="location-card-"]');
-    expect(cards).toHaveLength(2);
-    expect(Array.from(cards).map((card) => card.getAttribute('data-testid'))).toEqual(['location-card-sf', 'location-card-hcmc']);
+    expect(cards).toHaveLength(3);
+    expect(Array.from(cards).map((card) => card.getAttribute('data-testid'))).toEqual(['location-card-sf', 'location-card-hcmc', 'location-card-la']);
+    expect(Array.from(cards).map((card) => card.querySelector('.location-card-name')?.textContent)).toEqual(['San Francisco', 'Ho Chi Minh City', 'Los Angeles']);
+    expect(el.querySelector<HTMLImageElement>('[data-testid="location-card-la"] img')?.getAttribute('src')).toBe('/images/cities/la.jpg');
+    expect(el.querySelector('[data-testid="location-card-la"] .location-card-currency')?.textContent).toBe('Prices in USD');
   });
 
-  it('the header pill reopens that same two-city picker', () => {
+  it('the header pill reopens that same three-city picker', () => {
     setStoredCity(window.localStorage, 'sf');
     const el = root();
     const pill = root();
     initHomePage(el, pill, window.localStorage);
     pill.querySelector<HTMLElement>('button, [role="button"]')?.click();
-    expect(el.querySelectorAll('[data-testid^="location-card-"]')).toHaveLength(2);
+    expect(el.querySelectorAll('[data-testid^="location-card-"]')).toHaveLength(3);
   });
 });

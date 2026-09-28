@@ -52,6 +52,33 @@ describe('committed placeholder images — weight budget (AC3)', () => {
     }
   });
 
+  // #233: dishes were never read here, so a catalogue line naming a dish photo
+  // that was never fetched would pass every test and 404 on the menu.
+  it('every dish image, in every city, exists and is at most 180KB (fetch-photos.mjs MAX_BYTES)', () => {
+    for (const city of CITIES) {
+      for (const restaurant of restaurantsForCity(city)) {
+        for (const item of restaurant.menu.flatMap((section) => section.items)) {
+          const filePath = path.join(ROOT, 'public', item.image.replace(/^\//, ''));
+          const size = statSync(filePath).size;
+          expect(size, `${item.image} is ${size} bytes`).toBeLessThanOrEqual(RESTAURANT_THUMBNAIL_MAX_BYTES);
+        }
+      }
+    }
+  });
+
+  it('every city in CITIES has a picker photo at /images/cities/<city>.jpg within the budget', () => {
+    for (const city of CITIES) {
+      const size = statSync(path.join(IMAGES_DIR, 'cities', `${city}.jpg`)).size;
+      expect(size, `cities/${city}.jpg is ${size} bytes`).toBeLessThanOrEqual(RESTAURANT_THUMBNAIL_MAX_BYTES);
+    }
+  });
+
+  it('every city in CITIES has restaurants, so the loops above never pass by covering nothing', () => {
+    for (const city of CITIES) {
+      expect(restaurantsForCity(city).length, city).toBeGreaterThan(0);
+    }
+  });
+
   // #137's own "Image budget" section left this slice size to the engineer:
   // the carousel's on-load slide is now `ad1` (#184 reorders the first-order
   // slide to index 3), a real restaurant photo — but that restaurant is

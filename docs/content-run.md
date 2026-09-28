@@ -46,28 +46,62 @@ a local run. An agent can't re-run a workflow or read its log (`docs/memory/engi
    - Copy `src/lib/la-city.test.ts` for `<c>`: a mocked `<c>` restaurant, with the city checked at
      checkout, Offers, cart, tracker, history and thanks voucher.
    - **Check:** `npm run typecheck`, `npm run lint`, `npm run test` pass, and this prints nothing:
-     `rg -n "=== 'VND' \? 'hcmc'|=== 'USD' \? 'sf'|=== 'sf' \? 'hcmc'|=== 'hcmc' \? 'sf'|\['sf', ?'hcmc'\]" src`.
+     `rg -n "=== 'VND' \? 'hcmc'|=== 'USD' \? 'sf'|=== 'sf' \? 'hcmc'|=== 'hcmc' \? 'sf'|\['(sf|hcmc)', ?'(sf|hcmc)'\]" src`.
+     (#233: the earlier pattern matched only `['sf', 'hcmc']`, and missed `flash-deal.test.ts`'s
+     `it.each(['hcmc', 'sf'])`, which is why LA's zero-fee check never ran until #233. Loop a test over
+     `CITIES`, never a literal list.)
      `cart-dom`, `checkout-dom`, `offers-dom`, `tracker-dom`, `wallet-dom`, `history-date`, `order-store`,
      `image-budget.test.ts` and `scripts/generate-driver-avatars.mjs` changed for LA only to remove two-city
      assumptions (PR #250). A later city in an existing
      currency should need none of them (*inferred* from `cityForRestaurantSlug` in `order-store.ts`).
 3. **Photos.** *Driver.* §3, for the city card, every hero and every dish. City card and heroes go in batch 1.
 4. **Merge the photos PR first.** *Owner, or the driver under the objective's merge policy.* The catalogue
-   can't go green before it: `image-budget.test.ts:44-52` reads every restaurant's `heroImage` file for every
+   can't go green before it: `image-budget.test.ts` reads every restaurant's hero and dish image file for every
    city in `CITIES`.
 5. **Catalogue and picker.** *Agent (engineer).*
-   - Fill `RESTAURANTS_BY_CITY.<c>` and `ALL_RESTAURANTS` (#229 suggests one `catalogue-la.ts`; *unconfirmed*
-     until #233 lands), `CUISINE_SHORTCUTS.<c>`, `CAROUSEL_RESTAURANT_SLIDES.<c>`; remove the picker filter.
+   - Put the city's restaurants in their own `src/lib/catalogue-<c>.ts` exporting `<C>_RESTAURANTS` (as
+     `catalogue-la.ts` does, #233), and set `RESTAURANTS_BY_CITY.<c> = [...<C>_RESTAURANTS]`. `ALL_RESTAURANTS`
+     is derived from `RESTAURANTS_BY_CITY` over `CITIES`, so it needs no edit. Generate the file from the spec's
+     tables with a throwaway script rather than typing 70 dishes by hand; every image path is
+     `/images/{restaurants/<slug>-hero|dishes/<dish id>}.jpg`.
+   - Fill `CAROUSEL_RESTAURANT_SLIDES.<c>` from the spec's table. `CUISINE_SHORTCUTS.<c>` was already filled in
+     step 2; check it equals the catalogue's `cuisineTag`s in order.
+   - Remove the `PICKER_CITIES` filter in `home-dom.ts`, and flip `<c>-city.test.ts`'s "not offered in the
+     picker yet" tests to assert the new card count (for LA, 2 became 3). The picker's row layout is three
+     across from 720px (`BaseLayout.astro`, `.location-cards`), drawn for exactly three cities: a fourth city
+     needs a designer's call on that grid before this step, not a CSS guess inside it.
    - A driver pool of its own: add it to `drivers.ts`; the driver runs `npm run generate-driver-avatars`; raise
      `AVATAR_TOTAL_MAX_BYTES` in `image-budget.test.ts` (300 KB assumes 50 avatars) and record it in ADR 0010.
-     A reused pool needs none of this: the script skips an id it has already drawn.
-   - **Check:** typecheck, lint, test and build pass; extend `home-dom.test.ts:279-287` (14 per city) to `<c>`.
-     The driver renders `/` and a `<c>` restaurant with `./scripts/app-render`, which needs a headless browser
-     that the workflow lacks (PR #250).
-6. **Say what goes quiet.** *Agent (engineer), in the PR.* Until step 7 lands, the city's events are
-   **dropped client-side**: every event with a `city` prop, i.e. the four in step 2 plus `cart_viewed`,
-   `checkout_viewed`, `flash_sheet_shown`, `wallet_short_shown` and **`order_placed`** (all checked against
-   `EVENT_CITIES`). City-less events such as `tracker_viewed` and `rating_submitted` still land.
+     A reused pool needs none of this: the script skips an id it has already drawn, and `image-budget.test.ts`
+     de-duplicates ids across cities.
+   - **Tests to extend or write** (#233 found each missing):
+     - a `<c>-catalogue.test.ts` that reads the spec's own tables (see `la-catalogue.test.ts`) and compares
+       names, slugs, tags, ratings, fees, deals, heroes, sections, dishes and prices, plus 4-6 dishes each;
+     - `home-dom.test.ts`: the 14-per-city count, the city's own feed, and its seven carousel slides;
+     - `flash-deal.test.ts`: `ZERO_FEE_SLUGS.<c>`, now checked against the catalogue's zero-fee restaurants;
+     - `image-budget.test.ts` already loops over `CITIES` for heroes, dish images and `cities/<c>.jpg`, and
+       fails if a city has no restaurants, so it needs no edit.
+   - **Check:** typecheck, lint, test and build pass. Render with `./scripts/app-render <route> <out-dir>
+     [seed-file]` (1280 and 375 wide): `/` for the picker, and with a `<c>` seed the feed, the flash deal,
+     `/offers/`, `/checkout/` and `/tracker/`. A seed goes in `docs/design/shots/<issue>-*-seed.js` and starts
+     with `/* global window, ... */`; `233-*-seed.js` are working examples. Seed gotchas:
+     - a stored flash draw with fewer than 5 restaurants is discarded and redrawn, so the sheet opens anyway;
+     - `/offers/` with no cart shows "Nothing qualifies yet"; seed a cart;
+     - the tracker shows the driver only once the order is picked up; seed `placedAt` well into `deliveryMs`;
+     - the wallet sheet exists only on a build with `PUBLIC_WALLET_ENABLED=true`, `PUBLIC_SUPABASE_URL` and
+       `PUBLIC_SUPABASE_PUBLISHABLE_KEY` in app-render's environment, plus a stored session and a stubbed
+       `fetch` (`233-wallet-la-seed.js`). Never commit that build.
+     app-render needs a headless browser on `PATH` (none in the workflow, PR #250). A local run without one
+     can unpack Chromium from the npm registry (`@sparticuz/chromium`) outside the repository and put it on
+     `PATH` for the render only. For a 1366 picture, serve `dist/` and call `node scripts/render-shot.mjs
+     chromium <url> 1366 900 <out>` directly.
+6. **Say what goes quiet.** *Agent (engineer), in the PR.* This applies only while step 7 has not landed.
+   Until it does, the city's events are **dropped client-side**: every event with a `city` prop, i.e. the four
+   in step 2 plus `cart_viewed`, `checkout_viewed`, `flash_sheet_shown`, `wallet_short_shown` and
+   **`order_placed`** (all checked against `EVENT_CITIES`). City-less events such as `tracker_viewed` and
+   `rating_submitted` still land. For LA, step 7 (#219: PRs #240, #244, #246, #248) merged *before* the
+   catalogue did, so `la` and the `la-*` ids were already in `EVENT_CITIES`/`EVENT_VOUCHER_IDS` and nothing
+   went quiet. Check `tracking.ts` rather than assuming the order in this list.
 7. **Store contract: its own analytics-readiness objective (#79 rule).** *Owner files it and applies the SQL.*
    - A contract revision in `docs/measurement/`.
    - An additive migration adding `<c>` to every `props->>'city' in (…)` list and the five `<c>-*` ids to the
@@ -84,7 +118,9 @@ a local run. An agent can't re-run a workflow or read its log (`docs/memory/engi
 3. **Merge the photos PR.** *Owner, or the driver under policy.* Reason: §1 step 4.
 4. **Catalogue.** *Agent (engineer).* Add the entries to the city's catalogue file (`restaurants.ts`,
    `catalogue-more.ts`, or the city's own); a new cuisine to `CUISINE_SHORTCUTS`; a zero-fee restaurant to
-   `flash-deal.test.ts`'s `ZERO_FEE_SLUGS`; the new count in `home-dom.test.ts:279-287`.
+   `flash-deal.test.ts`'s `ZERO_FEE_SLUGS`; the new count in `home-dom.test.ts`'s "Near you" test and in
+   `la-catalogue.test.ts`'s `ALL_RESTAURANTS` total (42 after #233). For LA, `la-catalogue.test.ts` reads
+   `229-la-catalogue.md`'s tables, so a new LA restaurant goes into that spec's tables too, or the test fails.
    **Check:** typecheck, lint, test and build pass.
 5. **Events:** none. The store checks a slug's shape, not a list of slugs (§1 step 1).
 
@@ -107,9 +143,12 @@ the workflow commits the JPEGs and `docs/design/photos.lock.json` to the PR bran
 **Batch size: 15-18 slots.** At 2 requests a slot, 18 uses 36 of 50 and leaves 14 for retries
 (`229-la-catalogue.md:563-566`); at the worst case of 4, one run fetches 12. So *N* slots need ⌈*N*/18⌉ batch
 runs, plus one run per round of fallback swaps. LA: 85 slots in 5 batches (15, 18, 18, 17, 17).
-**Where LA's runs differed:** batch 1 fetched all 15 in one run (PR #242, first comment). Three dish searches
-returned 0 results and needed fallbacks: "haemul pajeon seafood pancake", "tsukemen dipping noodles" and
-"lumpia spring rolls" (the `photos` job logs on PR #242; each fallback fetched on the re-triggered run).
+**Where LA's runs differed:** batch 1 fetched all 15 in one run (PR #242, first comment). Five of the 85
+searches (all dishes) came back with 0 results and needed the spec's fallback: "haemul pajeon seafood
+pancake", "tsukemen dipping noodles", "lumpia spring rolls", "edamame bowl sea salt" and "barg kebab beef
+rice". Each fallback fetched on the re-triggered run. #233 counted these by comparing the spec's batch
+queries with `photos.json`, because only the `photos` job logs on PR #242 name them. Expect about one slot
+in 17 to need its fallback.
 
 **Steps.** *Driver*, every batch on the one photos PR's branch.
 1. `git pull` first: the workflow's bot has pushed to the branch.
@@ -129,7 +168,7 @@ returned 0 results and needed fallbacks: "haemul pajeon seafood pancake", "tsuke
    **Check:** `grep -c "\.svg" docs/design/80-photo-credits.md` prints 0. Look at every new picture and swap
    a wrong one with its fallback (step 6).
 
-**Expected red:** `image-budget.test.ts:99-108` ("no placeholder left") fails while any row is `.svg`, so the
+**Expected red:** `image-budget.test.ts`'s "no placeholder left" test fails while any row is `.svg`, so the
 photos PR is red until step 8. Don't chase it.
 
 ## 4. What only the owner does, and what comes after
@@ -145,4 +184,9 @@ photos PR is red until step 8. Don't chase it.
 **Known gaps, named, not built:** `tracking.ts`'s four `CITIES` checks should read `EVENT_CITIES`; only the
 log says which photo slots failed (a lock-versus-manifest diff script would); batches are committed by hand.
 
-Last tested by: _(#233 fills this in: date, run, and each step it corrected)_
+Last tested by: #233, 2026-09-28, an engineer run done locally, adding Los Angeles. It exercised §1 steps 5 and
+6 and §1 step 2's check. It corrected §1 step 2 (the check's pattern missed `['hcmc', 'sf']`), step 4 (line
+numbers replaced by test names), step 5 (`catalogue-<c>.ts`; `ALL_RESTAURANTS` is derived; `CUISINE_SHORTCUTS`
+is step 2's; the picker-pin test flip; tests to write; render seeds and gotchas) and step 6 (only while step 7
+is unmerged). It also corrected §2 step 4 (`la-catalogue.test.ts` reads the spec) and §3 (five zero-result
+searches, not three). §1 steps 1-4 and §3's fetch were exercised by #229, #230 and #231/#242, not re-run here.

@@ -27,10 +27,6 @@ import { gestureAxis } from './swipe-row';
 
 const STORAGE_PROBE_KEY = 'parody.storageProbe';
 
-/** The cities the picker offers. LA is a `City` (#230) but isn't offered until
- * its catalogue lands: #233 removes this filter (docs/design/229-la-catalogue.md). */
-const PICKER_CITIES: City[] = CITIES.filter((city) => city !== 'la');
-
 /** The carousel's first-order slide claim (docs/design/80-two-city-brand-and-flow.md's
  * original banner copy, carried forward unchanged — docs/design/137-carousel-header-tiles.md's
  * "seventh slide"), localized per city's own currency. Other code may still read the
@@ -97,10 +93,15 @@ const CAROUSEL_RESTAURANT_SLIDES: Record<City, Array<{ type: 'ad' | 'promo'; slu
     { type: 'ad', slug: 'quan-lau-ut-hanh' },
     { type: 'promo', slug: 'bo-bit-tet-chu-tam-go-vap', claim: 'Free Khoai tây chiên with a 150.000 ₫ minimum' },
   ],
-  // #233 fills this from docs/design/229-la-catalogue.md's
-  // `CAROUSEL_RESTAURANT_SLIDES.la` table when LA's restaurants land; every
-  // slug here must resolve through getRestaurant, and none of LA's do yet.
-  la: [],
+  // docs/design/229-la-catalogue.md's `CAROUSEL_RESTAURANT_SLIDES.la` table (#233).
+  la: [
+    { type: 'ad', slug: 'boyle-heights-taco-window' },
+    { type: 'promo', slug: 'koreatown-charcoal-house', claim: 'Free Corn cheese with a $25 minimum' },
+    { type: 'ad', slug: 'little-tokyo-hand-roll-bar' },
+    { type: 'promo', slug: 'echo-park-breakfast-burritos', claim: 'Buy 1 get 1 free: Chorizo breakfast burrito' },
+    { type: 'ad', slug: 'thai-town-boat-noodle-house' },
+    { type: 'promo', slug: 'glendale-lavash-bakery', claim: 'Free Pakhlava with a $15 minimum' },
+  ],
 };
 
 interface CarouselSlide {
@@ -457,6 +458,10 @@ function safeVisitorId(storage: Storage): string {
   }
 }
 
+/** The picker row's chevron, copied from docs/design/229-three-city-picker.html. */
+const LOCATION_CHEVRON_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+
 function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (city: City) => void): void {
   const sheet = document.createElement('div');
   sheet.className = 'location-picker';
@@ -471,7 +476,7 @@ function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (ci
   const cards = document.createElement('div');
   cards.className = 'location-cards';
 
-  for (const city of PICKER_CITIES) {
+  for (const city of CITIES) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'location-card';
@@ -491,7 +496,17 @@ function renderLocationPicker(root: HTMLElement, storage: Storage, onPicked: (ci
     currencyNote.className = 'location-card-currency';
     currencyNote.textContent = `Prices in ${CITY_CURRENCY[city]}`;
 
-    card.append(img, name, currencyNote);
+    // docs/design/229-la-catalogue.md, "The three-card picker": a row of
+    // photo, then name and currency, then a chevron.
+    const text = document.createElement('span');
+    text.className = 'location-card-text';
+    text.append(name, currencyNote);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'location-card-chevron';
+    chevron.innerHTML = LOCATION_CHEVRON_ICON;
+
+    card.append(img, text, chevron);
     card.addEventListener('click', () => {
       const previous = getStoredCity(storage);
       setStoredCity(storage, city);
