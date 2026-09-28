@@ -77,6 +77,20 @@ const imageUrl = origin ? `${origin}/og-image.png` : undefined;
     }
   }
 
+  /* The collapsed flash bar (.reopen-bar, ~66px tall) is fixed above the tab
+     bar and lands exactly on the footer link when scrolled to the bottom
+     (#236 criterion 4, found by rendering it) - so while the bar exists the
+     footer clears it as well. */
+  body:has(.reopen-bar) .site-footer {
+    padding-bottom: calc(72px + var(--space-xl));
+  }
+
+  @media (max-width: 480px) {
+    body:has(.reopen-bar) .site-footer {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom) + 72px + var(--space-xl));
+    }
+  }
+
   /* Shared component styles for the Dontdropthatpromo parody
      (docs/design/65-parody-flow.md, docs/design/72-dontdropthatpromo-identity.md),
      used by more than one page's DOM module — lives here rather than
