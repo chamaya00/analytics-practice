@@ -66,6 +66,14 @@
      digits on a light tile), which is the bug this fixes. Checked against
      white in contrast.test.ts, once, since the pairing never changes. */
   --color-flash-tile-bg: #241b33;
+
+  /* VIP levels (#174, docs/design/162-*, "Contrast"): full ink only on these
+     fills, in pills and stamps, never muted text — the one failure the
+     design doc found (#6b5d85 on #f3d27a, 4.05:1) and designed out. */
+  --color-vip-gold: #f3d27a;
+  --color-vip-gold-ink: #241b33;
+  --color-vip-platinum: #d9d3ea;
+  --color-vip-platinum-ink: #241b33;
 }
 
 /* #80's chosen direction, dark values — same token roles, same reasoning
@@ -88,6 +96,11 @@
     /* Lighter here so the dark --color-bg reads on it, same as the dark
        accent-a above. */
     --color-danger: #ff8a9b;
+
+    --color-vip-gold: #e0b95a;
+    --color-vip-gold-ink: #16101f;
+    --color-vip-platinum: #cbc3e3;
+    --color-vip-platinum-ink: #16101f;
   }
 }
 

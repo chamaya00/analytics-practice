@@ -793,3 +793,98 @@ describe('initTrackerPage — events with several live orders (#148 AC5)', () =>
     expect(el.querySelector('[data-testid="tracker-history"]')?.textContent).toContain(LINE_C.restaurantName);
   });
 });
+
+describe('the VIP card (#174, docs/design/162-*, "The VIP card: where and what")', () => {
+  it('is absent entirely with no orders at all', () => {
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    expect(el.querySelector('[data-testid="vip-card"]')).toBeNull();
+  });
+
+  it('shows "Not VIP yet" with 2 of 3 progress once two orders have delivered', () => {
+    placeAnOrder();
+    const second = placeOrderFor(LINE_B);
+    const third = placeOrderFor(LINE_C);
+    for (const order of [second, third]) {
+      patchOrder(order.orderId, {
+        placedAt: new Date(Date.now() - 100_000).toISOString(),
+        deliveryMs: 1000,
+        deliveredEventFired: true,
+      });
+    }
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const card = el.querySelector('[data-testid="vip-card"]');
+    expect(card?.querySelector('[data-testid="vip-card-heading"]')?.textContent).toBe('Not VIP yet');
+    expect(card?.querySelector('[data-testid="vip-card-progress"]')?.textContent).toContain('1 order to Gold');
+    expect(card?.querySelector('[data-testid="vip-card-progress"]')?.textContent).toContain('2 of 3 delivered orders');
+    expect(card?.querySelector('[data-testid="vip-card-meter"]')).not.toBeNull();
+  });
+
+  it('shows Gold with a spend bar toward Platinum once 3 orders have delivered', () => {
+    const live = placeAnOrder();
+    const b = placeOrderFor(LINE_B);
+    const c = placeOrderFor(LINE_C);
+    for (const order of [live, b, c]) {
+      patchOrder(order.orderId, {
+        placedAt: new Date(Date.now() - 100_000).toISOString(),
+        deliveryMs: 1000,
+        deliveredEventFired: true,
+        totalMinor: 1000,
+      });
+    }
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const card = el.querySelector('[data-testid="vip-card"]');
+    expect(card?.querySelector('[data-testid="vip-card-heading"]')?.textContent).toContain('Gold');
+    expect(card?.querySelector('[data-testid="vip-card-pill"]')?.textContent).toBe('Free delivery');
+    expect(card?.querySelector('[data-testid="vip-card-progress"]')?.textContent).toContain('$30.00 of $60.00');
+    expect(card?.querySelector('[data-testid="vip-card-progress"]')?.textContent).toContain('$30.00 to Platinum');
+  });
+
+  it('shows Platinum with no spend bar or pill once the spend floor is also reached', () => {
+    const live = placeAnOrder();
+    const b = placeOrderFor(LINE_B);
+    const c = placeOrderFor(LINE_C);
+    for (const order of [live, b, c]) {
+      patchOrder(order.orderId, {
+        placedAt: new Date(Date.now() - 100_000).toISOString(),
+        deliveryMs: 1000,
+        deliveredEventFired: true,
+        totalMinor: 6000,
+      });
+    }
+
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const card = el.querySelector('[data-testid="vip-card"]');
+    expect(card?.querySelector('[data-testid="vip-card-heading"]')?.textContent).toBe('Platinum');
+    expect(card?.querySelector('[data-testid="vip-card-detail"]')?.textContent).toContain('10% off');
+    expect(card?.querySelector('[data-testid="vip-card-pill"]')).toBeNull();
+  });
+
+  it('fires no event for a level reached while the tracker renders', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const live = placeAnOrder();
+    const b = placeOrderFor(LINE_B);
+    const c = placeOrderFor(LINE_C);
+    for (const order of [live, b, c]) {
+      patchOrder(order.orderId, {
+        placedAt: new Date(Date.now() - 100_000).toISOString(),
+        deliveryMs: 1000,
+        deliveredEventFired: true,
+        totalMinor: 6000,
+      });
+    }
+
+    initTrackerPage(root(), window.localStorage);
+
+    expect(stub.mock.calls.map(([name]) => name)).not.toContain('vip_level_changed');
+  });
+});

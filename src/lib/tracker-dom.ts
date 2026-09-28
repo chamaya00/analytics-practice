@@ -23,6 +23,7 @@ import {
   setRestaurantCart,
   submitDriverRating,
   submitRating,
+  sweepVipLedger,
   type PlacedOrder,
 } from './order-store';
 import {
@@ -40,7 +41,9 @@ import { openRatingSheet, type RatingSheetOptions } from './rating-sheet-dom';
 import { openConfirmDialog } from './confirm-dialog-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
-import { formatMoney, type City } from './money';
+import { currencyForCity, formatMoney, type City } from './money';
+import { getStoredCity } from './location';
+import { EMPTY_VIP_LEDGER, VIP_GOLD_ORDERS, VIP_PLATINUM_SPEND_MINOR, platinumSpendRemainingMinor, type VipLedger } from './vip-level';
 import { unlockThanksVoucher, type ThanksVoucherUnlock } from './thanks-voucher';
 import { getRestaurant, type Restaurant } from './restaurants';
 import { formatReviewCount } from './reviews';
@@ -531,6 +534,110 @@ function renderHistoryRow(
   return li;
 }
 
+/** The three-segment meter toward Gold (docs/design/162-*, "The VIP card: where and what") — filled segments capped at `total`, so a `deliveredCount` past it (impossible once Gold is reached, since the card stops showing this meter) still renders as full rather than overflowing. */
+function renderVipMeter(filled: number, total: number): HTMLElement {
+  const meter = document.createElement('div');
+  meter.className = 'vip-meter';
+  meter.setAttribute('data-testid', 'vip-card-meter');
+  meter.setAttribute('role', 'img');
+  meter.setAttribute('aria-label', `${Math.min(filled, total)} of ${total} delivered orders`);
+  for (let i = 0; i < total; i++) {
+    const segment = document.createElement('span');
+    segment.className = 'vip-meter-segment';
+    segment.classList.toggle('filled', i < filled);
+    meter.append(segment);
+  }
+  return meter;
+}
+
+/** The VIP card (docs/design/162-*, "The VIP card: where and what") — the
+ * five states collapse to three renders here: Gold's own state (3) and its
+ * progress-to-Platinum state (4) differ only in how close the spend bar
+ * reads, which the same markup already shows. Never fires anything (#174,
+ * "Events": "Tier changes fire no event"). */
+function renderVipCard(ledger: VipLedger, currentCity: City): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'vip-card';
+  card.setAttribute('data-testid', 'vip-card');
+
+  const stamp = document.createElement('span');
+  stamp.className = `vip-stamp vip-stamp--${ledger.level}`;
+  stamp.setAttribute('aria-hidden', 'true');
+  card.append(stamp);
+
+  const body = document.createElement('div');
+  body.className = 'vip-card-body';
+
+  const heading = document.createElement('p');
+  heading.className = 'vip-card-heading';
+  heading.setAttribute('data-testid', 'vip-card-heading');
+
+  if (ledger.level === 'platinum') {
+    heading.textContent = 'Platinum';
+    const detail = document.createElement('p');
+    detail.className = 'muted';
+    detail.setAttribute('data-testid', 'vip-card-detail');
+    detail.textContent = 'Free delivery and 10% off every order, both cities.';
+    body.append(heading, detail);
+  } else if (ledger.level === 'gold') {
+    heading.append('Gold ');
+    const pill = document.createElement('span');
+    pill.className = 'vip-pill vip-pill--gold';
+    pill.setAttribute('data-testid', 'vip-card-pill');
+    pill.textContent = 'Free delivery';
+    heading.append(pill);
+
+    const currency = currencyForCity(currentCity);
+    const spendMinor = ledger.spendMinor[currency];
+    const targetMinor = VIP_PLATINUM_SPEND_MINOR[currency];
+    const remainingMinor = platinumSpendRemainingMinor(ledger, currency);
+    const spendLine = document.createElement('p');
+    spendLine.className = 'vip-card-spend';
+    spendLine.setAttribute('data-testid', 'vip-card-progress');
+    spendLine.textContent = `${formatMoney(spendMinor, currency)} of ${formatMoney(targetMinor, currency)} · ${formatMoney(remainingMinor, currency)} to Platinum`;
+    body.append(heading, spendLine);
+
+    const otherCity: City = currentCity === 'sf' ? 'hcmc' : 'sf';
+    const otherCurrency = currencyForCity(otherCity);
+    const otherSpendMinor = ledger.spendMinor[otherCurrency];
+    if (otherSpendMinor > 0) {
+      const otherLine = document.createElement('p');
+      otherLine.className = 'muted vip-card-other-currency';
+      otherLine.setAttribute('data-testid', 'vip-card-other-currency');
+      const otherTargetMinor = VIP_PLATINUM_SPEND_MINOR[otherCurrency];
+      const cityLabel = otherCity === 'hcmc' ? 'HCMC' : 'SF';
+      otherLine.textContent = `Plus ${formatMoney(otherSpendMinor, otherCurrency)} of ${formatMoney(otherTargetMinor, otherCurrency)} in ${cityLabel}, counted apart.`;
+      body.append(otherLine);
+    }
+  } else {
+    heading.textContent = 'Not VIP yet';
+    const detail = document.createElement('p');
+    detail.className = 'muted';
+    detail.setAttribute('data-testid', 'vip-card-detail');
+    detail.textContent = '3 delivered orders make you Gold: free delivery on every order.';
+    body.append(heading, detail, renderVipMeter(ledger.deliveredCount, VIP_GOLD_ORDERS));
+
+    const remaining = VIP_GOLD_ORDERS - ledger.deliveredCount;
+    const progress = document.createElement('p');
+    progress.className = 'muted vip-card-progress';
+    progress.setAttribute('data-testid', 'vip-card-progress');
+    progress.textContent =
+      remaining > 0
+        ? `${remaining} order${remaining === 1 ? '' : 's'} to Gold · ${ledger.deliveredCount} of ${VIP_GOLD_ORDERS} delivered orders`
+        : `${ledger.deliveredCount} of ${VIP_GOLD_ORDERS} delivered orders`;
+    body.append(progress);
+  }
+
+  const footer = document.createElement('p');
+  footer.className = 'muted vip-card-footer';
+  footer.setAttribute('data-testid', 'vip-card-footer');
+  footer.textContent = 'Counted from orders on this device. A level, once reached, is kept.';
+  body.append(footer);
+
+  card.append(body);
+  return card;
+}
+
 export function renderTrackerView(
   root: HTMLElement,
   orders: PlacedOrder[],
@@ -541,6 +648,8 @@ export function renderTrackerView(
   onOrderAgainFromHistory: (order: PlacedOrder, restaurant: Restaurant) => void,
   onOrderAgainFromDelivered: (order: PlacedOrder, restaurant: Restaurant) => void,
   now: number = Date.now(),
+  vipLedger: VipLedger = EMPTY_VIP_LEDGER,
+  currentCity: City = 'sf',
 ): void {
   root.innerHTML = '';
 
@@ -589,6 +698,8 @@ export function renderTrackerView(
     live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder));
   }
   cols.append(live);
+
+  cols.append(renderVipCard(vipLedger, currentCity));
 
   if (stack.past.length > 0) {
     const past = document.createElement('section');
@@ -664,6 +775,11 @@ export function initTrackerPage(
 
   function render(): void {
     checkDelivery(storage);
+    // #174: sweep on every render, so a level reached since the last tick
+    // shows immediately — docs/design/162-*, "The ledger": "It runs on the
+    // tracker's render, on checkout mount, and inside placeOrder before
+    // capOrders."
+    const vipLedger = sweepVipLedger(storage, Date.now());
     const orders = getOrders(storage);
     renderTrackerView(
       root,
@@ -674,6 +790,9 @@ export function initTrackerPage(
       openRatingSheetManual,
       onOrderAgainFromHistory,
       onOrderAgainFromDelivered,
+      Date.now(),
+      vipLedger,
+      getStoredCity(storage) ?? 'sf',
     );
   }
 

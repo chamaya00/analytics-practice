@@ -2347,6 +2347,139 @@ const { title } = Astro.props;
     height: 100%;
   }
 
+  /* ---- VIP card (#174, docs/design/162-*, "The VIP card: where and what")
+     — sits between Live now and Past orders, always present once at least
+     one order is stored. Same surface/radius/padding as .tracker-order-card
+     just above, so it reads as one family of cards on the page. ---- */
+
+  .vip-card {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
+    background: var(--color-surface);
+    border-radius: 16px;
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+
+  .vip-stamp {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    margin-top: 2px;
+    border-radius: 999px;
+  }
+
+  .vip-stamp--none {
+    border: 2px dashed var(--color-text-muted);
+  }
+
+  .vip-stamp--gold {
+    background: var(--color-vip-gold);
+  }
+
+  .vip-stamp--platinum {
+    background: var(--color-vip-platinum);
+  }
+
+  .vip-card-body {
+    min-width: 0;
+  }
+
+  .vip-card-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-weight: 800;
+    margin: 0 0 var(--space-xs);
+  }
+
+  .vip-pill {
+    display: inline-block;
+    font-size: var(--font-size-muted);
+    font-weight: 800;
+    padding: 2px var(--space-sm);
+    border-radius: 999px;
+  }
+
+  .vip-pill--gold {
+    background: var(--color-vip-gold);
+    color: var(--color-vip-gold-ink);
+  }
+
+  .vip-card-spend,
+  .vip-card-progress,
+  .vip-card-other-currency {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-xs);
+  }
+
+  .vip-card-footer {
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin: var(--space-sm) 0 0;
+  }
+
+  .vip-meter {
+    display: flex;
+    gap: 4px;
+    margin: var(--space-xs) 0;
+  }
+
+  .vip-meter-segment {
+    width: 28px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--color-border);
+  }
+
+  .vip-meter-segment.filled {
+    background: var(--color-accent-a);
+  }
+
+  /* The checkout breakdown's inline "Gold"/"Platinum" tag next to "Delivery
+     fee" (checkout-dom.ts), and the VIP line above the breakdown — same
+     ink-on-fill pairing as .vip-pill above, quoted at 11.18/9.98 (gold) and
+     11.30/11.04 (platinum) in contrast.test.ts. */
+  .vip-tag {
+    display: inline-block;
+    font-size: var(--font-size-muted);
+    font-weight: 800;
+    padding: 1px var(--space-xs);
+    border-radius: 999px;
+    vertical-align: 1px;
+  }
+
+  .vip-tag--gold {
+    background: var(--color-vip-gold);
+    color: var(--color-vip-gold-ink);
+  }
+
+  .vip-tag--platinum {
+    background: var(--color-vip-platinum);
+    color: var(--color-vip-platinum-ink);
+  }
+
+  .vip-checkout-line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-muted);
+    color: var(--color-text-muted);
+    margin: var(--space-sm) 0 0;
+  }
+
+  .vip-checkout-line .vip-stamp {
+    width: 20px;
+    height: 20px;
+    margin-top: 0;
+  }
+
+  .vip-checkout-line strong {
+    color: var(--color-text);
+  }
+
   /* ---- history ---- */
 
   .tracker-past {

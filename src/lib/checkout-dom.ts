@@ -171,10 +171,11 @@ function renderBreakdown(breakdown: CheckoutBreakdown): HTMLElement {
   deliveryLabel.className = 'muted';
   deliveryLabel.textContent = 'Delivery fee';
   if (breakdown.vipDeliveryWaived) {
+    const isPlatinum = breakdown.vipPlatinumAmountMinor > 0;
     const vipTag = document.createElement('span');
-    vipTag.className = 'vip-tag';
+    vipTag.className = `vip-tag ${isPlatinum ? 'vip-tag--platinum' : 'vip-tag--gold'}`;
     vipTag.setAttribute('data-testid', 'breakdown-delivery-vip-tag');
-    vipTag.textContent = breakdown.vipPlatinumAmountMinor > 0 ? 'Platinum' : 'Gold';
+    vipTag.textContent = isPlatinum ? 'Platinum' : 'Gold';
     deliveryLabel.append(document.createTextNode(' '), vipTag);
   }
   const deliveryValue = document.createElement('span');
