@@ -103,20 +103,44 @@ every SQL statement below — nothing here duplicates it, only sequences it.
    Project Settings → API page shows a Project URL
    (`https://<ref>.supabase.co`) and, under API keys, a publishable key
    (`sb_publishable_…`) — both are needed for step 3.
-2. **Apply every migration under `supabase/migrations/`, in filename order**,
-   in the dashboard's SQL Editor — paste each file's contents as its own run,
-   oldest timestamp first, ending with `20260930000000_rate_limit_search_path.sql`
-   (#222). Confirm each one applied by re-running it: every migration in this
-   directory is idempotent (`create ... if not exists`, `create or replace`,
-   guarded `do $$ ... $$` blocks), so a second run against the same database
-   succeeds silently rather than erroring — an error on the second run means
-   the first run left something half-applied. Confirm the whole set landed:
-   ```sql
-   select table_schema, table_name from information_schema.tables
-   where table_schema in ('public', 'private') order by 1, 2;
-   ```
-   should list, at minimum, `public.events`, `public.events_clean`,
-   `private.write_log`, and `private.rate_limit_salt`.
+2. **Apply exactly three migrations, in this order**, in the dashboard's SQL
+   Editor — paste each file's contents as its own run, and run each file
+   **once**:
+   1. `20260925000000_events.sql`
+   2. `20260926000000_two_city_event_contract.sql`
+   3. `20260930000000_rate_limit_search_path.sql` (#222)
+
+   The three wallet migrations (`20260927000000_wallet.sql`,
+   `20260928000000_wallet_tip.sql`,
+   `20260929000000_wallet_revoke_anon_execute.sql`) are applied only when the
+   wallet is switched on, as part of ADR 0008's own owner setup.
+
+   These files are not safe to re-run: file 1 has a bare `create table`,
+   `create policy`, `create trigger` and `create view`, and a single-row
+   insert into `private.rate_limit_salt`, each of which errors on a second
+   run. If one fails partway, stop and ask rather than re-running it.
+   Confirm each file with a read-only query, right after it:
+   - After file 1: the three tables and the view exist, and the salt has its
+     one row.
+     ```sql
+     select table_schema, table_name from information_schema.tables
+     where (table_schema, table_name) in
+       (('public', 'events'), ('public', 'events_clean'),
+        ('private', 'write_log'), ('private', 'rate_limit_salt'))
+     order by 1, 2;
+     select count(*) from private.rate_limit_salt;
+     ```
+     The first lists all four names (`events_clean` is the view); the count
+     is `1`.
+   - After file 2: returns `true`.
+     ```sql
+     select pg_get_functiondef('public.event_is_valid(text, jsonb)'::regprocedure)
+       like '%location_selected%';
+     ```
+   - After file 3: `proconfig` includes `extensions` in its `search_path`.
+     ```sql
+     select proconfig from pg_proc where proname = 'enforce_write_rate_limit';
+     ```
 3. **Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY`** in the
    Vercel project's Environment Variables (Settings → Environment Variables),
    using the two values from step 1, for the Production environment at
