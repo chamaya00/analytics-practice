@@ -3023,6 +3023,31 @@ const { title } = Astro.props;
     }
   }
 
+  /* Phone: the sheet takes most of the screen rather than hugging its
+     content, and the driver's avatar sits inside the top edge instead of
+     leaning out of it — the panel's `overflow-y: auto` clips anything above
+     its own box, so the pulled-up head was being cut off at the chin. The
+     body centres in the extra height; the bottom padding clears the home
+     indicator. */
+  @media (max-width: 480px) {
+    .rating-sheet-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 80vh;
+      min-height: 80dvh;
+      max-height: 92dvh;
+      padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
+    }
+
+    .rating-sheet-body {
+      margin: auto 0;
+    }
+
+    .rating-sheet-avatar {
+      margin-top: 0;
+    }
+  }
+
   @media (min-width: 481px) {
     .rating-sheet-overlay {
       align-items: center;
