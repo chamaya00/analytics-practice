@@ -77,6 +77,7 @@ import { getWallet, claimDrip, tipWallet, type WalletBalances } from './wallet-c
 import { formatNextDripHeadline } from './wallet-dom';
 import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
 import { renderSignInPrompt } from './sign-in-prompt-dom';
+import { loadConfettiCannon } from './confetti-loader';
 
 /** #162's fixed tip presets, integer minor units — `wallet_tip` (#164)
  * accepts exactly these six values and nothing else. The order's own
@@ -167,10 +168,22 @@ const CHEVRON_ICON =
 interface TrackerImageCache {
   thumbs: Map<string, HTMLElement>;
   avatars: Map<string, HTMLElement>;
+  /** #189: order ids seen here while the open card's own view was still
+   * `active` — the "watched it land" signal for the Delivered hero's landing
+   * animation, the same concept `evaluateRatingPrompt`'s `watchedItLand`
+   * computes from `pageLoadNow`, redone per-order against this cache instead
+   * since that's what's actually threaded into `renderDeliveredHero`. An
+   * order never seen here before turning up Delivered was already Delivered
+   * the first time this page ever rendered it ("opened afterwards"). */
+  watchedOpenOrderIds: Set<string>;
+  /** #189: order ids whose Delivered hero has already been decided — played
+   * the landing animation, or resolved static — so a later re-render (the
+   * whole hero is rebuilt fresh every tick) never replays it. */
+  deliveredHeroResolved: Set<string>;
 }
 
 function createTrackerImageCache(): TrackerImageCache {
-  return { thumbs: new Map(), avatars: new Map() };
+  return { thumbs: new Map(), avatars: new Map(), watchedOpenOrderIds: new Set(), deliveredHeroResolved: new Set() };
 }
 
 function renderStepper(currentIndex: number): HTMLElement {
@@ -371,20 +384,99 @@ function deliveredTimeLine(order: PlacedOrder, city: Restaurant['city'], now: nu
   return `Delivered ${lower}`;
 }
 
+/** #163's own reduced-motion check — the same `matchMedia` guard
+ * rating-sheet-dom.ts (and home-dom.ts/offers-dom.ts) each already use, kept
+ * local rather than shared since none of those import this module or vice
+ * versa. */
+function prefersReducedMotion(): boolean {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** #189's once-per-landing decision: `true` only the one time an order's
+ * Delivered hero is both genuinely watched (`cache.watchedOpenOrderIds`) and
+ * not yet resolved. Every call — including this one — marks the order
+ * resolved, which is what stops a later re-render (the hero is rebuilt fresh
+ * every tick) from ever replaying the animation, and what makes an order
+ * that was already Delivered the first time it rendered ("opened
+ * afterwards") read as resolved-but-never-watched, i.e. static. */
+function resolveDeliveredHeroAnimation(cache: TrackerImageCache, orderId: string): boolean {
+  if (cache.deliveredHeroResolved.has(orderId)) return false;
+  cache.deliveredHeroResolved.add(orderId);
+  return cache.watchedOpenOrderIds.has(orderId);
+}
+
 /** #162's celebratory Delivered hero (docs/design/162-*, "Delivered") — the
  * check stamp, "Delivered", the early/on-time line, and the time line.
  * Replaces the old plain "Delivered N min ago" line entirely; it is never
- * shown for a live order. */
-function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: number): HTMLElement {
+ * shown for a live order.
+ *
+ * #189's "as it lands while watched" animation — the stamp presses in, a
+ * ring expands behind it, and one burst leaves the stamp's own position —
+ * plays at most once per order (`resolveDeliveredHeroAnimation`) and never
+ * under reduced motion, in which case the stamp is simply there, exactly as
+ * before this issue. */
+function renderDeliveredHero(order: PlacedOrder, city: Restaurant['city'], now: number, cache: TrackerImageCache, root: HTMLElement): HTMLElement {
   const hero = document.createElement('div');
   hero.className = 'tracker-delivered-hero';
   hero.setAttribute('data-testid', 'tracker-delivered-hero');
 
+  const isLanding = resolveDeliveredHeroAnimation(cache, order.orderId) && !prefersReducedMotion();
+
+  const stampWrap = document.createElement('span');
+  stampWrap.className = 'tracker-delivered-stamp-wrap';
+
+  if (isLanding) {
+    const ring = document.createElement('span');
+    ring.className = 'tracker-delivered-ring';
+    ring.setAttribute('aria-hidden', 'true');
+    ring.setAttribute('data-testid', 'tracker-delivered-ring');
+    stampWrap.append(ring);
+  }
+
   const stamp = document.createElement('span');
-  stamp.className = 'tracker-delivered-stamp';
+  stamp.className = isLanding ? 'tracker-delivered-stamp tracker-delivered-stamp--landing' : 'tracker-delivered-stamp';
   stamp.setAttribute('aria-hidden', 'true');
+  stamp.setAttribute('data-testid', 'tracker-delivered-stamp');
   stamp.innerHTML = CHECK_ICON;
-  hero.append(stamp);
+  stampWrap.append(stamp);
+  hero.append(stampWrap);
+
+  // The one burst, from the stamp's own position (docs/design/162-*,
+  // "Delivered": "one small burst of 26 particles leaves the stamp") — never
+  // the library's default full-page canvas or a fixed centre origin. Loaded
+  // through the same shared loader as the rating sheet's own win burst
+  // (#189 AC4), so the two share one dynamic import however many bursts
+  // actually play. A failed import (offline, blocked) never blocks the hero
+  // itself — the press and the ring have already played without it.
+  //
+  // The tracker rebuilds this whole hero on its 1s tick (`root.innerHTML =
+  // ''`), and this dynamic import can still be in flight when that happens —
+  // most likely on a fresh visit, when the `canvas-confetti` chunk is
+  // uncached. `stamp` is then a detached node whose `getBoundingClientRect()`
+  // is all zeros, which would fire the burst from the viewport's top-left
+  // corner instead of skipping or re-aiming it. Measure from the stamp still
+  // in the document — the rebuilt hero is the same order at the same
+  // position — and skip the burst entirely rather than ever firing from
+  // `{0, 0}` if no such stamp exists any more (#189 driver review).
+  if (isLanding) {
+    loadConfettiCannon()
+      .then((cannon) => {
+        const currentStamp = stamp.isConnected
+          ? stamp
+          : root.querySelector<HTMLElement>('[data-testid="tracker-delivered-stamp"]');
+        if (!currentStamp) return;
+        const rect = currentStamp.getBoundingClientRect();
+        cannon({
+          particleCount: 26,
+          ticks: 80,
+          origin: {
+            x: (rect.left + rect.width / 2) / window.innerWidth,
+            y: (rect.top + rect.height / 2) / window.innerHeight,
+          },
+        });
+      })
+      .catch(() => {});
+  }
 
   const text = document.createElement('div');
 
@@ -462,6 +554,7 @@ function renderOpenCard(
   onRate: (orderId: string) => void,
   onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
   cache: TrackerImageCache,
+  root: HTMLElement,
   now: number = Date.now(),
 ): HTMLElement {
   const card = document.createElement('section');
@@ -491,6 +584,10 @@ function renderOpenCard(
   card.append(head);
 
   if (view.kind === 'active') {
+    // #189: seen active here — the open card's own view, not merely "exists
+    // somewhere in storage" — is what "watched it land" means for the
+    // Delivered hero's animation below.
+    cache.watchedOpenOrderIds.add(order.orderId);
     const countdown = document.createElement('p');
     countdown.className = 'tracker-countdown';
     countdown.setAttribute('data-testid', 'tracker-countdown');
@@ -502,7 +599,7 @@ function renderOpenCard(
     card.append(countdown);
     card.append(renderStepper(view.currentStepIndex));
   } else {
-    card.append(renderDeliveredHero(order, city, now));
+    card.append(renderDeliveredHero(order, city, now, cache, root));
     card.append(renderDoneRail());
   }
 
@@ -1079,7 +1176,7 @@ export function renderTrackerView(
     live.append(label);
   }
 
-  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, cache, now));
+  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, cache, root, now));
   for (const order of stack.live) {
     if (order.orderId === openOrderId) continue;
     live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder, cache));

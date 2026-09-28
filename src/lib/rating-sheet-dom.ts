@@ -25,6 +25,7 @@ import { getRestaurant } from './restaurants';
 import { CITY_NAMES, formatMoney, formatMoneyForCity } from './money';
 import { formatThanksVoucherExpiry, type ThanksVoucherUnlock } from './thanks-voucher';
 import { VIP_GOLD_ORDERS, platinumSpendRemainingMinor, type VipLedger } from './vip-level';
+import { loadConfettiCannon } from './confetti-loader';
 import type { ConfettiFn } from 'canvas-confetti';
 
 const STAR_ICON =
@@ -51,10 +52,13 @@ function prefersReducedMotion(): boolean {
 type ConfettiFactory = (canvas: HTMLCanvasElement, options?: { resize?: boolean }) => ConfettiFn;
 
 /** Dynamic `import()`, only ever reached when motion is allowed (docs/design/
- * 162-*, "The animation": "loaded ... only when motion is allowed"). */
+ * 162-*, "The animation": "loaded ... only when motion is allowed") — routed
+ * through the loader tracker-dom.ts's own landing burst shares (#189), so
+ * the module is fetched at most once per page load however many bursts
+ * actually play. */
 const defaultLoadConfetti: () => Promise<ConfettiFactory> = async () => {
-  const mod = await import('canvas-confetti');
-  return mod.default.create.bind(mod.default);
+  const cannon = await loadConfettiCannon();
+  return cannon.create.bind(cannon);
 };
 
 export interface RatingSheetOptions {
