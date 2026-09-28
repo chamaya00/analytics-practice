@@ -165,12 +165,20 @@ const { title } = Astro.props;
   }
 
   /* The first-order slide's ticket/gradient banner (docs/design/137-carousel-header-tiles.md,
-     "First-order banner", #184) — a fixed two-stop violet gradient, deliberately not
+     "First-order banner", #184) — a fixed two-stop gradient, deliberately not
      retheming (same "holds its own regardless of what's around it" reasoning as
      .carousel-ad-label's scrim below and global.css's --color-flash-tile-bg), replacing
      the old plain tinted-surface panel. row-reverse: the ticket is first in DOM order
      (screen reader meets the amount before "Your first order") but paints last, i.e. on
-     the right. */
+     the right.
+
+     Recolored teal for #194: the original two stops were #80's violet
+     (#6c3ce0/#2f1861), which read as a leftover brand color once the rest of
+     the site moved to #181-green. Not --color-accent-a itself — white text
+     directly on that token fails (2.49:1, ./scripts/contrast '#ffffff'
+     '#14b8a6') — so both stops are darkened teal, chosen so the claim text
+     and the ticket ink clear 4.5:1 against either stop (contrast.test.ts,
+     "first-order banner"). */
   .carousel-slide-panel {
     position: absolute;
     inset: 0;
@@ -180,7 +188,7 @@ const { title } = Astro.props;
     gap: var(--space-md);
     padding: 0 var(--space-lg);
     overflow: hidden;
-    background: linear-gradient(135deg, #6c3ce0 0%, #2f1861 100%);
+    background: linear-gradient(135deg, #0a7a6d 0%, #0b2e29 100%);
     border-radius: 12px;
   }
 
@@ -199,7 +207,7 @@ const { title } = Astro.props;
 
   .carousel-slide-panel-sub {
     font-size: var(--font-size-muted);
-    color: #ece4ff;
+    color: #dff9f4;
   }
 
   /* The ticket/coupon graphic (148x104, docs/design/137's "First-order banner") —
@@ -231,7 +239,11 @@ const { title } = Astro.props;
     justify-content: center;
     text-align: center;
     padding: 0 4px;
-    color: #2f1861;
+    /* Same recolor as .carousel-slide-panel's gradient (#194) — the ticket
+       ink stays legible on the ticket's white fill either way (14.61:1),
+       but matching the gradient's dark stop keeps the whole graphic one
+       consistent teal-register color instead of a violet leftover. */
+    color: #0b2e29;
   }
 
   .carousel-slide-panel-amount-value {
@@ -1389,10 +1401,14 @@ const { title } = Astro.props;
 
   @keyframes voucher-unlock-sweep {
     from {
-      box-shadow: inset 0 0 0 999px rgba(108, 60, 224, 0.18);
+      /* --color-accent-a (#14b8a6) as rgb — a keyframe can't reference a
+         custom property mid-animation the way a static rule can, so this
+         stays a literal recolored for #194 (was #80's accent-a, rgb(108,
+         60, 224)). */
+      box-shadow: inset 0 0 0 999px rgba(20, 184, 166, 0.18);
     }
     to {
-      box-shadow: inset 0 0 0 999px rgba(108, 60, 224, 0);
+      box-shadow: inset 0 0 0 999px rgba(20, 184, 166, 0);
     }
   }
 
@@ -1438,7 +1454,11 @@ const { title } = Astro.props;
     display: inline-block;
     font-size: 0.625rem;
     font-weight: 800;
-    color: #fff;
+    /* --color-bg, not a fixed white (#194) — the same accent-a text fix as
+       the flash sheet header below (#126 AC3): a fixed white reads fine on
+       a dark saturated accent but fails once the accent is this light
+       (2.49:1 against #14b8a6, ./scripts/contrast '#ffffff' '#14b8a6'). */
+    color: var(--color-bg);
     background: var(--color-accent-a);
     border-radius: 4px;
     padding: 0 4px;
@@ -1502,8 +1522,10 @@ const { title } = Astro.props;
     top: 2px;
     width: 7px;
     height: 11px;
-    border-bottom: 2px solid #fff;
-    border-right: 2px solid #fff;
+    /* --color-bg, not a fixed white (#194) — same accent-a text fix as
+       .flash-tag above. */
+    border-bottom: 2px solid var(--color-bg);
+    border-right: 2px solid var(--color-bg);
     transform: rotate(40deg);
   }
 
@@ -1535,7 +1557,9 @@ const { title } = Astro.props;
     border: none;
     border-radius: 10px;
     background: var(--color-accent-a);
-    color: #fff;
+    /* --color-bg, not a fixed white (#194) — same accent-a text fix as
+       .flash-tag above. */
+    color: var(--color-bg);
     font-weight: 800;
     font-size: var(--font-size-body);
     min-height: 44px;
@@ -1976,7 +2000,9 @@ const { title } = Astro.props;
     display: inline-block;
     font-size: 0.625rem;
     font-weight: 800;
-    color: #fff;
+    /* --color-bg, not a fixed white (#194) — same accent-a text fix as
+       .flash-tag above. */
+    color: var(--color-bg);
     background: var(--color-accent-a);
     border-radius: 4px;
     padding: 1px 4px;
@@ -3380,7 +3406,9 @@ const { title } = Astro.props;
     font-size: 10px;
     line-height: 1;
     font-weight: 800;
-    color: #fff;
+    /* --color-bg, not a fixed white (#194) — same accent-a text fix as
+       .flash-tag above. */
+    color: var(--color-bg);
     background: var(--color-accent-a);
     border: 2px solid var(--color-bg);
     border-radius: 999px;

@@ -67,7 +67,7 @@ const TICKET_SVG = `<svg viewBox="0 0 148 104" aria-hidden="true">
     <circle cx="140" cy="52" r="9" fill="#000000"/>
   </mask>
   <path fill="#ffffff" mask="url(#${TICKET_NOTCH_MASK_ID})" d="M16,6 L132,6 A8,8 0 0 1 140,14 L140,90 A8,8 0 0 1 132,98 L16,98 A8,8 0 0 1 8,90 L8,14 A8,8 0 0 1 16,6 Z"/>
-  <line x1="42" y1="14" x2="42" y2="90" stroke="#2f1861" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>
+  <line x1="42" y1="14" x2="42" y2="90" stroke="#0b2e29" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>
 </svg>`;
 
 /** Six restaurants per city, three ad slides and three promo slides, all named and
