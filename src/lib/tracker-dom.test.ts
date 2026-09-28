@@ -1312,3 +1312,125 @@ describe('tip control (#171, docs/design/162-*, "Tips"/"History rows")', () => {
     });
   });
 });
+
+describe('initTrackerPage — stable photo/avatar elements across the 1s render tick (#193)', () => {
+  // Real restaurants (unlike `LINE`/`LINE_B`/`LINE_C`, which are fictional
+  // and always degrade `renderThumb` to a placeholder `<div>`) so these
+  // orders actually mint `<img>` thumbs to test element stability on.
+  const TACO = {
+    itemId: 'mission-taqueria-al-pastor',
+    restaurantSlug: 'mission-taqueria',
+    restaurantName: 'Mission Taqueria',
+    name: 'Al pastor taco',
+    amountMinor: 425,
+    currency: 'USD' as const,
+  };
+  const PIZZA_SLICE = {
+    itemId: 'north-beach-pizzeria-margherita',
+    restaurantSlug: 'north-beach-pizzeria',
+    restaurantName: 'North Beach Pizzeria',
+    name: 'Margherita',
+    amountMinor: 1650,
+    currency: 'USD' as const,
+  };
+  const DIM_SUM = {
+    itemId: 'golden-lotus-dim-sum-har-gow',
+    restaurantSlug: 'golden-lotus-dim-sum',
+    restaurantName: 'Golden Lotus Dim Sum',
+    name: 'Har gow',
+    amountMinor: 900,
+    currency: 'USD' as const,
+  };
+
+  /** Places `historyLine` and delivers it, then places `liveLineA`/
+   * `liveLineB` at the moment it's delivered and pushes both of them past
+   * the "Picked up" driver-assignment threshold (#148's own 2/7-of-
+   * `deliveryMs` fraction, pinned to a fixed `deliveryMs` via `patchOrder`
+   * so two orders placed together reach it at the same tick) without
+   * delivering either — leaving one open card, one collapsed row, and one
+   * history row, every one of them driver-assigned. */
+  function placeStableScenario() {
+    const historyOrder = placeOrderFor(TACO);
+    vi.setSystemTime(Date.now() + historyOrder.deliveryMs + 1000);
+
+    const liveA = placeOrderFor(PIZZA_SLICE);
+    const liveB = placeOrderFor(DIM_SUM);
+    for (const order of [liveA, liveB]) {
+      patchOrder(order.orderId, { etaMinutes: 20, deliveryMs: 700_000 });
+    }
+    vi.setSystemTime(Date.now() + Math.ceil(700_000 * (2 / 7)) + 1000);
+
+    return { historyOrder, liveA, liveB };
+  }
+
+  it('keeps the open card, row and history thumb/avatar <img> elements the same reference across ticks, while the countdown text still changes', () => {
+    placeStableScenario();
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const openThumb = el.querySelector('.tracker-thumb');
+    const openAvatar = el.querySelector('.tracker-driver-avatar');
+    const rowThumb = el.querySelector('.tracker-row-thumb');
+    const rowAvatar = el.querySelector('.tracker-row-driver-avatar');
+    const historyThumb = el.querySelector('.tracker-history-thumb');
+    const historyAvatar = el.querySelector('.tracker-history-driver-avatar');
+    expect(openThumb?.tagName).toBe('IMG');
+    expect(openAvatar?.tagName).toBe('IMG');
+    expect(rowThumb?.tagName).toBe('IMG');
+    expect(rowAvatar?.tagName).toBe('IMG');
+    expect(historyThumb?.tagName).toBe('IMG');
+    expect(historyAvatar?.tagName).toBe('IMG');
+
+    const countdownBefore = el.querySelector('.tracker-countdown-big')?.textContent;
+
+    vi.advanceTimersByTime(4000);
+
+    expect(el.querySelector('.tracker-thumb')).toBe(openThumb);
+    expect(el.querySelector('.tracker-driver-avatar')).toBe(openAvatar);
+    expect(el.querySelector('.tracker-row-thumb')).toBe(rowThumb);
+    expect(el.querySelector('.tracker-row-driver-avatar')).toBe(rowAvatar);
+    expect(el.querySelector('.tracker-history-thumb')).toBe(historyThumb);
+    expect(el.querySelector('.tracker-history-driver-avatar')).toBe(historyAvatar);
+
+    const countdownAfter = el.querySelector('.tracker-countdown-big')?.textContent;
+    expect(countdownAfter).not.toBe(countdownBefore);
+
+    // AC5: still exactly one `tracker_viewed`, across several ticks.
+    expect(stub.mock.calls.filter(([name]) => name === 'tracker_viewed')).toHaveLength(1);
+  });
+
+  it('updates the open card thumb\'s src when a different order is selected', () => {
+    placeStableScenario();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const rowName = el.querySelector('[data-testid="tracker-order-row"] .tracker-row-name')?.textContent;
+    const rowRestaurant = [PIZZA_SLICE, DIM_SUM].find((line) => line.restaurantName === rowName);
+    expect(rowRestaurant).toBeDefined();
+
+    el.querySelector<HTMLButtonElement>('[data-testid="tracker-order-row"]')?.click();
+
+    const openThumb = el.querySelector<HTMLImageElement>('.tracker-thumb');
+    expect(openThumb?.tagName).toBe('IMG');
+    expect(openThumb?.getAttribute('src')).toContain(rowRestaurant!.restaurantSlug);
+  });
+
+  it('keeps the driver avatar a fallback <span> once it has failed to load, never reverting to an <img>', () => {
+    placeStableScenario();
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+
+    const img = el.querySelector<HTMLImageElement>('.tracker-driver-avatar');
+    expect(img?.tagName).toBe('IMG');
+    img!.dispatchEvent(new Event('error'));
+
+    expect(el.querySelector('.tracker-driver-avatar')?.tagName).toBe('SPAN');
+
+    vi.advanceTimersByTime(4000);
+
+    expect(el.querySelector('.tracker-driver-avatar')?.tagName).toBe('SPAN');
+    expect(el.querySelector('.tracker-driver-avatar')).not.toBeNull();
+  });
+});

@@ -155,6 +155,24 @@ const CHECK_ICON =
 const CHEVRON_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 
+/** #193: `renderTrackerView` rebuilds the whole tree every tick
+ * (`root.innerHTML = ''`), which used to mint a fresh restaurant-thumb and
+ * driver-avatar `<img>` on every one of those rebuilds — flickering, and
+ * losing the avatar's own load-failure fallback the moment a later tick
+ * remade it as an `<img>` again. This cache, created once per `initTrackerPage`
+ * call and threaded through every render, is keyed by the element's stable
+ * slot ("open card", or an order id for a row/history entry) rather than by
+ * anything about the render itself, so the same node comes back out on the
+ * next tick and only its `src`/text gets updated in place. */
+interface TrackerImageCache {
+  thumbs: Map<string, HTMLElement>;
+  avatars: Map<string, HTMLElement>;
+}
+
+function createTrackerImageCache(): TrackerImageCache {
+  return { thumbs: new Map(), avatars: new Map() };
+}
+
 function renderStepper(currentIndex: number): HTMLElement {
   const stepper = document.createElement('ul');
   stepper.className = 'stepper';
@@ -197,25 +215,63 @@ function renderStepper(currentIndex: number): HTMLElement {
 
 /** A restaurant photo, or a plain placeholder square when the order's own
  * restaurant slug no longer resolves (#147, "Partial / error" state) — never
- * a broken image. */
-function renderThumb(className: string, restaurant: Restaurant | undefined): HTMLElement {
+ * a broken image. Reuses `cache`'s node for `key` across ticks (#193) rather
+ * than minting a new `<img>`/placeholder every render; only its `src` (and,
+ * across a selection change, its className) is written when they've moved
+ * on from what's cached. */
+function renderThumb(cache: TrackerImageCache, key: string, className: string, restaurant: Restaurant | undefined): HTMLElement {
+  const existing = cache.thumbs.get(key);
+  const wantsImg = restaurant !== undefined;
+  if (existing && (existing.tagName === 'IMG') === wantsImg) {
+    existing.className = wantsImg ? className : `${className} tracker-thumb-placeholder`;
+    if (wantsImg) {
+      const img = existing as HTMLImageElement;
+      if (img.getAttribute('src') !== restaurant!.heroImage) img.src = restaurant!.heroImage;
+    }
+    return existing;
+  }
+
+  let created: HTMLElement;
   if (restaurant) {
     const img = document.createElement('img');
     img.className = className;
     img.src = restaurant.heroImage;
     img.alt = '';
-    return img;
+    created = img;
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = `${className} tracker-thumb-placeholder`;
+    created = placeholder;
   }
-  const placeholder = document.createElement('div');
-  placeholder.className = `${className} tracker-thumb-placeholder`;
-  return placeholder;
+  cache.thumbs.set(key, created);
+  return created;
 }
 
 /** A driver's headshot — falls back to a plain initial disc rather than a
  * broken image if the id has no avatar file (#147, "Partial / error" state;
  * shouldn't happen, since scripts/generate-driver-avatars.mjs covers every
- * id in drivers.ts, but the fallback costs nothing). */
-function renderDriverAvatar(className: string, driver: PlacedOrder['driver']): HTMLElement {
+ * id in drivers.ts, but the fallback costs nothing). Reuses `cache`'s node
+ * for `key` across ticks (#193): an `<img>` already cached only gets its
+ * `src` updated (a selection change can put a different order in the same
+ * slot), and once that `<img>` has failed and been swapped for the fallback
+ * `<span>`, the cached node stays a `<span>` forever — the next tick never
+ * sees `wantsImg` at all, since the branch below never re-derives it from
+ * the driver, only from what's already in the cache. */
+function renderDriverAvatar(cache: TrackerImageCache, key: string, className: string, driver: PlacedOrder['driver']): HTMLElement {
+  const existing = cache.avatars.get(key);
+  if (existing) {
+    if (existing.tagName === 'IMG') {
+      const img = existing as HTMLImageElement;
+      img.className = className;
+      const nextSrc = `/avatars/drivers/${driver.id}.svg`;
+      if (img.getAttribute('src') !== nextSrc) img.src = nextSrc;
+    } else {
+      existing.className = `${className} tracker-avatar-fallback`;
+      existing.textContent = driver.name.charAt(0);
+    }
+    return existing;
+  }
+
   const img = document.createElement('img');
   img.className = className;
   img.src = `/avatars/drivers/${driver.id}.svg`;
@@ -225,14 +281,16 @@ function renderDriverAvatar(className: string, driver: PlacedOrder['driver']): H
     fallback.className = `${className} tracker-avatar-fallback`;
     fallback.textContent = driver.name.charAt(0);
     img.replaceWith(fallback);
+    cache.avatars.set(key, fallback);
   });
+  cache.avatars.set(key, img);
   return img;
 }
 
 /** The driver slot (#147, "Driver slot") — a fixed-height area holding
  * either the pending-driver placeholder (before Picked up) or the driver
  * card (Picked up onward), so nothing below it jumps when a driver appears. */
-function renderDriverSlot(order: PlacedOrder, view: TrackerView, city: Restaurant['city']): HTMLElement {
+function renderDriverSlot(order: PlacedOrder, view: TrackerView, city: Restaurant['city'], cache: TrackerImageCache, avatarKey: string): HTMLElement {
   const slot = document.createElement('div');
   slot.setAttribute('data-testid', 'tracker-driver-slot');
 
@@ -259,7 +317,7 @@ function renderDriverSlot(order: PlacedOrder, view: TrackerView, city: Restauran
   slot.setAttribute('data-testid', 'tracker-driver-card');
   slot.setAttribute('data-driver-id', order.driver.id);
 
-  const avatar = renderDriverAvatar('tracker-driver-avatar', order.driver);
+  const avatar = renderDriverAvatar(cache, avatarKey, 'tracker-driver-avatar', order.driver);
   const who = document.createElement('div');
   who.className = 'tracker-driver-who';
   const kicker = document.createElement('div');
@@ -403,6 +461,7 @@ function renderOpenCard(
   view: TrackerView,
   onRate: (orderId: string) => void,
   onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
+  cache: TrackerImageCache,
   now: number = Date.now(),
 ): HTMLElement {
   const card = document.createElement('section');
@@ -414,7 +473,10 @@ function renderOpenCard(
 
   const head = document.createElement('div');
   head.className = 'tracker-card-head';
-  head.append(renderThumb('tracker-thumb', restaurant));
+  // Keyed by slot, not by order id (#193) — the open card is always exactly
+  // one element, so the same cached node follows whichever order is open,
+  // its `src` updated rather than the node replaced when the selection changes.
+  head.append(renderThumb(cache, 'open-thumb', 'tracker-thumb', restaurant));
   const info = document.createElement('div');
   const name = document.createElement('div');
   name.className = 'tracker-card-name';
@@ -444,7 +506,7 @@ function renderOpenCard(
     card.append(renderDoneRail());
   }
 
-  card.append(renderDriverSlot(order, view, city));
+  card.append(renderDriverSlot(order, view, city, cache, 'open-avatar'));
 
   if (view.kind === 'delivered') {
     const actions = document.createElement('div');
@@ -491,7 +553,12 @@ function renderOpenCard(
  * order still active (never the open one, and rows are excluded from
  * `computeOrderStack`'s live set only by being the currently open order, so
  * a row's own view is always `active`). */
-function renderOrderRow(order: PlacedOrder, view: TrackerView, onSelect: (orderId: string) => void): HTMLElement {
+function renderOrderRow(
+  order: PlacedOrder,
+  view: TrackerView,
+  onSelect: (orderId: string) => void,
+  cache: TrackerImageCache,
+): HTMLElement {
   const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
   const button = document.createElement('button');
   button.type = 'button';
@@ -501,7 +568,10 @@ function renderOrderRow(order: PlacedOrder, view: TrackerView, onSelect: (orderI
   button.setAttribute('aria-expanded', 'false');
   button.addEventListener('click', () => onSelect(order.orderId));
 
-  button.append(renderThumb('tracker-row-thumb', restaurant));
+  // Keyed by order id (#193) — unlike the open card, several rows can exist
+  // at once, so each order's own thumb/avatar node has to be tracked apart
+  // from the others rather than sharing one "row" slot.
+  button.append(renderThumb(cache, `row-thumb:${order.orderId}`, 'tracker-row-thumb', restaurant));
 
   const mid = document.createElement('span');
   mid.className = 'tracker-row-mid';
@@ -512,7 +582,7 @@ function renderOrderRow(order: PlacedOrder, view: TrackerView, onSelect: (orderI
   status.className = 'tracker-row-status';
   const stepIndex = view.kind === 'active' ? view.currentStepIndex : STEPS.length - 1;
   if (stepIndex >= 2) {
-    status.append(renderDriverAvatar('tracker-row-driver-avatar', order.driver));
+    status.append(renderDriverAvatar(cache, `row-avatar:${order.orderId}`, 'tracker-row-driver-avatar', order.driver));
     status.append(`${STEPS[stepIndex]} · `);
     const driverName = document.createElement('b');
     driverName.textContent = order.driver.name;
@@ -744,13 +814,15 @@ function renderHistoryRow(
   onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
   tip: TipRowState,
   now: number,
+  cache: TrackerImageCache,
 ): HTMLElement {
   const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
   const li = document.createElement('li');
   li.className = 'tracker-history-row';
   li.setAttribute('data-testid', 'tracker-history-row');
   li.setAttribute('data-order-id', order.orderId);
-  li.append(renderThumb('tracker-history-thumb', restaurant));
+  // Keyed by order id (#193), same reasoning as the row list above.
+  li.append(renderThumb(cache, `history-thumb:${order.orderId}`, 'tracker-history-thumb', restaurant));
 
   const mid = document.createElement('div');
   mid.className = 'tracker-history-mid';
@@ -762,7 +834,10 @@ function renderHistoryRow(
   meta.textContent = `${formatHistoryDate(order.placedAt, restaurant?.city ?? 'sf')} · ${order.itemCount} item${order.itemCount === 1 ? '' : 's'}`;
   const by = document.createElement('div');
   by.className = 'tracker-history-by';
-  by.append(renderDriverAvatar('tracker-history-driver-avatar', order.driver), order.driver.name);
+  by.append(
+    renderDriverAvatar(cache, `history-avatar:${order.orderId}`, 'tracker-history-driver-avatar', order.driver),
+    order.driver.name,
+  );
   mid.append(name, meta, by);
 
   const right = document.createElement('div');
@@ -958,6 +1033,10 @@ export function renderTrackerView(
     onCancel: () => {},
     onCollectDrip: () => {},
   }),
+  // Not persisted by default (#193) — a caller across several ticks (only
+  // `initTrackerPage` today) has to create one cache and keep passing the
+  // same object back in, or every render acts as if nothing were cached.
+  cache: TrackerImageCache = createTrackerImageCache(),
 ): void {
   root.innerHTML = '';
 
@@ -1000,10 +1079,10 @@ export function renderTrackerView(
     live.append(label);
   }
 
-  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, now));
+  live.append(renderOpenCard(openOrder, computeTrackerView(openOrder, now), onRate, onOrderAgainFromDelivered, cache, now));
   for (const order of stack.live) {
     if (order.orderId === openOrderId) continue;
-    live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder));
+    live.append(renderOrderRow(order, computeTrackerView(order, now), onSelectOrder, cache));
   }
   cols.append(live);
 
@@ -1021,7 +1100,7 @@ export function renderTrackerView(
     list.className = 'tracker-history';
     list.setAttribute('data-testid', 'tracker-history');
     for (const order of stack.past) {
-      list.append(renderHistoryRow(order, onRate, onOrderAgainFromHistory, tipRowStateFor(order), now));
+      list.append(renderHistoryRow(order, onRate, onOrderAgainFromHistory, tipRowStateFor(order), now, cache));
     }
     const note = document.createElement('p');
     note.className = 'tracker-device-note';
@@ -1050,6 +1129,9 @@ export function initTrackerPage(
   const hashOrderId = hashMatch ? hashMatch[1] : null;
   const pageLoadNow = Date.now();
   const initialOrders = getOrders(storage);
+  // One cache for this page's whole life, threaded into every `render()`
+  // call below (#193) — a fresh one per tick would defeat the point.
+  const trackerImageCache = createTrackerImageCache();
   let openOrderId =
     hashOrderId && initialOrders.some((order) => order.orderId === hashOrderId)
       ? hashOrderId
@@ -1092,6 +1174,7 @@ export function initTrackerPage(
       vipLedger,
       getStoredCity(storage) ?? 'sf',
       tipRowStateFor,
+      trackerImageCache,
     );
   }
 
