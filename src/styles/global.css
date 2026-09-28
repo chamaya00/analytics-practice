@@ -8,10 +8,12 @@
    also the discount/success color; --color-accent-b is badge fill only,
    never text-on-background (see --color-badge-ink below).
 
-   The site is always dark (#194, the owner's decision on #181): there is
-   no light theme and no OS-follows toggle. This is the one and only
-   palette, and color-scheme below tells native form controls and
-   scrollbars to render dark too. Applied via BaseLayout to every page. */
+   Two themes (#199 option C, "Daylight"): dark is this :root, unchanged
+   since #194, and a device set to light gets a separate light palette
+   declared in the @media (prefers-color-scheme: light) block below. A
+   device with no stated preference gets light — the browser default for
+   an unmatched media query, so no extra rule is needed for it. There is
+   no toggle and no stored preference; the OS setting is read live. */
 
 :root {
   color-scheme: dark;
@@ -75,6 +77,45 @@
   --color-vip-gold-ink: #0b0f0c;
   --color-vip-platinum: #c9c9d1;
   --color-vip-platinum-ink: #0b0f0c;
+
+  /* Split out of --color-accent-a/--color-bg so a light theme can move
+     these roles without touching the pairs that stay on the accent
+     (#199 option C, "For the engineer child"). Each dark value equals
+     what that role already renders as today, so dark mode is unchanged
+     by construction — see the light block below for the light values. */
+  --color-cta: #14b8a6;
+  --color-cta-ink: #0b0f0c;
+  --color-accent-b-text: #ffb84d;
+  --color-indicator: #243328;
+}
+
+/* #199 option C ("Daylight"): a light page with white cards, dark text
+   and deep teal for accent text/outlines, bright teal kept only as the
+   Place order fill. No islands — every surface goes light, so there is
+   no :where(...) island rule and no inset focus rule here (#199's A/B
+   treatments would need both; C has neither). */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --color-bg: #f1f4f1;
+    --color-surface: #ffffff;
+    --color-text: #0b0f0c;
+    --color-text-muted: #56665b;
+    --color-border: #dfe5e0;
+
+    --color-accent-a: #0f766e;
+    --color-tab-active-bg: #d7ede8;
+    --color-danger: #c4213a;
+
+    --color-accent-b-text: #8a5300;
+    --color-indicator: #7d8c82;
+
+    /* --color-accent-b, --color-badge-ink, --color-flash-tile-bg,
+       --color-cta, --color-cta-ink and the VIP tokens are deliberately
+       not redeclared here — their dark values already hold in light
+       mode (fixed fills, or the CTA pair kept identical to dark). */
+  }
 }
 
 *,
