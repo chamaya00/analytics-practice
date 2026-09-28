@@ -214,33 +214,77 @@
     margin-top: 2px;
   }
 
-  /* ---- first-order banner (#184) — replaces the old text-only panel on
-     the slide that used to open the carousel and now sits 4th of 7. Fixed
-     gradient in both themes, same "doesn't retheme because it holds its
-     own regardless of what's around it" reasoning as .ad-label's scrim. ---- */
+  /* ---- first-order banner (#184, revised after the driver's review on
+     PR #187) — replaces the old text-only panel on the slide that used to
+     open the carousel and now sits 4th of 7. Fixed gradient in both themes,
+     same "doesn't retheme because it holds its own regardless of what's
+     around it" reasoning as .ad-label's scrim. The first round's only
+     graphic was three 15%-opacity circle outlines, which the review found
+     wasn't load-bearing enough to read as a designed surface rather than a
+     tinted rectangle with decoration on top — this round replaces it with
+     one solid, nameable object (a coupon/ticket, notched edge, torn-stub
+     line) and moves the offer amount onto it, in dark ink at a
+     deliberately larger size than the rest of the claim. ---- */
 
   .carousel-banner {
     position: relative;
     height: 256px;
     padding: 0 var(--space-lg);
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: var(--space-md);
     overflow: hidden;
     background: linear-gradient(135deg, #6c3ce0 0%, #2f1861 100%);
   }
 
-  .carousel-banner-motif {
-    position: absolute;
-    right: -20px;
-    bottom: -20px;
-    width: 160px;
-    height: 160px;
-    pointer-events: none;
-  }
+  .carousel-banner-copy { min-width: 0; }
 
   .carousel-banner .carousel-claim { position: relative; color: #ffffff; }
   .carousel-banner .carousel-sub { position: relative; color: #ece4ff; }
+
+  /* DOM-first even though it paints last (right side): row-reverse puts
+     the ticket after the copy visually while keeping it first in source
+     order, so a screen reader meets the amount before "your first order" —
+     the same order the original, unsplit sentence read in. */
+  .carousel-banner-ticket {
+    position: relative;
+    flex: none;
+    width: 116px;
+    height: 104px;
+  }
+
+  .carousel-banner-ticket svg { display: block; width: 100%; height: 100%; }
+
+  .carousel-banner-ticket-amount {
+    position: absolute;
+    inset: 0;
+    left: 38%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 4px;
+    color: #2f1861;
+  }
+
+  .carousel-banner-ticket-value {
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.05;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .carousel-banner-ticket-off {
+    margin-top: 2px;
+    font-size: 0.625rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
 
   .carousel-dots {
     display: flex;
@@ -444,13 +488,25 @@
   <section class="carousel" aria-label="Promotions and ads" aria-roledescription="carousel">
     <div class="carousel-slide" aria-roledescription="slide" aria-label="4 of 7">
       <div class="carousel-banner">
-        <svg class="carousel-banner-motif" viewBox="0 0 160 160" fill="none" aria-hidden="true">
-          <circle cx="120" cy="90" r="46" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
-          <circle cx="145" cy="50" r="26" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
-          <circle cx="80" cy="140" r="20" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
-        </svg>
-        <span class="carousel-claim">$2 off your first order</span>
-        <span class="carousel-sub">Applied automatically at checkout</span>
+        <div class="carousel-banner-ticket">
+          <svg viewBox="0 0 116 104" aria-hidden="true">
+            <mask id="carousel-ticket-notch-sf-dark">
+              <rect x="0" y="0" width="116" height="104" fill="#ffffff"/>
+              <circle cx="8" cy="52" r="9" fill="#000000"/>
+              <circle cx="108" cy="52" r="9" fill="#000000"/>
+            </mask>
+            <path fill="#ffffff" mask="url(#carousel-ticket-notch-sf-dark)" d="M16,6 L100,6 A8,8 0 0 1 108,14 L108,90 A8,8 0 0 1 100,98 L16,98 A8,8 0 0 1 8,90 L8,14 A8,8 0 0 1 16,6 Z"/>
+            <line x1="44" y1="14" x2="44" y2="90" stroke="#2f1861" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>
+          </svg>
+          <span class="carousel-banner-ticket-amount">
+            <span class="carousel-banner-ticket-value">$2</span>
+            <span class="carousel-banner-ticket-off">off</span>
+          </span>
+        </div>
+        <div class="carousel-banner-copy">
+          <span class="carousel-claim">your first order</span>
+          <span class="carousel-sub">Applied automatically at checkout</span>
+        </div>
       </div>
       <button type="button" class="pause-btn" aria-label="Pause carousel">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>

@@ -23,6 +23,23 @@ the current state rather than kept as a history of two documents — the
 rendering pass actually found, but "Slide order," "Reduced motion," "Image
 budget," and "Contrast checked" now state the #184 outcome directly.
 
+**Revised again after the driver's review on PR #187.** The first #184 round
+kept the old panel's flat rectangle and added a two-stop gradient plus three
+15%-opacity circle outlines behind the text — the review found the circles
+"barely show" at phone size and aren't load-bearing (its own words: "cover
+the accent with your hand … still reads as a designed surface … the motif is
+decoration on top of that, not load-bearing"), so the slide was still
+text-on-a-tint underneath the gradient. It also found the offer amount ("$2
+off" / "10.000 ₫ off") set at the same size as the rest of the sentence, with
+nothing making it the reason the slide exists. "First-order banner," below,
+is rewritten for this round: the gradient and the fixed-chrome reasoning are
+unchanged (the review said to keep both), but the decorative circles are
+replaced by one solid, nameable coupon/ticket graphic, and the claim text is
+split so the offer amount sits on the ticket at a larger size than "your
+first order" beside it. The "no new display type size" rule (see "Promo
+carousel," below) is deliberately lifted for the amount only, per the
+review's own offer to do so — sized and reasoned in "First-order banner."
+
 ## Outcome, constraints, guesses (design-craft)
 
 **Outcome (fixed):** the home feed reads as a food-delivery app, not a
@@ -395,7 +412,7 @@ its own regardless of what's behind or around it doesn't retheme. I'm taking A.
   opposite of the one-accent discipline every other surface on this screen
   already holds to.
 
-**The design:**
+**The design (revised after the driver's review on PR #187):**
 
 - **Background.** `linear-gradient(135deg, #6c3ce0 0%, #2f1861 100%)` — fixed
   in both themes, the same "doesn't retheme, because it holds its own regardless
@@ -405,39 +422,79 @@ its own regardless of what's behind or around it doesn't retheme. I'm taking A.
   that only sits over unpredictable photo content. `#6c3ce0` is this app's own
   `--color-accent-a` at its light-theme value — the one accent already doing
   every highlight on this screen, not a new hue; `#2f1861` is a deeper shade of
-  the same violet, not a second color.
-- **Decorative motif.** Three overlapping circle outlines (a soft
-  "confetti"/bubble cluster), white at 15% opacity, `aria-hidden="true"`,
-  bottom-right, drawn as inline SVG per `docs/memory/designer.md`'s standing
-  "no unicode glyph, no DiceBear-style shared-id inline SVG" lessons — a
-  single, unshared `<svg>` with its own literal circles, no reused ids, no
-  external file. This is the one deliberate oddity on this slide: decoration
-  that carries no information at all, on a screen where everything else earns
-  its place by being legible content. Defended because it's confined to low
-  opacity behind the text (never competing with the claim or sub for contrast)
-  and it's the one thing that keeps a photo-less slide from reading as a
-  placeholder-shaped absence rather than a designed surface — covering it with
-  a hand, the panel goes back to being a flat rectangle with no ground.
-- **Text.** Unchanged content (`PROMO_BANNER_CLAIM[city]`, then "Applied
-  automatically at checkout") and unchanged type scale (`--font-size-body`
-  claim, `--font-size-muted` sub) — this document's own "nothing about slide
-  chrome invents a new display type size" rule (see "Promo carousel," above),
-  restated on purpose since a banner is exactly the kind of element that
-  tempts a bigger size instead of a better ground. Claim in white (`#ffffff`);
-  sub in a dimmer near-white (`#ece4ff`) so the bold-vs-muted hierarchy every
-  other slide gets from `--color-text`/`--color-text-muted` survives even
-  though both now sit on a colored ground instead of the page's own surface.
+  the same violet, not a second color. Kept unchanged from the first round —
+  the review's complaint was the graphic sitting on it, not the gradient
+  itself.
+- **The ticket.** A solid white coupon/ticket, 116×104, right-aligned in the
+  panel (roughly its right third): a rounded rectangle with a semicircular
+  notch cut into its left and right edges and a dashed vertical "tear" line
+  set back from the left notch, the standard coupon silhouette — replacing
+  the first round's three 15%-opacity circle outlines, which the review found
+  wasn't a graphic a reviewer could name from the 375px PNG without reading
+  this document. Drawn as inline SVG: the rounded-rect body is one `<path>`,
+  the two notches are cut with an SVG `<mask>` (two black circles on a white
+  rect) rather than baked into the fill path, so the shape stays a single
+  clean fill no matter how the notch geometry changes later. The mask's `id`
+  is suffixed per mock file (`carousel-ticket-notch-sf-light`, etc.) — this
+  document's own standing lesson on shared-id inline SVGs (`docs/memory/designer.md`)
+  is about the same id appearing twice in one document and only the first
+  copy drawing; each of the four mocks here uses the pattern once, but the
+  suffix costs nothing and removes the risk if a slide is ever duplicated
+  within one file. White fill (`#ffffff`), not a tinted white, for maximum
+  legibility of the dark ink text sitting on it.
+- **The offer amount, on the ticket.** The claim's amount — `$2 off` (SF) /
+  `10.000 ₫ off` (HCMC), i.e. `PROMO_BANNER_CLAIM[city]` minus its own literal
+  `your first order` suffix — sits inside the ticket's main (right)
+  compartment, split onto two lines: the value (`$2` / `10.000 ₫`) at
+  `1rem`/800 weight, then `off` on its own line at `0.625rem`/800
+  weight/uppercase/0.06em tracking, both in `#2f1861` (the gradient's own
+  darker stop — reused ink, not a third color) on the ticket's white fill —
+  `./scripts/contrast '#2f1861' '#ffffff' 4.5` → **14.75**, see "Contrast
+  checked" below. This is the one place this document deliberately lifts its
+  own "nothing about slide chrome invents a new display type size" rule (see
+  "Promo carousel," above): that rule was written for photo-slide captions,
+  where the photo already carries the visual weight and the caption is
+  deliberately restrained; this slide has no photo, and the review asked
+  directly for the amount to be "the focal point" rather than body-size text
+  in a sentence. `1rem` is one step above `--font-size-body` (0.9375rem) —
+  enough to read as a distinct, larger figure next to "your first order"
+  without becoming a second, competing display size on a slide that still
+  has to sit quietly among six photo slides in the same rotation. Two-line
+  (value, then `off`) rather than one line, specifically because the HCMC
+  value is the long case (`10.000 ₫`, eight characters including the space) —
+  confirmed by rendering, not assumed: at `1rem` a single line overflowed the
+  ticket's right edge in the first render of this round, corrected by
+  widening the ticket (92px → 116px) and splitting the unit onto its own
+  line rather than shrinking the amount below a size worth calling a focal
+  point.
+- **"Your first order," beside the ticket.** The claim element keeps its
+  existing class, type scale (`--font-size-body`, white, 800 weight,
+  unchanged from every prior round), and DOM position — its text content
+  changes from the full sentence to `your first order` alone, since the
+  amount now lives on the ticket instead of at the front of this sentence.
+  The sub (`Applied automatically at checkout`, `--font-size-muted`,
+  `#ece4ff`) is completely unchanged.
+- **Reading order.** `.carousel-banner` is a flex row with
+  `flex-direction: row-reverse`: the ticket is first in DOM order (so a
+  screen reader meets the amount before "your first order," reconstructing
+  the original sentence's order) but paints last, i.e. on the right, which
+  is where every other visual cue on this slide (and the row-reverse
+  convention itself) puts the emphasis element. Only the ticket's decorative
+  `<svg>` carries `aria-hidden="true"` — the amount text itself is ordinary,
+  readable content, not hidden decoration duplicated elsewhere; nothing on
+  this slide repeats the same text twice for sighted and assistive users.
 - **Layout.** The panel fills the slide's full 256px height (200px
   photo-equivalent + 56px caption-equivalent — see "Promo carousel"'s own
   arithmetic above) as one element, not photo-plus-separate-caption-strip:
-  claim and sub left-aligned with `--space-lg` (20px) padding, vertically
-  centered, the motif behind them. The pause button keeps its existing
-  top-right scrim placement, photo or not — the control doesn't move based on
-  what slide type it's sitting on.
+  `display: flex; flex-direction: row-reverse; align-items: center; gap:
+  var(--space-md)` (14px), `--space-lg` (20px) padding each side. The pause
+  button keeps its existing top-right scrim placement, photo or not — the
+  control doesn't move based on what slide type it's sitting on.
 - **What doesn't change.** No "Ad" label (this isn't a paid placement — it's
   the site's own offer, same as today). Tapping this slide still goes nowhere
   (unchanged; see "Promo carousel," above). No `<img>`, so nothing here touches
-  "Image budget," below, beyond what the reordering itself already changes.
+  "Image budget," below, beyond what the reordering itself already changes —
+  the ticket is CSS/SVG, zero bytes, same as the panel it replaces.
 
 **Two-column tile grid**, replacing `.restaurant-list`'s vertical stack,
 same position (under the "Near you" heading):
@@ -548,6 +605,7 @@ edit would quietly under-count the budget.
 | First-order banner claim (white), both themes | banner gradient, darker stop `#2f1861` | 14.75 | `./scripts/contrast '#ffffff' '#2f1861' 4.5` |
 | First-order banner sub (`#ece4ff`), both themes | banner gradient, lighter stop `#6c3ce0` | 5.09 | `./scripts/contrast '#ece4ff' '#6c3ce0' 4.5` |
 | First-order banner sub (`#ece4ff`), both themes | banner gradient, darker stop `#2f1861` | 12.01 | `./scripts/contrast '#ece4ff' '#2f1861' 4.5` |
+| First-order banner ticket amount (`#2f1861`), both themes (revised, PR #187 review) | ticket fill (`#ffffff`) | 14.75 | `./scripts/contrast '#2f1861' '#ffffff' 4.5` |
 
 The banner's gradient is fixed across both themes (see "First-order banner,"
 above), so one pair of rows covers both — the same reasoning the Ad-label row
@@ -557,13 +615,17 @@ contrast is tightest; every point between the two stops sits at or above the
 lighter stop's own ratio, so checking both endpoints covers the whole gradient
 the same way the Ad-label row's own "scrim floor" reference does.
 
-Every pairing above is also already covered by `contrast.test.ts` — this
-table re-runs the same tokens in this component's own combinations rather
-than asserting a new one. The `Flash` badge (white on `--color-accent-a`)
-and the dots (`--color-border` inactive / `--color-accent-a` active, both
-non-text UI) are the same tokens already in that table too; nothing on the
-carousel or the tile introduces a token/background pairing outside the
-Ad-label/pause-icon scrim.
+Every pairing above except the last is also already covered by
+`contrast.test.ts` — this table re-runs the same tokens in this component's
+own combinations rather than asserting a new one. The `Flash` badge (white on
+`--color-accent-a`) and the dots (`--color-border` inactive /
+`--color-accent-a` active, both non-text UI) are the same tokens already in
+that table too. The ticket-amount row is the one new pairing this revision
+introduces — `#2f1861` (the gradient's own dark stop, already a value in this
+document, but not previously checked directly against white) on `#ffffff`
+(the ticket's own fill, new to this document) — and it is not yet in
+`contrast.test.ts`; the "For the engineer" section below asks for it to be
+added alongside the other assertions the carousel work is already touching.
 
 ## Motion, tap targets, and the accessibility floor
 
@@ -691,6 +753,61 @@ the first-order slide now live in the carousel:**
   in the dark mock — expected, and consistent with the rest of this
   document's reasoning for fixed chrome, rather than a new problem.
 
+*(This round's "kept the motif" finding is superseded by the next round,
+below — the driver's review on PR #187 read the same rendered motif as not
+load-bearing, and it's gone from the design.)*
+
+**Revision round (2026-09-28, PR #187 review), after replacing the motif with
+the ticket and re-rendering all eight PNGs again:**
+
+- **The thing the review actually asked for:** can a reviewer name the
+  graphic from the 375px PNG alone? Yes, in all four narrow renders — it
+  reads as a coupon or ticket immediately (the notched sides and the dashed
+  tear-line are doing that work), not as an abstract rounded shape. This is
+  the test the first round's motif failed and this round is built to pass.
+  Cross-checked against the wide renders too: same read, more breathing room
+  around the shape.
+- **Is the amount the focal point?** In all eight renders, the eye lands on
+  the white ticket before the sentence beside it — solid white on saturated
+  violet is the highest-contrast thing on the slide, and the amount is the
+  largest text on it. Covering the ticket with a hand, "your first order"
+  alone reads as an incomplete sentence rather than a claim — which is
+  correct: the amount is now load-bearing for the sentence's meaning, not
+  merely decorative the way the old motif was for the ground.
+- **The HCMC case, specifically:** `10.000 ₫ off` was the long value this
+  round's own arithmetic was checking. First attempt at this shape (a
+  92px-wide ticket, the amount on one line) overflowed the ticket's right
+  edge in the very first render — caught by rendering, not by the
+  arithmetic, which is why this is written down rather than only fixed
+  silently. Widened the ticket to 116px and split the value from its `off`
+  label onto two lines; re-rendered, and `10.000 ₫` now sits inside the
+  ticket with visible margin on both sides in both the narrow and wide HCMC
+  renders, in both themes.
+- **Cover the accent with your hand (redone):** covering the gradient itself
+  (not the ticket), the slide keeps a white ticket with dark text floating on
+  nothing, which reads as broken rather than designed — unlike the first
+  round, the gradient is no longer optional background, it's what makes the
+  ticket read as sitting *on* something. This is a stronger dependency on the
+  gradient than the previous round had, and it's the correct one: the ground
+  is now doing real compositional work instead of being a tinted rectangle a
+  motif was patching.
+- **Blur test:** at a squint, the slide now reads as a violet block with one
+  bright rectangular highlight on the right — still one solid shape in the
+  carousel's rhythm (per the original "Recommendation: A" reasoning), with a
+  clearer focal point than the blurred first-round render had.
+- **What I considered removing:** the dashed tear-line inside the ticket. Kept
+  — without it, the notched rounded rectangle reads as a generic pill or a
+  loyalty-card shape rather than specifically a coupon; the tear-line is what
+  a reviewer's eye uses to name it "ticket" rather than "rounded rectangle
+  with two dents," per this round's first finding above.
+- **Reading order, checked by reading the DOM, not just looking at the
+  picture:** the panel's source order is ticket-amount, then "your first
+  order," then the sub — `row-reverse` only changes paint order, not DOM
+  order, so a screen reader still meets "$2 off," "your first order,"
+  "Applied automatically at checkout" in that sequence, matching the original
+  unsplit sentence. Confirmed by reading the markup in each of the four
+  mocks, not assumed from the CSS alone.
+
 ## For the engineer
 
 - `.tile-card` is a new class; `.restaurant-card` is untouched by this
@@ -727,16 +844,51 @@ the first-order slide now live in the carousel:**
   first-order slide, or that `prefers-reduced-motion` holds on the first-order
   slide) need to move to the new index deliberately, watched red before green,
   per house-rules.
-- **First-order banner.** `.carousel-slide-panel` (and its `-claim`/`-sub`
-  children, `home-dom.ts:266`-`:278`) gets the gradient background, the
-  inline decorative `<svg>`, and the two text colors specified in "First-order
-  banner," above — the element and its `data-testid`s stay, only its CSS
-  changes. `.carousel-slide-media--first-order`'s existing 56px-growth rule
+- **First-order banner.** `.carousel-slide-panel` (`home-dom.ts:266`-`:278`)
+  gets the gradient background and the row-reverse layout specified in
+  "First-order banner," above — the element and its own `data-testid` stay.
+  Its `-claim` child (`panelClaim`, `home-dom.ts:270`-`:272`) is no longer set
+  to the full `slide.claim` string: it now gets the sentence's tail only
+  (`your first order`), and the amount moves to a new sibling. This is a DOM
+  change, not just a CSS one — the review's ask (the amount visually distinct
+  from the rest of the sentence, at a size this document's rule wouldn't
+  otherwise allow) can't be done by styling a single text node in parts.
+  Concretely: add a `PROMO_BANNER_AMOUNT: Record<City, string>` constant next
+  to `PROMO_BANNER_CLAIM` (`home-dom.ts:33`-`:36`) — `{ sf: '$2 off', hcmc:
+  '10.000 ₫ off' }` — and keep `PROMO_BANNER_CLAIM` itself unchanged (other
+  code may still read the full sentence). In the panel-building branch
+  (`home-dom.ts:266`-`:278`), build, in this DOM order: (1) a `.carousel-slide-panel-ticket`
+  wrapper holding the decorative `<svg>` (`aria-hidden="true"` on the `<svg>`
+  itself, not the wrapper — the amount text must stay in the accessibility
+  tree) plus a `.carousel-slide-panel-amount` element split into a value span
+  (the amount minus its trailing `off`, e.g. `$2` / `10.000 ₫`) and an `off`
+  span; then (2) the existing `panelClaim` (textContent now `your first
+  order`) and `panelSub` inside their own wrapper. `panelClaim`'s own
+  `data-testid` (`carousel-panel-claim`) stays on that element; give the new
+  amount element its own testid (e.g. `carousel-panel-amount`) so a test can
+  assert it independently rather than string-matching a substring of the
+  claim. `home-dom.test.ts`'s existing assertion that `carousel-panel-claim`
+  equals the full claim sentence needs to move deliberately to the new
+  split (asserting the amount and the tail separately), watched red before
+  green, per house-rules — this is exactly the kind of test a revision has to
+  touch on purpose rather than loosen. The exact SVG markup, the mask-based
+  notch technique, and the two class names' CSS are in "First-order banner,"
+  above and the four mocks (`docs/design/137-home-feed-*.html`); copy the
+  `<path>`/`<mask>` values from there rather than redrawing them, and give
+  the mask a component-scoped id (e.g. `carousel-ticket-notch`) since,
+  unlike the mocks, only one instance of this slide ever exists in the DOM
+  at once.
+  `.carousel-slide-media--first-order`'s existing 56px-growth rule
   (`home-dom.ts:297`) is unaffected — the banner still needs the full 256px,
   same as before, just filled differently.
+- **Contrast test.** Add the new ticket-amount pairing (`#2f1861` on
+  `#ffffff`, 14.75:1) to `contrast.test.ts` alongside whatever assertions
+  this issue's other carousel changes already touch there — see "Contrast
+  checked," above, for why this one pairing isn't covered by an existing row.
 - **Image budget.** `image-budget.test.ts`'s first-paint test and its own
   comment need to say explicitly that the carousel's on-load slide is now
   `ad1`'s restaurant, and why that restaurant's `heroImage` is already inside
   the existing `slice(0, 4)` sum rather than a fifth image — see "Image
   budget," above, for the exact reasoning and the two source lines it depends
-  on (`restaurants.ts:50`/`:257`, `home-dom.ts:43`/`:51`).
+  on (`restaurants.ts:50`/`:257`, `home-dom.ts:43`/`:51`). Unaffected by this
+  round's banner rework: the ticket is still CSS/SVG, zero new bytes.
