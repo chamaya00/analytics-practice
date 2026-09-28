@@ -21,6 +21,7 @@ import {
   orderAgainLines,
   recordTrackerView,
   setRestaurantCart,
+  storeTip,
   submitDriverRating,
   submitRating,
   sweepVipLedger,
@@ -43,7 +44,7 @@ import { openRatingSheet, type RatingSheetOptions } from './rating-sheet-dom';
 import { openConfirmDialog } from './confirm-dialog-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
-import { currencyForCity, formatMoney, type City } from './money';
+import { currencyForCity, formatMoney, type City, type Currency } from './money';
 import { getStoredCity } from './location';
 import {
   EMPTY_VIP_LEDGER,
@@ -59,6 +60,84 @@ import { formatReviewCount } from './reviews';
 import { createVehicleIcon } from './vehicle-icon';
 import { formatHistoryDate } from './history-date';
 import { cartPath } from './cart-routes';
+import { readWalletEnvConfig, type WalletEnvConfig } from './wallet-config';
+import { probeWalletGate } from './wallet-gate';
+import {
+  createSupabaseAuth,
+  completeOAuthReturn,
+  getCurrentSession,
+  isOAuthReturn,
+  stripOAuthParams,
+  beginSignIn,
+  type SupabaseAuthLike,
+  type WalletSession,
+  type OAuthProvider,
+} from './auth-client';
+import { getWallet, claimDrip, tipWallet, type WalletBalances } from './wallet-client';
+import { formatNextDripHeadline } from './wallet-dom';
+import { WALLET_BALANCE_CHANGED_EVENT } from './wallet-events';
+import { renderSignInPrompt } from './sign-in-prompt-dom';
+
+/** #162's fixed tip presets, integer minor units — `wallet_tip` (#164)
+ * accepts exactly these six values and nothing else. The order's own
+ * currency picks the row, never the city picker (docs/design/162-*,
+ * "Tips"). */
+const TIP_PRESETS_MINOR: Record<Currency, number[]> = {
+  USD: [100, 200, 300],
+  VND: [10000, 20000, 30000],
+};
+
+/** The drip's own fixed amounts (ADR 0008) — used only for the tip panel's
+ * short-balance copy, the same constant checkout-dom.ts keeps for its own
+ * short-balance block. */
+const DRIP_MINOR: Record<Currency, number> = { USD: 500, VND: 100000 };
+
+type TrackerWalletState =
+  | { kind: 'dark' }
+  | { kind: 'signed-out'; auth: SupabaseAuthLike; providers: { google: boolean; apple: boolean } }
+  | { kind: 'signed-in'; auth: SupabaseAuthLike; session: WalletSession; balances: WalletBalances };
+
+export interface TrackerWalletDeps {
+  /** Injected in tests so no real config, network or `@supabase/supabase-js` client is ever touched. `undefined` (the default) reads the real env; pass `null` explicitly for "wallet off." */
+  config?: WalletEnvConfig | null;
+  createAuth?: (config: WalletEnvConfig) => Promise<SupabaseAuthLike>;
+  fetchImpl?: typeof fetch;
+  locationHref?: string;
+  /** Cleans the OAuth-return query params off the URL after completing the round trip. */
+  replaceUrl?: (next: string) => void;
+  /** Starts the OAuth redirect — a real `window.location.href = url` by default, injected in tests so nothing actually navigates. */
+  navigateToOAuth?: (url: string) => void;
+  sessionStorage?: Storage;
+}
+
+interface TipRowState {
+  walletState: TrackerWalletState;
+  panelOpen: boolean;
+  selectedPresetMinor: number | null;
+  sending: boolean;
+  errorMessage: string | null;
+  onToggle: (orderId: string) => void;
+  onSignIn: (orderId: string) => void;
+  onSelectPreset: (orderId: string, amountMinor: number) => void;
+  onSend: (orderId: string) => void;
+  onCancel: (orderId: string) => void;
+  onCollectDrip: () => void;
+}
+
+/** The middle preset, or the largest one the balance actually covers
+ * (docs/design/162-*, "The tip panel": "The middle preset is pre-selected,
+ * or the largest affordable one if the middle is over the balance") —
+ * falling back to the smallest preset when none is affordable, so the
+ * short-balance block always names a real shortfall rather than the largest
+ * possible one. */
+function pickInitialPresetMinor(presets: number[], balanceMinor: number): number {
+  const middle = presets[1];
+  if (middle <= balanceMinor) return middle;
+  for (let i = presets.length - 1; i >= 0; i--) {
+    if (presets[i] <= balanceMinor) return presets[i];
+  }
+  return presets[0];
+}
 
 // 105-tracker.html's own rail dot: a checkmark once a step is reached
 // (current or done), nothing inside it while still ahead. Reused for the
@@ -468,13 +547,197 @@ function renderRatedSummary(order: PlacedOrder): HTMLElement {
   return summary;
 }
 
-/** A past order — Rate (#163's sheet, at whichever step is unrated) and Order
- * again (#162's rule) alongside #147's read-only content; an empty slot is
- * left for #171's Tip control, which this issue does not build. */
+/** #143's short-balance block, redrawn for the tip panel (docs/design/162-*,
+ * "The tip panel": "Short balance" — same shape as checkout-dom.ts's own
+ * `renderShortBalance`, not shared with it since neither screen's version
+ * depends on the other's DOM). */
+function renderTipShortBlock(
+  currency: Currency,
+  balanceMinor: number,
+  selectedMinor: number,
+  balances: WalletBalances,
+  city: Restaurant['city'],
+  now: number,
+  onCollect: () => void,
+): HTMLElement {
+  const block = document.createElement('div');
+  block.className = 'tracker-tip-short';
+  block.setAttribute('data-testid', 'tracker-tip-short');
+  block.setAttribute('role', 'alert');
+
+  const shortfallMinor = selectedMinor - balanceMinor;
+  const lead = document.createElement('p');
+  lead.className = 'tracker-tip-short-lead';
+  lead.setAttribute('data-testid', 'tracker-tip-short-shortfall');
+  lead.textContent = `${formatMoney(shortfallMinor, currency)} short`;
+  block.append(lead);
+
+  const dripMinor = DRIP_MINOR[currency];
+  const drip = document.createElement('p');
+  if (!balances.claimedThisWindow) {
+    drip.textContent = `Today's drip adds ${formatMoney(dripMinor, currency)}.`;
+    block.append(drip);
+
+    const collect = document.createElement('button');
+    collect.type = 'button';
+    collect.setAttribute('data-testid', 'tracker-tip-short-collect');
+    collect.textContent = 'Collect';
+    collect.addEventListener('click', onCollect);
+    block.append(collect);
+  } else {
+    drip.textContent = `${formatNextDripHeadline(balances.nextWindowStart, city, now)} adds ${formatMoney(dripMinor, currency)}.`;
+    block.append(drip);
+  }
+
+  const smaller = document.createElement('p');
+  smaller.textContent = 'Or pick a smaller tip.';
+  block.append(smaller);
+
+  return block;
+}
+
+/** The tip slot's one control (docs/design/162-*, "History rows": "The tip
+ * slot, exactly one of ...") and, when the panel is open, the block that
+ * mounts under the row rather than inside the slot itself — the mocks draw
+ * the open panel as a sibling of the action strip, never squeezed into one
+ * flex item. `tipMinor` already stored outranks every wallet-state check:
+ * it's a fact about the order, not the gate, and D1 only hides controls that
+ * would make a request. */
+function renderTipControl(
+  order: PlacedOrder,
+  tip: TipRowState,
+  city: Restaurant['city'],
+  now: number,
+): { slotContent: HTMLElement | null; underRow: HTMLElement | null } {
+  if (order.tipMinor !== null) {
+    const tipped = document.createElement('span');
+    tipped.className = 'tracker-history-tipped';
+    tipped.setAttribute('data-testid', 'tracker-history-tipped');
+    tipped.innerHTML = CHECK_ICON;
+    tipped.append(`Tipped ${formatMoney(order.tipMinor, order.currency)}`);
+    return { slotContent: tipped, underRow: null };
+  }
+
+  if (tip.walletState.kind === 'dark') {
+    // D1: absent, not disabled — no button, no note, nothing under the row.
+    return { slotContent: null, underRow: null };
+  }
+
+  if (!order.walletPaid) {
+    const note = document.createElement('p');
+    note.className = 'tracker-history-tip-note';
+    note.setAttribute('data-testid', 'tracker-history-tip-note');
+    note.textContent = "Placed without the wallet, so it can't take a tip.";
+    return { slotContent: null, underRow: note };
+  }
+
+  if (tip.walletState.kind === 'signed-out') {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tracker-action-button tracker-action-secondary';
+    button.setAttribute('data-testid', 'tracker-history-tip-signin');
+    button.textContent = 'Sign in to tip';
+    button.addEventListener('click', () => tip.onSignIn(order.orderId));
+    return { slotContent: button, underRow: null };
+  }
+
+  if (!tip.panelOpen) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tracker-action-button tracker-action-secondary';
+    button.setAttribute('data-testid', 'tracker-history-tip');
+    button.textContent = 'Tip';
+    button.addEventListener('click', () => tip.onToggle(order.orderId));
+    return { slotContent: button, underRow: null };
+  }
+
+  const balances = tip.walletState.balances;
+  const balanceMinor = order.currency === 'USD' ? balances.usdMinor : balances.vndMinor;
+  const presets = TIP_PRESETS_MINOR[order.currency];
+  const selectedMinor = tip.selectedPresetMinor ?? pickInitialPresetMinor(presets, balanceMinor);
+  const isShort = selectedMinor > balanceMinor;
+
+  const panel = document.createElement('div');
+  panel.className = 'tracker-tip-panel';
+  panel.setAttribute('data-testid', 'tracker-tip-panel');
+
+  const label = document.createElement('div');
+  label.className = 'tracker-tip-panel-label';
+  label.append(`Tip ${order.driver.name} `);
+  const balanceNote = document.createElement('span');
+  balanceNote.textContent = `From your wallet · ${formatMoney(balanceMinor, order.currency)}`;
+  label.append(balanceNote);
+  panel.append(label);
+
+  const presetsRow = document.createElement('div');
+  presetsRow.className = 'tracker-tip-presets';
+  presetsRow.setAttribute('role', 'radiogroup');
+  presetsRow.setAttribute('aria-label', 'Tip amount');
+  for (const amountMinor of presets) {
+    const presetButton = document.createElement('button');
+    presetButton.type = 'button';
+    presetButton.className = 'tracker-tip-preset';
+    const over = amountMinor > balanceMinor;
+    const selected = amountMinor === selectedMinor;
+    presetButton.classList.toggle('tracker-tip-preset--over', over);
+    presetButton.classList.toggle('selected', selected);
+    presetButton.setAttribute('aria-pressed', String(selected));
+    if (over) presetButton.setAttribute('aria-disabled', 'true');
+    presetButton.textContent = formatMoney(amountMinor, order.currency);
+    presetButton.addEventListener('click', () => tip.onSelectPreset(order.orderId, amountMinor));
+    presetsRow.append(presetButton);
+  }
+  panel.append(presetsRow);
+
+  if (isShort) {
+    panel.append(renderTipShortBlock(order.currency, balanceMinor, selectedMinor, balances, city, now, tip.onCollectDrip));
+  }
+
+  if (tip.errorMessage) {
+    const error = document.createElement('p');
+    error.setAttribute('role', 'status');
+    error.setAttribute('data-testid', 'tracker-tip-error');
+    error.textContent = tip.errorMessage;
+    panel.append(error);
+  }
+
+  const panelActions = document.createElement('div');
+  panelActions.className = 'tracker-tip-panel-actions';
+
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'tracker-action-button tracker-tip-cancel';
+  cancel.setAttribute('data-testid', 'tracker-tip-cancel');
+  cancel.textContent = 'Cancel';
+  cancel.addEventListener('click', () => tip.onCancel(order.orderId));
+
+  const send = document.createElement('button');
+  send.type = 'button';
+  send.className = 'tracker-action-button tracker-action-primary tracker-tip-send';
+  send.setAttribute('data-testid', 'tracker-tip-send');
+  send.textContent = tip.sending ? 'Sending…' : `Send ${formatMoney(selectedMinor, order.currency)} tip`;
+  send.disabled = tip.sending;
+  if (isShort) send.setAttribute('aria-disabled', 'true');
+  send.addEventListener('click', () => {
+    if (isShort || tip.sending) return;
+    tip.onSend(order.orderId);
+  });
+
+  panelActions.append(cancel, send);
+  panel.append(panelActions);
+
+  return { slotContent: null, underRow: panel };
+}
+
+/** A past order — Rate (#163's sheet, at whichever step is unrated), the tip
+ * control (#171, docs/design/162-*, "Tips"/"History rows") and Order again
+ * (#162's rule) alongside #147's read-only content. */
 function renderHistoryRow(
   order: PlacedOrder,
   onRate: (orderId: string) => void,
   onOrderAgain: (order: PlacedOrder, restaurant: Restaurant) => void,
+  tip: TipRowState,
+  now: number,
 ): HTMLElement {
   const restaurant = getRestaurant(order.items[0]?.restaurantSlug ?? '');
   const li = document.createElement('li');
@@ -533,11 +796,15 @@ function renderHistoryRow(
     actions.append(rate);
   }
 
-  // #171's Tip control mounts here — deliberately empty until that issue
-  // ships (this issue's driver brief: "leave a clear spot on the row").
+  // #171's Tip control (docs/design/162-*, "History rows": "The tip slot,
+  // exactly one of ...") — the interactive control, if any, mounts in this
+  // flex item; the open panel or the D14 note (`underRow`) mounts as its own
+  // full-width sibling below the strip instead, matching the mocks.
   const tipSlot = document.createElement('div');
   tipSlot.className = 'tracker-history-tip-slot';
   tipSlot.setAttribute('data-testid', 'tracker-history-tip-slot');
+  const { slotContent, underRow } = renderTipControl(order, tip, restaurant?.city ?? 'sf', now);
+  if (slotContent) tipSlot.append(slotContent);
   actions.append(tipSlot);
 
   if (restaurant) {
@@ -551,6 +818,7 @@ function renderHistoryRow(
   }
 
   li.append(mid, right, actions);
+  if (underRow) li.append(underRow);
   return li;
 }
 
@@ -669,6 +937,19 @@ export function renderTrackerView(
   now: number = Date.now(),
   vipLedger: VipLedger = EMPTY_VIP_LEDGER,
   currentCity: City = 'sf',
+  tipRowStateFor: (order: PlacedOrder) => TipRowState = () => ({
+    walletState: { kind: 'dark' },
+    panelOpen: false,
+    selectedPresetMinor: null,
+    sending: false,
+    errorMessage: null,
+    onToggle: () => {},
+    onSignIn: () => {},
+    onSelectPreset: () => {},
+    onSend: () => {},
+    onCancel: () => {},
+    onCollectDrip: () => {},
+  }),
 ): void {
   root.innerHTML = '';
 
@@ -732,7 +1013,7 @@ export function renderTrackerView(
     list.className = 'tracker-history';
     list.setAttribute('data-testid', 'tracker-history');
     for (const order of stack.past) {
-      list.append(renderHistoryRow(order, onRate, onOrderAgainFromHistory));
+      list.append(renderHistoryRow(order, onRate, onOrderAgainFromHistory, tipRowStateFor(order), now));
     }
     const note = document.createElement('p');
     note.className = 'tracker-device-note';
@@ -750,6 +1031,7 @@ export function initTrackerPage(
   navigate: (path: string) => void = (path) => {
     window.location.href = path;
   },
+  walletDeps: TrackerWalletDeps = {},
 ): () => void {
   // Arriving from Order placed opens the order just placed (#147, "Order
   // stack rules"; order-placed-dom.ts's track link is `/tracker/#order-
@@ -801,7 +1083,238 @@ export function initTrackerPage(
       Date.now(),
       vipLedger,
       getStoredCity(storage) ?? 'sf',
+      tipRowStateFor,
     );
+  }
+
+  // --- Tip wallet plumbing (#171; docs/design/162-*, "Tips") ---
+  //
+  // D1, restated: absent config, a gate probe that fails or times out, and
+  // `wallet_get` failing for a real session all resolve to `dark` — every
+  // one of them the exact posture checkout-dom.ts's own wallet resolution
+  // takes, redrawn here rather than shared with it (neither screen's own
+  // DOM depends on the other's). `walletState` starts `null` (still
+  // resolving) and `tipRowStateFor` reads that as dark too, so the very
+  // first render — before the gate has ever answered — shows no tip control
+  // rather than guessing live.
+  const tipSessionStorage = walletDeps.sessionStorage ?? window.sessionStorage;
+  const PENDING_TIP_ORDER_KEY = 'parody.pendingTipOrderId';
+
+  function readPendingTipOrderId(): string | null {
+    return tipSessionStorage.getItem(PENDING_TIP_ORDER_KEY);
+  }
+  function writePendingTipOrderId(orderId: string): void {
+    tipSessionStorage.setItem(PENDING_TIP_ORDER_KEY, orderId);
+  }
+  function clearPendingTipOrderId(): void {
+    tipSessionStorage.removeItem(PENDING_TIP_ORDER_KEY);
+  }
+
+  let walletConfig: WalletEnvConfig | null = null;
+  let walletState: TrackerWalletState | null = null;
+  const openTipPanels = new Set<string>();
+  const tipSelectedPreset = new Map<string, number>();
+  const tipSending = new Set<string>();
+  const tipErrors = new Map<string, string>();
+  let signInPromptHandle: { close: () => void; element: HTMLElement } | null = null;
+
+  function walletNavigate(url: string): void {
+    if (walletDeps.navigateToOAuth) walletDeps.navigateToOAuth(url);
+    else window.location.href = url;
+  }
+
+  async function resolveWalletState(config: WalletEnvConfig): Promise<TrackerWalletState> {
+    const createAuth = walletDeps.createAuth ?? createSupabaseAuth;
+    const fetchImpl = walletDeps.fetchImpl;
+
+    const gate = await probeWalletGate(config, fetchImpl);
+    if (!gate.ready) return { kind: 'dark' };
+
+    let auth: SupabaseAuthLike;
+    try {
+      auth = await createAuth(config);
+    } catch {
+      return { kind: 'dark' };
+    }
+
+    const url = new URL(walletDeps.locationHref ?? window.location.href);
+    let session: WalletSession | null;
+    if (isOAuthReturn(url)) {
+      const result = await completeOAuthReturn(auth, url);
+      session = result.session;
+      const replaceUrl = walletDeps.replaceUrl ?? ((next: string) => window.history.replaceState({}, '', next));
+      replaceUrl(stripOAuthParams(url).toString());
+      // #162's "Returning from OAuth lands on /tracker/ with that row's tip
+      // panel open" — the order id was stashed before the redirect started
+      // (`handleTipProviderTap`), the same `sessionStorage`-across-navigation
+      // pattern checkout-dom.ts's own pending order uses.
+      if (session) {
+        const pendingOrderId = readPendingTipOrderId();
+        if (pendingOrderId) openTipPanels.add(pendingOrderId);
+      }
+      clearPendingTipOrderId();
+    } else {
+      session = await getCurrentSession(auth);
+    }
+
+    if (!session) return { kind: 'signed-out', auth, providers: gate.providers };
+
+    const balances = await getWallet({ url: config.url, publishableKey: config.publishableKey, accessToken: session.accessToken, fetchImpl });
+    if (!balances) return { kind: 'dark' };
+
+    return { kind: 'signed-in', auth, session, balances };
+  }
+
+  function handleTipSignIn(orderId: string): void {
+    if (!walletState || walletState.kind !== 'signed-out' || signInPromptHandle) return;
+    signInPromptHandle = renderSignInPrompt(
+      walletState.providers,
+      (provider) => void handleTipProviderTap(provider, orderId),
+      () => {
+        signInPromptHandle = null;
+      },
+      { heading: 'Sign in to tip' },
+    );
+    (root.parentElement ?? root).append(signInPromptHandle.element);
+    signInPromptHandle.element.querySelector<HTMLElement>('.sheet')?.focus();
+  }
+
+  async function handleTipProviderTap(provider: OAuthProvider, orderId: string): Promise<void> {
+    const signedOut = walletState;
+    if (!signedOut || signedOut.kind !== 'signed-out') return;
+    writePendingTipOrderId(orderId);
+    const currentHref = walletDeps.locationHref ?? window.location.href;
+    const started = await beginSignIn(signedOut.auth, provider, currentHref, walletNavigate);
+    if (!started) signInPromptHandle?.close();
+  }
+
+  async function handleCollectTipDrip(): Promise<void> {
+    const signedIn = walletState;
+    if (!signedIn || signedIn.kind !== 'signed-in') return;
+    const result = await claimDrip({
+      url: walletConfig!.url,
+      publishableKey: walletConfig!.publishableKey,
+      accessToken: signedIn.session.accessToken,
+      fetchImpl: walletDeps.fetchImpl,
+    });
+    if (!result) return; // best-effort, matches wallet-dom.ts's own claim-failed posture: the block simply stays as it was.
+    const updatedBalances: WalletBalances = {
+      usdMinor: result.usdMinor,
+      vndMinor: result.vndMinor,
+      windowStart: signedIn.balances.windowStart,
+      nextWindowStart: result.nextWindowStart,
+      claimedThisWindow: true,
+    };
+    walletState = { ...signedIn, balances: updatedBalances };
+    document.dispatchEvent(new CustomEvent(WALLET_BALANCE_CHANGED_EVENT, { detail: { usdMinor: result.usdMinor, vndMinor: result.vndMinor } }));
+    render();
+  }
+
+  /** `wallet_tip` (#164), idempotent per `order_id` — the guard against a
+   * double-tap sending two calls is `tipSending` itself, checked before the
+   * request starts and before the amount is even read, not just the button's
+   * own `disabled` (docs/design/162-*, "Send": "a double tap sends one
+   * call"). */
+  async function handleSendTip(orderId: string): Promise<void> {
+    if (tipSending.has(orderId)) return;
+    const signedIn = walletState;
+    if (!signedIn || signedIn.kind !== 'signed-in') return;
+    const target = findOrder(storage, orderId);
+    if (!target) return;
+
+    const presets = TIP_PRESETS_MINOR[target.currency];
+    const balanceMinor = target.currency === 'USD' ? signedIn.balances.usdMinor : signedIn.balances.vndMinor;
+    const amountMinor = tipSelectedPreset.get(orderId) ?? pickInitialPresetMinor(presets, balanceMinor);
+    if (amountMinor > balanceMinor) return; // short balance — Send is aria-disabled; this guards a stale-click race.
+
+    tipSending.add(orderId);
+    tipErrors.delete(orderId);
+    render();
+
+    const result = await tipWallet({
+      url: walletConfig!.url,
+      publishableKey: walletConfig!.publishableKey,
+      accessToken: signedIn.session.accessToken,
+      fetchImpl: walletDeps.fetchImpl,
+      orderId,
+      amountMinor,
+    });
+
+    tipSending.delete(orderId);
+
+    if (result.kind === 'unreachable') {
+      tipErrors.set(orderId, "Couldn't send the tip. Nothing was taken. Try again.");
+      render();
+      return;
+    }
+    if (result.kind === 'blocked') {
+      // D14 collapse (docs/design/162-*, "Send": "Refused ... collapse to
+      // the D14 note") — no debit row for this account, nothing stored.
+      openTipPanels.delete(orderId);
+      tipSelectedPreset.delete(orderId);
+      render();
+      return;
+    }
+
+    const updatedBalances: WalletBalances = { ...signedIn.balances, usdMinor: result.usdMinor, vndMinor: result.vndMinor };
+    walletState = { ...signedIn, balances: updatedBalances };
+
+    if (result.status === 'insufficient') {
+      // #162's "Short balance": nothing stored, the panel stays open and
+      // re-renders against the refreshed balance.
+      render();
+      return;
+    }
+
+    // 'tipped' or 'already_tipped' — the RPC's own echoed amount, not
+    // necessarily the preset this tap sent (docs/design/162-* on
+    // `storeTip`).
+    storeTip(storage, orderId, result.amountMinor);
+    openTipPanels.delete(orderId);
+    tipSelectedPreset.delete(orderId);
+    document.dispatchEvent(new CustomEvent(WALLET_BALANCE_CHANGED_EVENT, { detail: { usdMinor: result.usdMinor, vndMinor: result.vndMinor } }));
+    render();
+  }
+
+  function tipRowStateFor(order: PlacedOrder): TipRowState {
+    return {
+      walletState: walletState ?? { kind: 'dark' },
+      panelOpen: openTipPanels.has(order.orderId),
+      selectedPresetMinor: tipSelectedPreset.get(order.orderId) ?? null,
+      sending: tipSending.has(order.orderId),
+      errorMessage: tipErrors.get(order.orderId) ?? null,
+      onToggle: (orderId) => {
+        if (openTipPanels.has(orderId)) openTipPanels.delete(orderId);
+        else openTipPanels.add(orderId);
+        render();
+      },
+      onSignIn: handleTipSignIn,
+      onSelectPreset: (orderId, amountMinor) => {
+        tipSelectedPreset.set(orderId, amountMinor);
+        render();
+      },
+      onSend: (orderId) => void handleSendTip(orderId),
+      onCancel: (orderId) => {
+        openTipPanels.delete(orderId);
+        tipSelectedPreset.delete(orderId);
+        tipErrors.delete(orderId);
+        render();
+      },
+      onCollectDrip: () => void handleCollectTipDrip(),
+    };
+  }
+
+  // AC1: a config that isn't there makes no request at all — `walletState`
+  // resolves to `dark` synchronously, the same "no `await` in the way" rule
+  // #149's checkout wallet gate follows.
+  walletConfig = walletDeps.config === undefined ? readWalletEnvConfig() : walletDeps.config;
+  if (walletConfig) {
+    void resolveWalletState(walletConfig).then((resolved) => {
+      walletState = resolved;
+      render();
+    });
+  } else {
+    walletState = { kind: 'dark' };
   }
 
   // #163's multi-order rule (docs/design/162-*, "Two orders landing together"
