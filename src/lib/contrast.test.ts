@@ -128,3 +128,28 @@ describe('thanks-voucher ticket: text on tint, the win\'s reward-slot card (#166
     expect(contrastRatio(DARK_TEXT, DARK_TINT)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('VIP level fills: full ink only, never muted text (#174, docs/design/162-*, "Contrast")', () => {
+  const LIGHT_GOLD = '#f3d27a';
+  const LIGHT_GOLD_INK = '#241b33';
+  const DARK_GOLD = '#e0b95a';
+  const DARK_GOLD_INK = '#16101f';
+  const LIGHT_PLATINUM = '#d9d3ea';
+  const LIGHT_PLATINUM_INK = '#241b33';
+  const DARK_PLATINUM = '#cbc3e3';
+  const DARK_PLATINUM_INK = '#16101f';
+
+  it('gold ink on the gold fill clears 4.5:1 in both themes ("Free delivery"/"Gold" pills, the VIP stamp)', () => {
+    expect(contrastRatio(LIGHT_GOLD_INK, LIGHT_GOLD)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(DARK_GOLD_INK, DARK_GOLD)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('platinum ink on the platinum fill clears 4.5:1 in both themes ("Platinum" pill)', () => {
+    expect(contrastRatio(LIGHT_PLATINUM_INK, LIGHT_PLATINUM)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(DARK_PLATINUM_INK, DARK_PLATINUM)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the one failure the design doc found and designed out: muted text on the gold fill misses 4.5:1', () => {
+    expect(contrastRatio(LIGHT_TEXT_MUTED, LIGHT_GOLD)).toBeLessThan(4.5);
+  });
+});

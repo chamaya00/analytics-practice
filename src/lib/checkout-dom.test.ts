@@ -3,8 +3,9 @@ import { initCheckoutPage, type CheckoutWalletDeps } from './checkout-dom';
 import { setFlashDraw } from './flash-deal';
 import { addToCart, getCart, getLatestOrder, getVisitorId } from './order-store';
 import { estimateEtaMinutes } from './eta';
-import { resetTrack, setTrack } from './tracking';
+import { isValidEventProps, resetTrack, setTrack } from './tracking';
 import { getThanksVoucher, unlockThanksVoucher } from './thanks-voucher';
+import { writeVipLedger, type VipLedger } from './vip-level';
 import type { SupabaseAuthLike } from './auth-client';
 
 // North Beach Pizzeria's own deliveryFeeMinor (restaurants.ts) is 299 — the
@@ -346,6 +347,96 @@ describe('initCheckoutPage — the thanks voucher (#166)', () => {
     // Consumption never runs for a voucher that never applied.
     el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
     expect(getThanksVoucher(window.localStorage, 'sf', Date.now())).not.toBeNull();
+  });
+});
+
+describe('initCheckoutPage — VIP perks (AC2, #174)', () => {
+  beforeEach(() => {
+    addToCart(window.localStorage, LINE); // SF, $21.50 — auto-qualifies for sf-discount-t1 and the delivery voucher (sf-delivery-entry)
+  });
+
+  function goldLedger(): VipLedger {
+    return { v: 1, deliveredCount: 3, spendMinor: { USD: 0, VND: 0 }, level: 'gold' };
+  }
+
+  function platinumLedger(): VipLedger {
+    return { v: 1, deliveredCount: 3, spendMinor: { USD: 6000, VND: 0 }, level: 'platinum' };
+  }
+
+  it('Gold suppresses the auto-qualifying catalogue delivery voucher: the fee still zeroes, tagged [Gold], but the saving moves out of the catalogue-only figures', () => {
+    writeVipLedger(window.localStorage, goldLedger());
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const deliveryRow = el.querySelector('[data-testid="breakdown-delivery-fee"]');
+    expect(deliveryRow?.textContent).toContain('$2.99');
+    expect(deliveryRow?.textContent).toContain('Free');
+    expect(deliveryRow?.querySelector('[data-testid="breakdown-delivery-vip-tag"]')?.textContent).toBe('Gold');
+    expect(el.querySelector('[data-testid="breakdown-vip-platinum"]')).toBeNull();
+
+    const vipLine = el.querySelector('[data-testid="checkout-vip-line"]');
+    expect(vipLine?.textContent).toContain('Gold');
+    expect(vipLine?.textContent).toContain('free delivery is on this order');
+    expect(vipLine?.textContent).toContain('$60.00 more spend to Platinum');
+
+    // subtotal 21.50 + service 1.50 + delivery 0 (Gold) − discount 2.00 = 21.00 — the same total
+    // #87's own delivery-voucher worked example produced, since either mechanism waives the same fee.
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
+    // But "You saved" still folds Gold's own saving back in on the screen...
+    expect(el.querySelector('[data-testid="breakdown-saved"]')?.textContent).toContain('$4.99');
+  });
+
+  it('order_placed keeps applied_voucher_ids/saved_amount_minor catalogue-only when Gold suppresses the delivery voucher', () => {
+    writeVipLedger(window.localStorage, goldLedger());
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+
+    const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
+    // The delivery voucher never applies once Gold is active — only the discount is a catalogue voucher here.
+    expect(props.applied_voucher_ids).toEqual(['sf-discount-t1']);
+    expect(props.saved_amount_minor).toBe(200);
+    expect(isValidEventProps('order_placed', props)).toBe(true);
+  });
+
+  it('Platinum adds its own 10% row, on top of Gold\'s free delivery, and both stay out of the event', () => {
+    writeVipLedger(window.localStorage, platinumLedger());
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    const platinumRow = el.querySelector('[data-testid="breakdown-vip-platinum"]');
+    expect(platinumRow?.textContent).toContain('Platinum 10% off');
+    expect(platinumRow?.textContent).toContain('of $21.50');
+    expect(platinumRow?.textContent).toContain('$2.15');
+    expect(el.querySelector('[data-testid="breakdown-delivery-vip-tag"]')?.textContent).toBe('Platinum');
+
+    const vipLine = el.querySelector('[data-testid="checkout-vip-line"]');
+    expect(vipLine?.textContent).toContain('Platinum');
+    expect(vipLine?.textContent).toContain('free delivery and 10% off are on this order.');
+
+    // 21.50 + 0 (Gold) + 1.50 − 2.00 (discount) − 2.15 (Platinum) = 18.85
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$18.85');
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
+    expect(props.applied_voucher_ids).toEqual(['sf-discount-t1']);
+    expect(props.saved_amount_minor).toBe(200);
+    expect(isValidEventProps('order_placed', props)).toBe(true);
+    expect(getLatestOrder(window.localStorage)?.totalMinor).toBe(1885);
+  });
+
+  it('renders no VIP line and no perk at all with no level (the existing #87 baseline is unaffected)', () => {
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="checkout-vip-line"]')).toBeNull();
+    expect(el.querySelector('[data-testid="breakdown-delivery-vip-tag"]')).toBeNull();
+    expect(el.querySelector('[data-testid="breakdown-vip-platinum"]')).toBeNull();
   });
 });
 

@@ -28,10 +28,15 @@ import {
   selectRestaurantCart,
   setItemQuantity,
   submitRating,
+  sweepVipLedger,
   type PlacedOrder,
 } from './order-store';
 import { estimateEtaMinutes, ETA_MAX_MINUTES, ETA_MIN_MINUTES } from './eta';
 import { DRIVERS_BY_CITY } from './drivers';
+import { readVipLedger } from './vip-level';
+import { RESTAURANTS_BY_CITY } from './restaurants';
+import { catalogueForCity } from './vouchers';
+import { THANKS_VOUCHER_AMOUNT_MINOR, THANKS_VOUCHER_MINIMUM_SPEND_MINOR } from './thanks-voucher';
 
 const LINE = {
   itemId: 'one-job-pizza-margherita',
@@ -112,6 +117,9 @@ describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
       discountAmountMinor: 0,
       savedAmountMinor: 0,
       thanksVoucherAmountMinor: 0,
+      vipDeliveryWaived: false,
+      vipDeliverySavedMinor: 0,
+      vipPlatinumAmountMinor: 0,
       totalMinor: 2599,
       currency: 'USD',
     });
@@ -127,6 +135,9 @@ describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
       discountAmountMinor: 0,
       savedAmountMinor: 0,
       thanksVoucherAmountMinor: 0,
+      vipDeliveryWaived: false,
+      vipDeliverySavedMinor: 0,
+      vipPlatinumAmountMinor: 0,
       totalMinor: 285000,
       currency: 'VND',
     });
@@ -153,6 +164,9 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
       discountAmountMinor: 25000,
       savedAmountMinor: 40000,
       thanksVoucherAmountMinor: 0,
+      vipDeliveryWaived: false,
+      vipDeliverySavedMinor: 0,
+      vipPlatinumAmountMinor: 0,
       totalMinor: 245000,
       currency: 'VND',
     });
@@ -173,6 +187,9 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
       discountAmountMinor: 200,
       savedAmountMinor: 499,
       thanksVoucherAmountMinor: 0,
+      vipDeliveryWaived: false,
+      vipDeliverySavedMinor: 0,
+      vipPlatinumAmountMinor: 0,
       totalMinor: 2100,
       currency: 'USD',
     });
@@ -208,6 +225,9 @@ describe('computeCheckoutBreakdown — the thanks voucher (#166)', () => {
       discountAmountMinor: 25000,
       savedAmountMinor: 25000,
       thanksVoucherAmountMinor: 30000,
+      vipDeliveryWaived: false,
+      vipDeliverySavedMinor: 0,
+      vipPlatinumAmountMinor: 0,
       totalMinor: 230000,
       currency: 'VND',
     });
@@ -221,6 +241,153 @@ describe('computeCheckoutBreakdown — the thanks voucher (#166)', () => {
       flashDeliveryFeeMinor: null,
     });
     expect(breakdown!.thanksVoucherAmountMinor).toBe(0);
+  });
+});
+
+describe('computeCheckoutBreakdown — VIP perks (AC2, docs/design/162-*\'s worked checkout examples)', () => {
+  it('SF Platinum: subtotal $23.75, Discount −$2.00, Thanks voucher −$3.00, Platinum 10% −$2.37, Total $17.88', () => {
+    const lines = [{ ...LINE, amountMinor: 2375, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 199, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 200,
+      flashDeliveryFeeMinor: null,
+      thanksVoucherAmountMinor: 300,
+      vipGoldActive: true,
+      vipPlatinumActive: true,
+    });
+    expect(breakdown).toEqual({
+      subtotalMinor: 2375,
+      deliveryFeeMinor: 0,
+      deliveryFeeOriginalMinor: 199,
+      serviceFeeMinor: 150,
+      discountAmountMinor: 200,
+      savedAmountMinor: 200,
+      thanksVoucherAmountMinor: 300,
+      vipDeliveryWaived: true,
+      vipDeliverySavedMinor: 199,
+      vipPlatinumAmountMinor: 237,
+      totalMinor: 1788,
+      currency: 'USD',
+    });
+  });
+
+  it('HCMC Gold (no Platinum): subtotal 180.000 ₫, Discount −10.000 ₫, Thanks voucher −30.000 ₫, Total 160.000 ₫', () => {
+    const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: 180000, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 10000, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 10000,
+      flashDeliveryFeeMinor: null,
+      thanksVoucherAmountMinor: 30000,
+      vipGoldActive: true,
+      vipPlatinumActive: false,
+    });
+    expect(breakdown).toEqual({
+      subtotalMinor: 180000,
+      deliveryFeeMinor: 0,
+      deliveryFeeOriginalMinor: 10000,
+      serviceFeeMinor: 20000,
+      discountAmountMinor: 10000,
+      savedAmountMinor: 10000,
+      thanksVoucherAmountMinor: 30000,
+      vipDeliveryWaived: true,
+      vipDeliverySavedMinor: 10000,
+      vipPlatinumAmountMinor: 0,
+      totalMinor: 160000,
+      currency: 'VND',
+    });
+  });
+
+  it('Gold\'s free delivery is kept out of savedAmountMinor — the catalogue-only figure order_placed sends — and gets its own field instead', () => {
+    const lines = [{ ...LINE, amountMinor: 2150, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 299, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 0,
+      flashDeliveryFeeMinor: null,
+      vipGoldActive: true,
+    });
+    expect(breakdown!.deliveryFeeMinor).toBe(0);
+    expect(breakdown!.vipDeliveryWaived).toBe(true);
+    expect(breakdown!.vipDeliverySavedMinor).toBe(299);
+    expect(breakdown!.savedAmountMinor).toBe(0);
+  });
+
+  it('Platinum is 0 when not active, even with a nonzero subtotal', () => {
+    const lines = [{ ...LINE, amountMinor: 2375, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 199, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 0,
+      flashDeliveryFeeMinor: null,
+      vipGoldActive: true,
+      vipPlatinumActive: false,
+    });
+    expect(breakdown!.vipPlatinumAmountMinor).toBe(0);
+  });
+});
+
+describe("the debit floor, checked (AC2: never below wallet_debit's floor — supabase/migrations/20260927000000_wallet.sql's private.debit_floor_minor)", () => {
+  // 399 cents / 20.000 ₫ — supabase/migrations/20260927000000_wallet.sql.
+  const DEBIT_FLOOR_MINOR = { USD: 399, VND: 20000 };
+
+  function cheapestMenuItemAmountMinor(city: 'sf' | 'hcmc'): number {
+    return Math.min(
+      ...RESTAURANTS_BY_CITY[city].flatMap((restaurant) =>
+        restaurant.menu.flatMap((section) => section.items.map((item) => item.amountMinor)),
+      ),
+    );
+  }
+
+  it('SF: the cheapest item with every perk and no catalogue voucher qualifying is still at or above the floor', () => {
+    const lines = [{ ...LINE, amountMinor: cheapestMenuItemAmountMinor('sf'), quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 0, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 0,
+      flashDeliveryFeeMinor: null,
+      vipGoldActive: true,
+      vipPlatinumActive: true,
+    });
+    expect(breakdown!.totalMinor).toBeGreaterThanOrEqual(DEBIT_FLOOR_MINOR.USD);
+  });
+
+  it('HCMC: the cheapest item with every perk and no catalogue voucher qualifying is still at or above the floor', () => {
+    const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: cheapestMenuItemAmountMinor('hcmc'), quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 0, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 0,
+      flashDeliveryFeeMinor: null,
+      vipGoldActive: true,
+      vipPlatinumActive: true,
+    });
+    expect(breakdown!.totalMinor).toBeGreaterThanOrEqual(DEBIT_FLOOR_MINOR.VND);
+  });
+
+  it('SF: every perk, the largest applicable catalogue voucher, and the thanks voucher, stacked at the smallest qualifying subtotal, is still at or above the floor', () => {
+    const t3 = catalogueForCity('sf').find((entry) => entry.id === 'sf-discount-t3')!;
+    const subtotalMinor = Math.max(t3.minimumSpendMinor, THANKS_VOUCHER_MINIMUM_SPEND_MINOR.sf);
+    const lines = [{ ...LINE, amountMinor: subtotalMinor, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 0, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: t3.amountMinor!,
+      flashDeliveryFeeMinor: null,
+      thanksVoucherAmountMinor: THANKS_VOUCHER_AMOUNT_MINOR.sf,
+      vipGoldActive: true,
+      vipPlatinumActive: true,
+    });
+    expect(breakdown!.totalMinor).toBeGreaterThanOrEqual(DEBIT_FLOOR_MINOR.USD);
+  });
+
+  it('HCMC: every perk, the largest applicable catalogue voucher, and the thanks voucher, stacked at the smallest qualifying subtotal, is still at or above the floor', () => {
+    const t3 = catalogueForCity('hcmc').find((entry) => entry.id === 'hcmc-discount-t3')!;
+    const subtotalMinor = Math.max(t3.minimumSpendMinor, THANKS_VOUCHER_MINIMUM_SPEND_MINOR.hcmc);
+    const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: subtotalMinor, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 0, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: t3.amountMinor!,
+      flashDeliveryFeeMinor: null,
+      thanksVoucherAmountMinor: THANKS_VOUCHER_AMOUNT_MINOR.hcmc,
+      vipGoldActive: true,
+      vipPlatinumActive: true,
+    });
+    expect(breakdown!.totalMinor).toBeGreaterThanOrEqual(DEBIT_FLOOR_MINOR.VND);
   });
 });
 
@@ -784,6 +951,7 @@ describe('order history cap (AC5)', () => {
       ratingPromptedAt: null,
       walletPaid: false,
       thanksVoucherMinor: 0,
+      vipCounted: false,
       ...overrides,
     };
   }
@@ -970,5 +1138,103 @@ describe('minutesSinceOrder', () => {
     });
     const before = new Date(order.placedAt).getTime() - 60_000;
     expect(minutesSinceOrder(order, before)).toBe(0);
+  });
+});
+
+describe('sweepVipLedger (#174)', () => {
+  function seededOrder(overrides: Partial<PlacedOrder> & { orderId: string; placedAt: string }): PlacedOrder {
+    return {
+      etaMinutes: 15,
+      deliveryMs: 1000,
+      items: [{ ...LINE, quantity: 1 }],
+      itemCount: 1,
+      amountMinor: 1000,
+      totalMinor: 1000,
+      currency: 'USD',
+      driver: DRIVERS_BY_CITY.sf[0],
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 0,
+      deliveredEventFired: true,
+      rating: null,
+      driverRating: null,
+      ratingPromptedAt: null,
+      walletPaid: false,
+      thanksVoucherMinor: 0,
+      vipCounted: false,
+      ...overrides,
+    };
+  }
+
+  it('folds a delivered, uncounted order into the ledger and marks it vipCounted', () => {
+    const now = Date.now();
+    window.localStorage.setItem(
+      ORDERS_KEY,
+      JSON.stringify([seededOrder({ orderId: 'delivered-1', placedAt: new Date(now - 60_000).toISOString(), totalMinor: 500 })]),
+    );
+
+    const ledger = sweepVipLedger(window.localStorage, now);
+
+    expect(ledger.deliveredCount).toBe(1);
+    expect(ledger.spendMinor.USD).toBe(500);
+    expect(findOrder(window.localStorage, 'delivered-1')?.vipCounted).toBe(true);
+  });
+
+  it('never counts the same order twice', () => {
+    const now = Date.now();
+    window.localStorage.setItem(
+      ORDERS_KEY,
+      JSON.stringify([seededOrder({ orderId: 'delivered-1', placedAt: new Date(now - 60_000).toISOString(), totalMinor: 500 })]),
+    );
+
+    sweepVipLedger(window.localStorage, now);
+    const ledger = sweepVipLedger(window.localStorage, now);
+
+    expect(ledger.deliveredCount).toBe(1);
+  });
+
+  it('leaves an order not yet delivered uncounted', () => {
+    const now = Date.now();
+    window.localStorage.setItem(
+      ORDERS_KEY,
+      JSON.stringify([seededOrder({ orderId: 'still-live', placedAt: new Date(now).toISOString(), deliveryMs: 999_999_999 })]),
+    );
+
+    const ledger = sweepVipLedger(window.localStorage, now);
+
+    expect(ledger.deliveredCount).toBe(0);
+    expect(findOrder(window.localStorage, 'still-live')?.vipCounted).toBe(false);
+  });
+
+  it('runs inside placeOrder before capOrders, so 25 orders placed and evicted down to the cap never drop the tier or its progress (AC1)', () => {
+    const now = Date.now();
+    const orders: PlacedOrder[] = [];
+    for (let i = 0; i < 24; i++) {
+      orders.push(
+        seededOrder({
+          orderId: `vip-${i}`,
+          placedAt: new Date(now - (24 - i) * 60_000).toISOString(),
+          totalMinor: 100,
+        }),
+      );
+    }
+    window.localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+
+    addToCart(window.localStorage, LINE);
+    placeOrder(window.localStorage, { dropOffPreset: 'home', deliveryInstructions: 'hand_to_me', utensils: true });
+
+    const stored = getOrders(window.localStorage);
+    expect(stored).toHaveLength(ORDER_HISTORY_CAP);
+    expect(stored.map((order) => order.orderId)).not.toContain('vip-0');
+    expect(stored.map((order) => order.orderId)).not.toContain('vip-4');
+    expect(stored.map((order) => order.orderId)).toContain('vip-23');
+
+    const ledger = readVipLedger(window.localStorage);
+    expect(ledger.deliveredCount).toBe(24);
+    expect(ledger.spendMinor.USD).toBe(2400);
+    expect(ledger.level).toBe('gold');
   });
 });
