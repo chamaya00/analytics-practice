@@ -10,10 +10,11 @@
 // requestAnimationFrame loop throws on it after the assertions that reach it
 // have already run (docs/memory/engineer.md's #178 lesson).
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initTrackerPage } from './tracker-dom';
 import { openRatingSheet } from './rating-sheet-dom';
-import { addToCart, findOrder, ORDERS_KEY, placeOrder, type PlacedOrder } from './order-store';
+import { addToCart, findOrder, ORDERS_KEY, placeOrder, submitDriverRating, type PlacedOrder } from './order-store';
 import { RATING_TAGS, resetTrack, setTrack } from './tracking';
 import { getThanksVoucher, unlockThanksVoucher } from './thanks-voucher';
 
@@ -804,5 +805,78 @@ describe('initTrackerPage — the first rating step submitted unlocks the thanks
     // Same city, already held: this is the "topped up," not "unlocked," case.
     expect(document.querySelector('[data-testid="rating-sheet-reward-ticket"]')?.textContent).toContain('Topped up ·');
     expect(getThanksVoucher(window.localStorage, 'sf', Date.now())?.sourceOrderId).toBe(second.orderId);
+  });
+});
+
+describe('#238: driver_rating_submitted (AC1, AC3)', () => {
+  afterAll(closeEventStore);
+
+  function driverEvents(stub: ReturnType<typeof vi.fn>): unknown[] {
+    return stub.mock.calls.filter(([name]) => name === 'driver_rating_submitted').map(([, props]) => props);
+  }
+
+  function openAutoSheetFor(line: typeof LINE | typeof LINE_HCMC): PlacedOrder {
+    const order = placeOrderFor(line);
+    vi.setSystemTime(Date.now() + order.deliveryMs);
+    initTrackerPage(root(), window.localStorage);
+    vi.advanceTimersByTime(600);
+    return order;
+  }
+
+  it("the driver step's Next fires exactly order_id and stars, and the store keeps that object", async () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const order = openAutoSheetFor(LINE);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+
+    expect(driverEvents(stub)).toEqual([{ order_id: order.orderId, stars: 4 }]);
+    const [props] = driverEvents(stub);
+    vi.useRealTimers();
+    await expect(storeWhatTheClientSends('driver_rating_submitted', props as never)).resolves.toEqual(props);
+  });
+
+  it('Skip on the driver step fires nothing', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    openAutoSheetFor(LINE);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-skip"]')?.click();
+
+    expect(driverEvents(stub)).toEqual([]);
+  });
+
+  it('rating the driver, then re-rating from history, sends one event: the history sheet opens past the rated driver step', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const order = openAutoSheetFor(LINE);
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-4"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-close"]')?.click();
+
+    placeOrderFor(LINE_B); // a live order, so the rated one moves into history
+    const el = root();
+    initTrackerPage(el, window.localStorage);
+    el.querySelector<HTMLButtonElement>(`[data-order-id="${order.orderId}"] [data-testid="tracker-history-rate"]`)?.click();
+
+    expect(document.querySelector('[data-testid="rating-sheet"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="rating-sheet-step-label"]')?.textContent).toContain('Restaurant');
+    expect(document.querySelector('[data-testid="rating-sheet-driver-next"]')).toBeNull();
+    expect(driverEvents(stub)).toHaveLength(1);
+  });
+
+  it('a second driver submit for the same order (another tab rated it first) stores nothing and fires nothing', () => {
+    const stub = vi.fn();
+    setTrack(stub);
+    const order = openAutoSheetFor(LINE);
+    // Another tab's sheet has already stored the driver rating for this order.
+    expect(submitDriverRating(window.localStorage, order.orderId, 2)).not.toBeNull();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-star-5"]')?.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="rating-sheet-driver-next"]')?.click();
+
+    expect(driverEvents(stub)).toEqual([]);
+    expect(findOrder(window.localStorage, order.orderId)?.driverRating).toEqual({ stars: 2 });
   });
 });
