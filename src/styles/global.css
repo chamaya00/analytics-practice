@@ -199,3 +199,31 @@ main {
     padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-xl));
   }
 }
+
+/* #189's Delivered-hero landing animation (docs/design/162-*, "Delivered":
+   "As it lands while watched") — keyframes only, so this file's own check
+   (#189's acceptance criteria) has one place to grep. The rules that use
+   them, `.tracker-delivered-stamp--landing` and `.tracker-delivered-ring`,
+   live with the rest of the hero's CSS in BaseLayout.astro's global style
+   block instead, since tracker-dom.ts is a *-dom.ts module and Astro never
+   scopes a class a script creates at runtime (docs/memory/engineer.md) — the
+   keyframe name is global regardless of which loaded stylesheet declares it. */
+@keyframes tracker-stamp-press {
+  from {
+    transform: scale(1.4) rotate(-20deg);
+  }
+  to {
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+@keyframes tracker-delivered-ring-expand {
+  from {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}

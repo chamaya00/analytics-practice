@@ -2151,8 +2151,17 @@ const { title } = Astro.props;
     margin: var(--space-md) 0 var(--space-sm);
   }
 
-  .tracker-delivered-stamp {
+  /* #189: the flex item tracker-delivered-hero actually lays out — sized by
+     its stamp child (the ring below is position:absolute and so never
+     contributes to this box), and the positioning context the ring expands
+     against. */
+  .tracker-delivered-stamp-wrap {
+    position: relative;
     flex: none;
+  }
+
+  .tracker-delivered-stamp {
+    display: block;
     width: 76px;
     height: 76px;
     color: var(--color-accent-a);
@@ -2166,6 +2175,40 @@ const { title } = Astro.props;
   .tracker-delivered-stamp svg {
     width: 100%;
     height: 100%;
+  }
+
+  /* #189, "as it lands while watched" — the stamp presses in from 1.4×/−20°
+     to its resting 1×/−8° (the rule above), over 360ms. Added only the one
+     render this order's landing is watched (tracker-dom.ts's
+     `resolveDeliveredHeroAnimation`), so a later re-render's freshly built
+     stamp never carries it and never replays. */
+  .tracker-delivered-stamp--landing {
+    animation: tracker-stamp-press 360ms cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+
+  /* #189's ring, behind the stamp (docs/design/162-*, "Delivered": "a ring
+     expands behind it") — a negative z-index paints it below the stamp, an
+     in-flow, non-positioned sibling in the same stacking context, the same
+     relationship rating-sheet-confetti has to the win's own stamp. Only ever
+     added on the one render a landing is watched, and never under reduced
+     motion. `animation-fill-mode: forwards` holds its faded-out end state
+     rather than snapping back to its pre-animation opacity once the
+     animation completes. */
+  .tracker-delivered-ring {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 999px;
+    border: 2px solid var(--color-accent-a);
+    animation: tracker-delivered-ring-expand 500ms ease-out;
+    animation-fill-mode: forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tracker-delivered-stamp--landing,
+    .tracker-delivered-ring {
+      animation: none;
+    }
   }
 
   .tracker-delivered-headline {
