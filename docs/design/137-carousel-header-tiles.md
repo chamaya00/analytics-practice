@@ -55,6 +55,19 @@ only, no new class. Nothing else the review named as passing (the gradient,
 the ticket's notch/tear-line silhouette, the split itself, the four existing
 contrast rows) changed in this round.
 
+**Amended for #214 (parent #204).** #204's own research is merged: the ad
+slide's content source is a direct-sold static slot (`docs/research/204-ad-
+source.md`, PR #208) and its first creative is a self-made Coursera image
+(`docs/research/204-affiliate-partners.md`, PR #212). This round adds a new
+top-level section, "Paid ad slide (#214)," specifying which of the 7 slots
+carries it, its content shape, and its shown/fallback states, and edits
+"Slide order" (under "Content picked"), "Image budget," "Contrast checked,"
+and "Mocks" in place to describe the resulting current state rather than kept
+as history — same convention this document has used since the #184
+amendment. Nothing else in this document changes: the carousel's visual
+language, motion, and every other slide's content are untouched by this
+round.
+
 ## Outcome, constraints, guesses (design-craft)
 
 **Outcome (fixed):** the home feed reads as a food-delivery app, not a
@@ -78,6 +91,19 @@ settings list, on first paint at 375px, in both cities and both themes.
   `track()` calls, contract edits, or migrations here — CLAUDE.md's "event
   tracking comes last" rule, restated on #133 itself. Slide impressions and
   taps go unlogged until a readiness objective.
+- **For #214:** the ad source and its shape are fixed, not this document's to
+  pick again — a direct-sold static slot (one self-hosted image, one link
+  with `rel="sponsored noopener"`, an "Ad" label, no script, no cookie),
+  owner-approved on #207 (`docs/research/204-ad-source.md`, PR #208). The
+  first creative is a self-made, self-hosted Coursera image, ranked first for
+  both cities with no per-city variant (`docs/research/204-affiliate-
+  partners.md`, PR #212) — not yet supplied (owner step), which is exactly
+  why the fallback state below has to carry the slide until it is.
+  Both research documents agree the visual anatomy doesn't need to differ
+  from a catalogue `ad` slide (same "Ad" label, same photo-plus-caption
+  shape) — the difference is content and destination only, so this round
+  adds no new direction, palette, or component; "Paid ad slide (#214),"
+  below, reuses "Promo carousel"'s existing anatomy rather than inventing one.
 
 **Guesses I'm resolving, stated as guesses:**
 - **Slide order.** #133 doesn't specify one. I've alternated
@@ -227,16 +253,24 @@ unchanged: `PROMO_BANNER_CLAIM` in `home-dom.ts` (`$2 off your first order` /
 `10.000 ₫ off your first order`). It's no longer the slide the carousel opens
 on — see "Slide order," directly below.
 
-**Slide order (both cities), per #184:** ad 1 → promo 1 → ad 2 →
-**first-order** → promo 2 → ad 3 → promo 3 — the first-order slide is now the
-4th of 7, not the 1st. The six restaurant slides keep the exact relative
-order this document originally gave them (ad, promo, ad, promo, ad, promo);
-only the first-order slide's position within the full sequence moves, from
-index 0 to index 3. Confirmed against `CAROUSEL_RESTAURANT_SLIDES` in
-`src/lib/home-dom.ts` (`:41`-`:58`): its own six-entry array, unchanged by
-this document, already gives `ad, promo, ad, promo, ad, promo` per city — the
-engineer's work is to splice the first-order slide into the 4th position of
-the *combined* seven, not to reorder the six-entry constant itself.
+**Slide order (both cities), per #184, amended by #214:** **paid ad** → promo
+1 → ad 2 → first-order → promo 2 → ad 3 → promo 3 — position 1 of 7 (`ad1` in
+the two tables above) is now the paid ad slide specified in "Paid ad slide
+(#214)," below, not the second independent catalogue-restaurant ad slide it
+used to be. Every other slide keeps its #184 position: first-order is still
+4th of 7, and the remaining two ad slides (`ad2`, `ad3`) and all three promo
+slides are unmoved. `ad1`'s restaurant (Mission Taqueria / Bến Thành Bánh Mì)
+is not deleted from the table above or from `CAROUSEL_RESTAURANT_SLIDES` — it
+becomes the fallback content the paid slide falls back to when no creative is
+configured, or when the creative's image fails to load ("Both states," under
+"Paid ad slide (#214)," below). It no longer appears as an independent slide
+in the carousel while a creative is live, though it stays reachable in the
+tile grid beneath it, which this issue does not touch. Confirmed against
+`CAROUSEL_RESTAURANT_SLIDES` in `src/lib/home-dom.ts` (`:41`-`:58`, the array
+this document still leaves unchanged by name — the engineer's work is to
+change what fills the combined sequence's first slot, not to reorder or
+shrink this six-entry constant itself, since entry 0 is still read for the
+fallback).
 
 ## Composition
 
@@ -566,6 +600,148 @@ same position (under the "Near you" heading):
   `variant` argument or the tile gets its own render function; either is an
   implementation choice for the engineer, not this document's to make.
 
+## Paid ad slide (#214)
+
+**No new visual language.** Both merged research documents agree on this:
+`docs/research/204-ad-source.md` says the slide "won't visually or
+structurally need to differ from a catalogue ad slide, since both already
+carry the same 'Ad' label," and `docs/research/204-affiliate-partners.md`
+treats "the slot's shape and label" as already settled by that document. So
+this section specifies content and behaviour, and reuses "Promo carousel"'s
+existing anatomy above (the 200px `.carousel-slide-media` photo, the
+`.carousel-caption` strip, `.carousel-ad-label`, the pause button) without
+change — no new component, no new palette, no new direction to carry through
+design-craft's "look outside this repository" step, because there is no new
+look here to look for.
+
+### Position
+
+**Position 1 of 7 — `ad1`, the carousel's on-load slide** — not the 2nd, not
+alongside the first-order slide, and not a new 8th slide.
+
+**Why this satisfies "early in the rotation."** Position 1 is the earliest
+slide there is, and the affiliate research's own arithmetic is explicit about
+why that matters more than usual here: "the first slide is the only one
+every visitor sees, because a later slide needs the visitor to stay 5s times
+its index" (`docs/research/204-affiliate-partners.md`, "Buildable now"). That
+same document also computed the expected sale rate at this site's traffic —
+0.01–0.15 sales a month — so there is no volume to spend on a slide most
+visitors never reach; impressions are the only lever available, and position
+1 is the only slot that gets one from every visitor. The ad-source research's
+own instruction is to "replace a restaurant ad slide early in the sequence,
+not late," not the first-order banner or a promo slide — `ad1` is the
+earliest ad slide there is, so replacing it (rather than `ad2` or `ad3`) is
+the most literal reading of "early" available.
+
+**Why this doesn't reopen #184.** #184 moved the first-order slide off
+position 0 specifically because it is *text on a tint*, not a photo — the
+owner's own words were that the carousel should open "on a restaurant photo
+instead of on the site's own promo text." The paid slide's shown state (see
+"Both states," below) is photo-led with the exact same anatomy as any
+catalogue `ad` slide: a full-bleed photo, the "Ad" label, a caption strip
+below it. The carousel still opens on a photo under this change — only whose
+photo changes, not whether a photo leads. And until the owner supplies a
+creative, or if that creative's image ever fails, the fallback state
+restores `ad1`'s exact pre-#214 content (Mission Taqueria / Bến Thành Bánh
+Mì), so the on-load slide is visually unchanged from production today for as
+long as no creative is configured.
+
+**Full 7-slide sequence, both cities** (superseding the #184 sequence in
+"Slide order," under "Content picked," above — reproduced here as its own
+checkable table, per this issue's own AC1):
+
+| # | Type | San Francisco | Ho Chi Minh City |
+|---|---|---|---|
+| 1 | **Paid ad** (was `ad1`) | Shared sponsor creative (see "Content shape," below) | Shared sponsor creative — same creative as SF |
+| 2 | Promo | North Beach Pizzeria | Sài Gòn Phở Quán |
+| 3 | Ad (`ad2`) | Inner Richmond Sushi Bar | Hủ Tiếu Nam Vang Hòa Phát |
+| 4 | First-order | "$2 off your first order" | "10.000 ₫ off your first order" |
+| 5 | Promo | Noe Valley Morning Kitchen | Bún Chả Cô Ba |
+| 6 | Ad (`ad3`) | Ocean Beach Fish House | Quán Lẩu Út Hạnh |
+| 7 | Promo | Valencia Street Tandoor | Bò Bít Tết Chú Tám Gò Vấp |
+
+Seven rows, both cities — the slide count this issue's own acceptance
+criteria ask to be checked against.
+
+### Content shape
+
+Every field the engineer needs, mapped onto the fields a catalogue `ad`
+slide already fills (`claim`, `sub`, `photo`, `href` in `home-dom.ts`'s
+`CarouselSlide` interface) so the DOM and CSS need no new shape, only new
+data:
+
+| Field | Fills | Value |
+|---|---|---|
+| **Placeholder/creative image** | `photo` → `.carousel-slide-photo` | Self-hosted (never hot-linked from an advertiser's own server — `docs/research/204-ad-source.md`'s own consent reasoning depends on this). **One file, shared by both cities** — not a `Record<City, ...>` like the six catalogue restaurant photos, because the affiliate research's first pick is "one creative serves both cities," not a per-city variant. |
+| **Alt text** | `photo`'s `alt` attribute | Empty string (`alt=""`), matching every other carousel and tile photo in this codebase today (`home-dom.ts`'s `img.alt = ''` on every restaurant photo). Not a new pattern: the image is decorative, and the caption strip beside it already carries the same information to assistive tech, exactly as it does for a catalogue `ad` slide's restaurant name and rating. |
+| **Advertiser label text** | `claim` → `.carousel-claim` | The advertiser's own name or a short headline (e.g. "Coursera"), same bold/position treatment a restaurant name gets on a catalogue `ad` slide. One string, shared by both cities. |
+| **Tagline** | `sub` → `.carousel-sub` | One short muted line under the advertiser label (e.g. a course name or a one-line pitch) — the shape a catalogue `ad` slide fills with `cuisineTag · ★ rating`, but free text here since there's no equivalent structured data for an advertiser. One string, shared by both cities. |
+| **Destination link** | `href` → the slide's `<a>` | The owner-supplied tracking URL, **used exactly as supplied**: `rel="sponsored noopener"` (already the ad-source research's own requirement), and code never appends a query parameter to it and never inserts the visitor/browser id (`getVisitorId`, `order-store.ts`) — the affiliate research's own explicit warning ("the tempting mistake is the other direction... putting this site's random browser ID into one would hand a per-visitor identifier to a third party"). One URL, shared by both cities, not filled by this document because none exists yet — it's an owner step (`docs/research/204-affiliate-partners.md`, "Owner steps," #3). **Opens in a new tab** (`target="_blank"`, alongside the `rel` above): every other slide's link is an in-app navigation to a page on this site, and an external destination that replaced the whole app in the same tab would strand a visitor mid-carousel on someone else's site; a catalogue `ad` slide has no equivalent case, so this is new only for this slide type, not a change to the shared link markup pattern. |
+| **"Ad" label** | `.carousel-ad-label` | Reused exactly as-is: same text ("Ad"), same fixed dark-scrim pill, same top-left position, same "doesn't retheme" reasoning ("Composition," above). No new disclosure or consent element — both research documents independently conclude the existing label is sufficient disclosure (ad-source research's own requirement; affiliate research's "Disclosure" section: "No extra line is strictly needed for Coursera or DataCamp"). |
+
+### Both states
+
+**Shown (creative configured).** Uses exactly the `.carousel-slide-media`
+(200px photo) + `.carousel-caption` anatomy "Promo carousel," above, already
+specifies for a catalogue `ad`/`promo` slide — not the 256px first-order
+banner box, which stays unique to that one slide. The placeholder/creative
+image fills the photo area (`object-fit: cover`, same as every other slide's
+photo); the "Ad" label sits top-left over it, unchanged; the pause button
+sits top-right over it, unchanged; the caption strip below shows the
+advertiser label (bold) and tagline (muted); tapping the slide navigates to
+the destination link, in a new tab, per "Content shape," above.
+
+**Fallback (no creative configured, or the image's `onerror` fires).** Shows
+`ad1`'s own pre-#214 content, unchanged: the same restaurant (Mission
+Taqueria for SF, Bến Thành Bánh Mì for HCMC), the same photo, the same claim
+(restaurant name) and sub (`cuisineTag · ★ rating`), the same "Ad" label, and
+the same in-app link to that restaurant's own page — literally the content
+"Content picked," above, already specifies for `ad1`, not a new placeholder
+or a generic "no ad" message. This is what "shows the existing slide
+content" (this issue's own AC3 wording) means concretely: the fallback is a
+second *data* variant at the same slide index, not a second UI.
+
+**Why this fallback and not a new one.** I considered a distinct "Sponsor
+this slot" house creative (the affiliate research's own #3-ranked option,
+meant to run in the shown-state gap before the owner's Impact application is
+approved) as the fallback instead. I'm not taking it: that option is new
+copy, a new image, and a new link (`mailto:` or a contact page) — a second
+new content variant needing its own legibility and contrast check, to
+satisfy a criterion ("names which *existing* slide content it shows") that a
+literal reuse of `ad1` already satisfies for free. The "Sponsor this slot"
+creative remains available as something the owner could put *in* the
+shown-state creative fields above while waiting for Impact — that's a
+content decision for whoever fills in "Content shape," above, not a second
+code path this document needs to specify.
+
+**Why neither state affects the slide count, the box, or the timer.** The
+carousel's slide array is always exactly 7 entries — the fallback swaps which
+*data* renders at index 0, it never removes or adds a slide, so the 7-slide
+count this issue's own AC1 and AC3 both ask to be checked never moves. The
+media box's 200px height is fixed by CSS (`.carousel-slide-media`,
+"Composition," above) rather than driven by the image's own natural size, so
+neither a configured creative nor a failed `onerror` swap changes the box's
+dimensions — no layout shift either way. And `startAutoAdvance()`
+(`home-dom.ts:232`) reads only `current` and the slide count to schedule the
+next `goToSlide()` call; it never inspects slide *content*, so which data
+variant is rendering at index 0 has no path to the running timer at all —
+the same "For the engineer" note on this file's interval-per-render
+discipline (below) applies unchanged to this slide as to every other.
+
+### Look outside this repository (why none, here)
+
+Design-craft asks this step be taken even when the issue asks for one thing.
+It isn't skipped here as much as it's already been taken, twice, by the
+research this issue is scoped against: `docs/research/204-ad-source.md`
+surveyed AdSense, EthicalAds and Carbon's own placement conventions before
+recommending the direct-sold slot's shape, and the composition decisions in
+"Promo carousel" and "First-order banner," above, already carry this
+document's own DoorDash/Mobbin/WCAG references for exactly this slide
+anatomy (a distinctly bordered, honestly labelled sponsored card-in-feed).
+Repeating that search here, for a slide this document has just finished
+arguing needs no new visual language, would be pastiche of a decision
+already made rather than craft.
+
 ## States (not just the happy path)
 
 - **Empty (search/cuisine match nothing):** unchanged — the existing
@@ -575,9 +751,13 @@ same position (under the "Near you" heading):
   grid with `auto-rows` doesn't require a full row; one tile just sits alone
   in the first column.
 - **Carousel with `prefers-reduced-motion: reduce`:** static on the first
-  slide (the first ad slide, `ad1` — no longer the first-order slide, which
-  per #184 is now the 4th of 7, not the 1st), no auto-advance; swipe and the
-  dots still navigate it manually.
+  slide — position 1 of 7, no longer the first-order slide (per #184, now the
+  4th of 7) and, per #214, now the paid ad slide's shown or fallback content
+  rather than always `ad1`'s restaurant — no auto-advance; swipe and the dots
+  still navigate it manually. Whichever content the paid slide is showing
+  (creative or fallback, "Both states" under "Paid ad slide (#214)," above)
+  is exactly what sits still, since reduced motion changes only whether
+  `goToSlide` is ever called automatically, not what content index 0 holds.
 - **Storage-blocked (private browsing):** unaffected — the carousel and grid
   don't read storage themselves; the existing location-picker notice already
   covers this at the point storage actually matters.
@@ -628,6 +808,27 @@ restaurant at `restaurantsForCity(city)[0]` than the one `CAROUSEL_RESTAURANT_SL
 names as `ad1`. Leaving that link implicit is exactly how a future catalogue
 edit would quietly under-count the budget.
 
+**Amended for #214.** The reasoning directly above still holds for the
+**fallback** state — `ad1`'s own restaurant photo, already inside the
+existing `slice(0, 4)` sum, unchanged. It does not hold for the **shown**
+state: once the owner configures a creative, the on-load slide's image is a
+new asset the catalogue doesn't already own, not `ad1`'s `heroImage` — the
+`slice(0, 4)` reasoning above was specifically that the on-load slide
+"contributed nothing because it was text-only" (first-order) and, after
+#184, "was the same file already inside the test's existing four-image
+slice" (`ad1`'s own restaurant). Neither is true once a real creative is
+configured: the shown state's image is a fifth, previously-uncounted file at
+first paint. This document doesn't add a byte figure for it — the creative
+doesn't exist yet (owner step, "Content shape," above) — but the engineer's
+job, added to the note above rather than replacing it, is to make
+`image-budget.test.ts`'s sum conditional on which state is live: `slice(0,
+4)` alone while the fallback renders, plus the creative's own file size once
+one is configured. Get the creative's byte count from the file the owner
+supplies rather than assuming `RESTAURANT_THUMBNAIL_MAX_BYTES`'s 180KB
+catalogue cap applies to it — nothing in this document sets a budget for a
+sponsor creative, and that's a gap for whoever adds the config entry to
+close, not an oversight to silently inherit a restaurant photo's cap.
+
 ## Contrast checked
 
 | Foreground | Background | Ratio | Command |
@@ -665,6 +866,20 @@ document, but not previously checked directly against white) on `#ffffff`
 (the ticket's own fill, new to this document) — and it is not yet in
 `contrast.test.ts`; the "For the engineer" section below asks for it to be
 added alongside the other assertions the carousel work is already touching.
+
+**#214 introduces no new pairing.** The paid ad slide's caption
+(advertiser label / tagline) sits in `.carousel-claim`/`.carousel-sub` on
+`--color-surface` — the "Slide claim / tile name" and "Muted subline/meta"
+rows above, already checked in both themes, cover it exactly, since "Content
+shape" above specifies the same classes a catalogue `ad` slide already uses.
+The fallback state is `ad1`'s own pre-#214 content, so it's covered by the
+same rows it always was. The mocks' placeholder "TEST AD" graphic
+(white and `#ece4ff` text on `#6c3ce0`, "Mocks," below) deliberately reuses
+the first-order banner's own gradient light stop rather than a new color —
+the "First-order banner claim/sub, lighter stop `#6c3ce0`" rows above (6.25
+and 5.09) already cover both pairs. Nothing in this round needed a new
+`./scripts/contrast` invocation because nothing in it introduces a token
+combination the table didn't already have.
 
 ## Motion, tap targets, and the accessibility floor
 
@@ -718,6 +933,45 @@ below. This is what actually lets AC2's "legible over any photo" claim be
 checked: the "Ad" label and the pause control sit over the real Mission
 Taqueria and Bến Thành Bánh Mì photos in the rendered PNGs, not over a
 gradient no visitor will ever see.
+
+**Amended for #214.** The live carousel slide in all four mocks is unchanged
+— it still shows the first-order banner, since that's still the graphic
+treatment nothing else in this codebase's rendered pictures cover. Each of
+the four files gains a **second reference row**, below the existing ad/promo
+one, labelled "Paid ad slide (#214) — shown vs. fallback": two
+`.slide-ref-card`s at the same size and treatment as the existing reference
+row, so the new row reads as more of the same convention rather than a
+different one.
+
+- **Shown-state card.** No real creative exists yet (owner step, "Content
+  shape," above) — per the affiliate research's own "buildable now" note, the
+  placeholder is "a self-hosted image clearly marked as a test ad." This mock
+  draws it as an inline SVG (not a photo file) so the mock stays
+  self-contained per this repository's own mock convention — nothing in
+  `docs/design/` should need a build step or a new asset under `public/` to
+  render, and the real creative doesn't exist to reference yet regardless.
+  The SVG is a flat `#6c3ce0` rectangle (the app's own accent, not a new
+  hue — see "Contrast checked," above, for why this choice needed no new
+  check) with "TEST AD" in bold white and "placeholder creative" in
+  `#ece4ff` beneath it, so a reviewer can immediately tell this is a stand-in
+  and not the real Coursera creative. The "Ad" label sits over it exactly as
+  it would over a real photo. Caption: **"Learn Data Analytics"** (bold,
+  standing in for an advertiser label) / *"Structured courses, real
+  datasets"* (muted, standing in for a tagline) — placeholder copy for the
+  same reason the image is a placeholder, not real Coursera copy this
+  document has no license to invent.
+- **Fallback-state card.** The real Mission Taqueria (SF) / Bến Thành Bánh Mì
+  (HCMC) photo and caption, already used elsewhere in these same mocks (the
+  tile grid's first tile) — because the fallback state, per "Both states"
+  above, is pixel-identical to `ad1`'s pre-#214 content. No new image
+  reference for this card; it reuses the same `../../public/images/
+  restaurants/mission-taqueria-hero.jpg` / `ben-thanh-banh-mi-hero.jpg` path
+  the tile grid already points at in the same file.
+
+This is why the fallback state doesn't get its own separate check beyond
+this card: it's the same anatomy, same image, same tokens as the *existing*
+ad-slide reference card one row up — there is nothing new about it for a
+render to reveal.
 
 ## Critique (after rendering — see pull request for the pictures)
 
@@ -998,3 +1252,66 @@ widening the ticket and re-rendering all eight PNGs a third time:**
   budget," above, for the exact reasoning and the two source lines it depends
   on (`restaurants.ts:50`/`:257`, `home-dom.ts:43`/`:51`). Unaffected by this
   round's banner rework: the ticket is still CSS/SVG, zero new bytes.
+
+**Added for #214:**
+
+- **A new, city-independent config, not a sixth `Record<City, ...>` entry.**
+  `CAROUSEL_RESTAURANT_SLIDES` (`home-dom.ts:76`-`:93`) stays a six-entry
+  array per city, unchanged — `ad1`'s entry is still needed, for the
+  fallback. Add a separate constant next to it, shaped for one shared
+  creative rather than per-city (unlike everything else in this file):
+  ```ts
+  interface SponsoredSlide {
+    image: string;
+    advertiserName: string;
+    tagline: string;
+    destinationUrl: string | null; // null until the owner supplies one
+  }
+  const SPONSORED_SLIDE: SponsoredSlide | null = null; // unset until configured
+  ```
+  `null` (or a `destinationUrl` of `null`/empty) is "not configured" — both
+  read the same as "no creative," per "Both states," above; this document
+  doesn't prescribe which of the two the engineer picks, only that "no
+  creative" and "creative present but its `destinationUrl` is missing" must
+  not be treated differently, since a slide with an image and no destination
+  is not a usable ad either.
+- **Splicing the paid slide into position 1.** `carouselSlidesForCity`
+  (`home-dom.ts:103`-`:128`) currently builds `restaurantSlides` from all six
+  `CAROUSEL_RESTAURANT_SLIDES` entries and splices `firstOrder` into index 3.
+  It now has to build the *shown-or-fallback* slide for index 0 first —
+  `SPONSORED_SLIDE`'s data (type stays `'ad'`, per both research documents'
+  own note that no new `type` value is needed yet) if configured, else
+  `CAROUSEL_RESTAURANT_SLIDES[city][0]` unchanged (today's `ad1` mapping) —
+  and only then splice `firstOrder` in at index 3 of the resulting seven,
+  exactly as #184 already does. The remaining five restaurant slides
+  (`CAROUSEL_RESTAURANT_SLIDES[city].slice(1)`) are unaffected: `ad2`, `ad3`,
+  and all three promo slides keep their #184 positions and content untouched.
+- **The `onerror` fallback.** Only the paid slide's `<img>` needs this — no
+  other slide has a fallback path. On `error`, swap that slide's rendered
+  content (photo `src`, claim, sub, href) to `CAROUSEL_RESTAURANT_SLIDES[city][0]`'s
+  values in place, without touching `current`, the interval, or any other
+  slide's DOM — the same box, so no reflow. `home-dom.test.ts` needs a test
+  that fires a synthetic `error` event on the slide-1 image (happy-dom
+  supports dispatching it) and asserts the fallback's claim/sub/href appear,
+  per the affiliate research's own "Blocked-path tests" note and house-rules'
+  "watch it fail before trusting it green."
+- **Link attributes.** `rel="sponsored noopener"` and `target="_blank"` on
+  the paid slide's `<a>` only — every other slide's link stays an in-app,
+  same-tab navigation, unchanged. Never append a query parameter to
+  `destinationUrl`, and never pass `getVisitorId()`'s value into it — "Content
+  shape," above, for why.
+- **Contrast test.** No new `contrast.test.ts` assertion — "Contrast
+  checked," above, for why this round introduces no new token pairing.
+- **Image budget.** See "Image budget"'s "Amended for #214" note, above —
+  `image-budget.test.ts`'s sum needs to branch on whether `SPONSORED_SLIDE`
+  is configured, not just add a flat fifth image unconditionally.
+- **No `track()` calls, event-contract edits, or migrations in this issue** —
+  restated from #184's own note above, and still true: the carousel sends no
+  events today, and this document doesn't change that. `docs/research/204-
+  ad-source.md`'s "Constraints for the downstream children" section is the
+  one to read before the later analytics-readiness objective adds impression
+  and click tracking here — in particular, no ad-network identifier,
+  advertiser id, affiliate tag, or the visitor id may ever go into an event,
+  and the store rejects an unknown slide-`type` shape silently rather than
+  loudly (ADR 0005), which is exactly why this document keeps `type: 'ad'`
+  unchanged rather than inventing `'sponsored'` now.
