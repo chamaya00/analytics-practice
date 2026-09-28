@@ -250,7 +250,7 @@
   .carousel-banner-ticket {
     position: relative;
     flex: none;
-    width: 116px;
+    width: 148px;
     height: 104px;
   }
 
@@ -258,8 +258,10 @@
 
   .carousel-banner-ticket-amount {
     position: absolute;
-    inset: 0;
-    left: 38%;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 42px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -273,9 +275,10 @@
     font-size: 1rem;
     font-weight: 800;
     line-height: 1.05;
-    overflow-wrap: break-word;
-    word-break: break-word;
+    white-space: nowrap;
   }
+
+  .carousel-banner-ticket-value--compact { font-size: 0.8125rem; }
 
   .carousel-banner-ticket-off {
     margin-top: 2px;
@@ -489,14 +492,14 @@
     <div class="carousel-slide" aria-roledescription="slide" aria-label="4 of 7">
       <div class="carousel-banner">
         <div class="carousel-banner-ticket">
-          <svg viewBox="0 0 116 104" aria-hidden="true">
+          <svg viewBox="0 0 148 104" aria-hidden="true">
             <mask id="carousel-ticket-notch-sf-light">
-              <rect x="0" y="0" width="116" height="104" fill="#ffffff"/>
+              <rect x="0" y="0" width="148" height="104" fill="#ffffff"/>
               <circle cx="8" cy="52" r="9" fill="#000000"/>
-              <circle cx="108" cy="52" r="9" fill="#000000"/>
+              <circle cx="140" cy="52" r="9" fill="#000000"/>
             </mask>
-            <path fill="#ffffff" mask="url(#carousel-ticket-notch-sf-light)" d="M16,6 L100,6 A8,8 0 0 1 108,14 L108,90 A8,8 0 0 1 100,98 L16,98 A8,8 0 0 1 8,90 L8,14 A8,8 0 0 1 16,6 Z"/>
-            <line x1="44" y1="14" x2="44" y2="90" stroke="#2f1861" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>
+            <path fill="#ffffff" mask="url(#carousel-ticket-notch-sf-light)" d="M16,6 L132,6 A8,8 0 0 1 140,14 L140,90 A8,8 0 0 1 132,98 L16,98 A8,8 0 0 1 8,90 L8,14 A8,8 0 0 1 16,6 Z"/>
+            <line x1="42" y1="14" x2="42" y2="90" stroke="#2f1861" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>
           </svg>
           <span class="carousel-banner-ticket-amount">
             <span class="carousel-banner-ticket-value">$2</span>
@@ -504,7 +507,7 @@
           </span>
         </div>
         <div class="carousel-banner-copy">
-          <span class="carousel-claim">your first order</span>
+          <span class="carousel-claim">Your first order</span>
           <span class="carousel-sub">Applied automatically at checkout</span>
         </div>
       </div>

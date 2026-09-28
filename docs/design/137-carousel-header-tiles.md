@@ -40,6 +40,21 @@ first order" beside it. The "no new display type size" rule (see "Promo
 carousel," below) is deliberately lifted for the amount only, per the
 review's own offer to do so — sized and reasoned in "First-order banner."
 
+**Revised a second time after the driver's second review on PR #187 (the
+last revision round).** The ticket shape and the split amount both stayed —
+the review said the direction was right — but the HCMC value, `10.000 ₫`,
+didn't fit inside the ticket in the committed renders: it overflowed the
+right edge and the notch, and wrapped onto its own line. "First-order
+banner," below, is edited again for this round only where it's affected: the
+ticket widens from 116×104 to 148×104, and the HCMC value alone drops to a
+smaller, still-focal size (`0.8125rem`) via a new
+`.carousel-banner-ticket-value--compact` modifier, applied to that one
+string rather than both currencies. The review also asked for "your first
+order" capitalized beside the ticket, now "Your first order" — a copy change
+only, no new class. Nothing else the review named as passing (the gradient,
+the ticket's notch/tear-line silhouette, the split itself, the four existing
+contrast rows) changed in this round.
+
 ## Outcome, constraints, guesses (design-craft)
 
 **Outcome (fixed):** the home feed reads as a food-delivery app, not a
@@ -425,7 +440,7 @@ its own regardless of what's behind or around it doesn't retheme. I'm taking A.
   the same violet, not a second color. Kept unchanged from the first round —
   the review's complaint was the graphic sitting on it, not the gradient
   itself.
-- **The ticket.** A solid white coupon/ticket, 116×104, right-aligned in the
+- **The ticket.** A solid white coupon/ticket, 148×104, right-aligned in the
   panel (roughly its right third): a rounded rectangle with a semicircular
   notch cut into its left and right edges and a dashed vertical "tear" line
   set back from the left notch, the standard coupon silhouette — replacing
@@ -441,17 +456,21 @@ its own regardless of what's behind or around it doesn't retheme. I'm taking A.
   copy drawing; each of the four mocks here uses the pattern once, but the
   suffix costs nothing and removes the risk if a slide is ever duplicated
   within one file. White fill (`#ffffff`), not a tinted white, for maximum
-  legibility of the dark ink text sitting on it.
+  legibility of the dark ink text sitting on it. Widened from the first
+  revision's 116×104 to 148×104 in this round — see "Revised again after the
+  driver's second review," in the critique below, for why.
 - **The offer amount, on the ticket.** The claim's amount — `$2 off` (SF) /
   `10.000 ₫ off` (HCMC), i.e. `PROMO_BANNER_CLAIM[city]` minus its own literal
   `your first order` suffix — sits inside the ticket's main (right)
   compartment, split onto two lines: the value (`$2` / `10.000 ₫`) at
-  `1rem`/800 weight, then `off` on its own line at `0.625rem`/800
-  weight/uppercase/0.06em tracking, both in `#2f1861` (the gradient's own
-  darker stop — reused ink, not a third color) on the ticket's white fill —
-  `./scripts/contrast '#2f1861' '#ffffff' 4.5` → **14.75**, see "Contrast
-  checked" below. This is the one place this document deliberately lifts its
-  own "nothing about slide chrome invents a new display type size" rule (see
+  `1rem`/800 weight (SF) or `0.8125rem`/800 weight (HCMC — see below), then
+  `off` on its own line at `0.625rem`/800 weight/uppercase/0.06em tracking,
+  both in `#2f1861` (the gradient's own darker stop — reused ink, not a third
+  color) on the ticket's white fill — `./scripts/contrast '#2f1861' '#ffffff' 4.5`
+  → **14.75**, see "Contrast checked" below (the ratio holds at either size;
+  size doesn't change a color pairing's contrast, so this round adds no new
+  row). This is the one place this document deliberately lifts its own
+  "nothing about slide chrome invents a new display type size" rule (see
   "Promo carousel," above): that rule was written for photo-slide captions,
   where the photo already carries the visual weight and the caption is
   deliberately restrained; this slide has no photo, and the review asked
@@ -460,19 +479,39 @@ its own regardless of what's behind or around it doesn't retheme. I'm taking A.
   enough to read as a distinct, larger figure next to "your first order"
   without becoming a second, competing display size on a slide that still
   has to sit quietly among six photo slides in the same rotation. Two-line
-  (value, then `off`) rather than one line, specifically because the HCMC
-  value is the long case (`10.000 ₫`, eight characters including the space) —
-  confirmed by rendering, not assumed: at `1rem` a single line overflowed the
-  ticket's right edge in the first render of this round, corrected by
-  widening the ticket (92px → 116px) and splitting the unit onto its own
-  line rather than shrinking the amount below a size worth calling a focal
-  point.
+  (value, then `off`) rather than one line, both cities, unchanged from the
+  first revision round.
+  **The HCMC value gets a smaller size, `.carousel-banner-ticket-value--compact`
+  (`0.8125rem`), applied only to the long-currency string.** The second
+  driver review on PR #187 found `10.000 ₫` still didn't fit at `1rem` even
+  after the first revision's fix (it overflowed the ticket's right edge and
+  wrapped onto its own line in the committed renders) — caught against the
+  actual PNGs, not the arithmetic, exactly as that review asked. Fixed with
+  two changes together, not one: the ticket widened 116px → 148px (the tear
+  line moved from 44px to 42px from the left, so the stub stays visually the
+  same size and all the extra width goes to the amount's compartment), and
+  the HCMC value alone steps down to `0.8125rem` (13px) — smaller than `1rem`
+  and, unlike the SF value, now below `--font-size-body` (0.9375rem) too.
+  It's still visibly larger and bolder than everything else on the ticket
+  (the `off` label at `0.625rem`) and reads as the ticket's focal point in
+  all eight re-rendered PNGs (checked, not assumed — see the critique below),
+  which is the bar the review actually set, not "must be `1rem`." SF's `$2`
+  keeps `1rem` unmodified — it was never
+  the value the review flagged, and forcing both currencies to the smaller
+  size to avoid a size difference between them would shrink the one case
+  that already worked. `.carousel-banner-ticket-value` also switched from
+  `overflow-wrap: break-word` (a wrap-if-it-must rule that produced the
+  broken second line the review is responding to) to `white-space: nowrap` —
+  a value that doesn't fit now overflows visibly in a local render rather
+  than silently wrapping into the notch, which is the failure mode this
+  round exists to stop.
 - **"Your first order," beside the ticket.** The claim element keeps its
   existing class, type scale (`--font-size-body`, white, 800 weight,
-  unchanged from every prior round), and DOM position — its text content
-  changes from the full sentence to `your first order` alone, since the
-  amount now lives on the ticket instead of at the front of this sentence.
-  The sub (`Applied automatically at checkout`, `--font-size-muted`,
+  unchanged from every prior round), and DOM position — its text content is
+  `Your first order` (capitalized — see "Revised again," below, for why this
+  round changed it from the first revision's lowercase `your first order`),
+  since the amount now lives on the ticket instead of at the front of this
+  sentence. The sub (`Applied automatically at checkout`, `--font-size-muted`,
   `#ece4ff`) is completely unchanged.
 - **Reading order.** `.carousel-banner` is a flex row with
   `flex-direction: row-reverse`: the ticket is first in DOM order (so a
@@ -783,6 +822,14 @@ the ticket and re-rendering all eight PNGs again:**
   label onto two lines; re-rendered, and `10.000 ₫` now sits inside the
   ticket with visible margin on both sides in both the narrow and wide HCMC
   renders, in both themes.
+  *(This finding was wrong — the driver's second review on PR #187 read the
+  actual committed PNGs and found the value still overflowing the right edge
+  and the notch, wrapped onto its own line, in `hcmc-dark-narrow` and
+  `hcmc-light-wide`. The "visible margin on both sides" claim above was
+  written without opening those two files again after the last edit to this
+  section — see the next round's critique, below, for the fix and for what
+  changed about how this document checks a claim like this one before making
+  it.)*
 - **Cover the accent with your hand (redone):** covering the gradient itself
   (not the ticket), the slide keeps a white ticket with dark text floating on
   nothing, which reads as broken rather than designed — unlike the first
@@ -807,6 +854,52 @@ the ticket and re-rendering all eight PNGs again:**
   "Applied automatically at checkout" in that sequence, matching the original
   unsplit sentence. Confirmed by reading the markup in each of the four
   mocks, not assumed from the CSS alone.
+
+**Revision round (2026-09-28, PR #187 second review, the last round), after
+widening the ticket and re-rendering all eight PNGs a third time:**
+
+- **The two PNGs the review named, checked directly, not re-derived:**
+  `137-home-feed-hcmc-dark-narrow.png` and `137-home-feed-hcmc-light-wide.png`
+  were opened first, since those were the review's own evidence. `10.000 ₫`
+  now sits on one line, fully inside the ticket, with visible margin from the
+  right edge, the notch cutout, and the tear line in both. The other two
+  HCMC renders (`hcmc-light-narrow`, `hcmc-dark-wide`) were checked the same
+  way rather than assumed to follow from the two the review named — same
+  result in both.
+- **What actually fixed it, and why the first attempt (116px, two-line
+  split) didn't:** the failure wasn't the value/`off` split — that was
+  already two lines — it was that `10.000 ₫` itself, one line at `1rem`,
+  needed roughly 70px and the ticket's right compartment (after the tear
+  line, before the notch) only had about 50px to give it, at either 116px or
+  the notch-avoidance a vertical reposition would have bought. No amount of
+  layout tweaking inside that compartment was going to fit an 8-character
+  string in 50px at that size, which is the arithmetic this document should
+  have run before the last round's "visible margin" claim. Fixed with two
+  changes, not one, because neither alone was enough: the ticket widened to
+  148px (giving the compartment room), and the HCMC value alone stepped down
+  to `0.8125rem` via `.carousel-banner-ticket-value--compact` (giving the
+  string itself less room to need). `white-space: nowrap` replaced
+  `overflow-wrap: break-word` on the value so a future string that still
+  doesn't fit overflows visibly in the next render instead of silently
+  wrapping into the notch again.
+- **SF, checked for a regression this round could have caused:** widening
+  the ticket 116px → 148px shrinks the copy column (`.carousel-banner-copy`)
+  by the same 32px, on both cities. `$2` (SF, unmodified `1rem`, not
+  `--compact`) still sits centered in the ticket with generous margin in all
+  four SF renders — it was never the tight case. The copy column's own
+  wrapping (already noted as acceptable in the first revision round, since
+  "checkout" was already wrapping in HCMC before this round) is unchanged in
+  SF and reads the same as every prior round's renders.
+- **"Your first order," checked against all eight renders, not just one:**
+  reads as a complete phrase, capitalized, beside the ticket in every render
+  — the lowercase fragment the review flagged is gone everywhere, not just
+  in the two PNGs named.
+- **What this round did not touch, confirmed by re-reading the diff before
+  committing:** the gradient, the ticket's notch/tear-line silhouette itself
+  (only its size and the tear line's offset moved, not its shape), the
+  ticket-amount contrast pairing (`#2f1861` on `#ffffff` — a size change
+  doesn't change a ratio), and the reading-order/DOM-order reasoning from the
+  round above, which doesn't depend on the ticket's exact pixel width.
 
 ## For the engineer
 
@@ -848,8 +941,9 @@ the ticket and re-rendering all eight PNGs again:**
   gets the gradient background and the row-reverse layout specified in
   "First-order banner," above — the element and its own `data-testid` stay.
   Its `-claim` child (`panelClaim`, `home-dom.ts:270`-`:272`) is no longer set
-  to the full `slide.claim` string: it now gets the sentence's tail only
-  (`your first order`), and the amount moves to a new sibling. This is a DOM
+  to the full `slide.claim` string: it now gets the sentence's tail only,
+  capitalized (`Your first order`), and the amount moves to a new sibling.
+  This is a DOM
   change, not just a CSS one — the review's ask (the amount visually distinct
   from the rest of the sentence, at a size this document's rule wouldn't
   otherwise allow) can't be done by styling a single text node in parts.
@@ -862,7 +956,7 @@ the ticket and re-rendering all eight PNGs again:**
   itself, not the wrapper — the amount text must stay in the accessibility
   tree) plus a `.carousel-slide-panel-amount` element split into a value span
   (the amount minus its trailing `off`, e.g. `$2` / `10.000 ₫`) and an `off`
-  span; then (2) the existing `panelClaim` (textContent now `your first
+  span; then (2) the existing `panelClaim` (textContent now `Your first
   order`) and `panelSub` inside their own wrapper. `panelClaim`'s own
   `data-testid` (`carousel-panel-claim`) stays on that element; give the new
   amount element its own testid (e.g. `carousel-panel-amount`) so a test can
@@ -871,13 +965,25 @@ the ticket and re-rendering all eight PNGs again:**
   equals the full claim sentence needs to move deliberately to the new
   split (asserting the amount and the tail separately), watched red before
   green, per house-rules — this is exactly the kind of test a revision has to
-  touch on purpose rather than loosen. The exact SVG markup, the mask-based
-  notch technique, and the two class names' CSS are in "First-order banner,"
-  above and the four mocks (`docs/design/137-home-feed-*.html`); copy the
-  `<path>`/`<mask>` values from there rather than redrawing them, and give
-  the mask a component-scoped id (e.g. `carousel-ticket-notch`) since,
-  unlike the mocks, only one instance of this slide ever exists in the DOM
-  at once.
+  touch on purpose rather than loosen. The exact SVG markup (148×104
+  viewBox, notch circles at `cx=8`/`cx=140`, `r=9`, `cy=52`, tear line at
+  `x=42`), the mask-based notch technique, and the class names' CSS are in
+  "First-order banner," above and the four mocks
+  (`docs/design/137-home-feed-*.html`); copy the `<path>`/`<mask>` values
+  from there rather than redrawing them, and give the mask a
+  component-scoped id (e.g. `carousel-ticket-notch`) since, unlike the
+  mocks, only one instance of this slide ever exists in the DOM at once.
+  **Apply `.carousel-banner-ticket-value--compact` to the value span only
+  for the long (HCMC) string** — the amount steps down to `0.8125rem` there
+  because `10.000 ₫` doesn't fit the ticket at `1rem` (see the last critique
+  round, above, for the render that proved it); SF's `$2` keeps the base
+  `1rem` and gets no modifier class. This document doesn't prescribe how the
+  engineer decides which is which (a per-city map alongside
+  `PROMO_BANNER_AMOUNT`, a length check on the string, or a CSS
+  `container`/`clamp()` alternative that fits both without a modifier are
+  all reasonable); whichever is chosen, `home-dom.test.ts` should assert
+  which class (or computed size) the HCMC amount renders with, not just that
+  it renders.
   `.carousel-slide-media--first-order`'s existing 56px-growth rule
   (`home-dom.ts:297`) is unaffected — the banner still needs the full 256px,
   same as before, just filled differently.
