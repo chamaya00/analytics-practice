@@ -144,7 +144,9 @@ describe('no image is hotlinked from another host (AC3)', () => {
         if (entry.isDirectory()) {
           walk(full);
         } else if (/\.(html|css|js)$/.test(entry.name)) {
-          const contents = readFileSync(full, 'utf-8');
+          // A plain <a href> is navigation, not an image load (the About page
+          // links to the builder's LinkedIn, #236).
+          const contents = readFileSync(full, 'utf-8').replace(/<a\s[^>]*>/gi, '');
           if (pattern.test(contents)) offenders.push(full);
         }
       }

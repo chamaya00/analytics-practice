@@ -9,6 +9,12 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
 
 <BaseLayout title="What we log, and why — Dontdropthatpromo">
   <h1>What we log, and why</h1>
+  <p data-testid="about-builder-credit">
+    Dontdropthatpromo is a solo project by Charles Amaya, built as a hands-on way to practice
+    product analytics — the querying, event design, and metric judgment the job actually needs,
+    against a real dataset instead of a toy one.
+    <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
+  </p>
   <p>
     Every screen in this app fires a real event at a hosted database, so there's an actual
     aggregate to look at, not a simulated one. Here's exactly what that means, event family by

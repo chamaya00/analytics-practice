@@ -17,7 +17,7 @@ const deliveryFeeLabel =
   restaurant.deliveryFeeMinor === 0 ? 'Free' : formatMoney(restaurant.deliveryFeeMinor, currencyForRestaurant(restaurant));
 ---
 
-<BaseLayout title={`${restaurant.name} — dontdropthatpromo`}>
+<BaseLayout title={`${restaurant.name} — Dontdropthatpromo`}>
   <img class="menu-hero" src={restaurant.heroImage} alt="" width="343" height="160" />
   <h1 class="restaurant-title">{restaurant.name}</h1>
   <p class="restaurant-meta" data-testid="restaurant-meta">{restaurant.cuisineTag} · ★ {restaurant.rating.toFixed(1)} ({formatReviewCount(restaurant.reviewCount)}) · <svg class="vehicle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-vehicle={vehicleForCity(restaurant.city)} set:html={VEHICLE_ICON_PATHS[restaurant.city]} /><span data-testid="restaurant-eta"></span> · {deliveryFeeLabel} delivery</p>

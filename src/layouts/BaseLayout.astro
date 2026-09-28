@@ -7,6 +7,17 @@ interface Props {
 }
 
 const { title } = Astro.props;
+
+const description =
+  "A parody delivery app for practicing product analytics — every tap fires a real, anonymous event. Nothing's charged and no food arrives.";
+
+// Vercel sets this at build time to the production host, with no scheme.
+// LinkedIn needs absolute og:url/og:image, so when it is absent (CI, local)
+// both are omitted rather than emitted relative or empty.
+const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const origin = productionHost ? `https://${productionHost}` : undefined;
+const pageUrl = origin ? `${origin}${Astro.url.pathname}` : undefined;
+const imageUrl = origin ? `${origin}/og-image.png` : undefined;
 ---
 
 <html lang="en">
@@ -14,6 +25,13 @@ const { title } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {pageUrl && <meta property="og:url" content={pageUrl} />}
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
   </head>
   <body>
     <Header currentPath={Astro.url.pathname} />
