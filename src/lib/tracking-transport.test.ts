@@ -15,6 +15,11 @@ const VALID_ORDER_PLACED = {
   utensils: true,
   applied_voucher_ids: [],
   saved_amount_minor: 0,
+  city: 'sf',
+  thanks_voucher_amount_minor: 0,
+  vip_level: 'none',
+  vip_saved_amount_minor: 0,
+  wallet_paid: false,
 };
 
 const NORMAL_NAVIGATOR = { webdriver: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' };
@@ -91,7 +96,7 @@ describe('createSupabaseSender (AC1: publishable-key transport call shape)', () 
       sessionStorage: window.sessionStorage,
     });
     sender('home_viewed', { city: 'sf' });
-    sender('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' });
+    sender('cart_viewed', { item_count: 0, amount_minor: 0, city: 'sf', currency: 'USD' });
 
     const first = JSON.parse(fetchImpl.mock.calls[0][1].body);
     const second = JSON.parse(fetchImpl.mock.calls[1][1].body);
@@ -213,7 +218,7 @@ describe('track() calls made while the page loads, before initTracking runs (#24
 
     track('home_viewed', { city: 'sf' });
     expect(() => initTracking()).not.toThrow();
-    track('cart_viewed', { amount_minor: 0, currency: 'USD', item_count: 0 });
+    track('cart_viewed', { amount_minor: 0, city: 'sf', currency: 'USD', item_count: 0 });
 
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -254,8 +259,8 @@ describe('#94’s three events still complete with no error when the store env v
     vi.stubGlobal('fetch', fetchImpl);
     initTracking();
 
-    expect(() => track('cart_viewed', { item_count: 0, amount_minor: 0, currency: 'USD' })).not.toThrow();
-    expect(() => track('checkout_viewed', { item_count: 1, amount_minor: 1800, currency: 'USD' })).not.toThrow();
+    expect(() => track('cart_viewed', { item_count: 0, amount_minor: 0, city: 'sf', currency: 'USD' })).not.toThrow();
+    expect(() => track('checkout_viewed', { item_count: 1, amount_minor: 1800, city: 'sf', currency: 'USD' })).not.toThrow();
     expect(() => track('order_placed', VALID_ORDER_PLACED)).not.toThrow();
     expect(fetchImpl).not.toHaveBeenCalled();
   });

@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { closeEventStore, storeWhatTheClientSends } from '../../test-support/event-store';
 import { initHomePage } from './home-dom';
 import { getStoredCity } from './location';
 import { restaurantsForCity, getRestaurant } from './restaurants';
@@ -613,20 +614,26 @@ describe('the promo carousel (#137 AC2-AC8)', () => {
 });
 
 describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
-  it('the first load this session draws and stores under flashDeal:<city>; flash_sheet_shown goes quiet for a 5-6 restaurant draw (AC6)', () => {
+  it('the first load this session draws and stores under flashDeal:<city>, and fires flash_sheet_shown once with the whole draw (#238)', () => {
     window.localStorage.setItem('parody.city', 'sf');
     const stub = vi.fn();
     setTrack(stub);
 
     initHomePage(root(), pillRoot(), window.localStorage, window.sessionStorage);
 
-    // #120: the draw is now 5-6 restaurants, but flash_sheet_shown's own
-    // contract (isValidRestaurantSlugs in tracking.ts) still requires
-    // exactly 2 slugs, unchanged - so the event is dropped by that
-    // validation rather than firing with a truncated or widened shape.
+    const draw = JSON.parse(window.sessionStorage.getItem('flashDeal:sf')!);
     const shown = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown');
-    expect(shown).toHaveLength(0);
-    expect(window.sessionStorage.getItem('flashDeal:sf')).not.toBeNull();
+    expect(shown).toEqual([
+      [
+        'flash_sheet_shown',
+        {
+          city: 'sf',
+          amount_minor: draw.amountMinor,
+          currency: 'USD',
+          restaurant_slugs: draw.restaurants.map((restaurant: { slug: string }) => restaurant.slug),
+        },
+      ],
+    ]);
   });
 
   it('the sheet is present in the DOM on first load', () => {
@@ -649,7 +656,8 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
 
     expect(window.sessionStorage.getItem('flashDeal:sf')).toBe(firstDraw);
     expect(second.querySelector('[data-testid="flash-sheet"]')).toBeNull();
-    expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown')).toHaveLength(0);
+    // The first load's one flash_sheet_shown, and none from the reload (#219 §8: at most one per session and city).
+    expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown')).toHaveLength(1);
   });
 
   it('the first visit to the other city this session makes its own independent draw and shows its own sheet', () => {
@@ -745,5 +753,52 @@ describe('the collapsed reopen bar (AC2, AC3)', () => {
 
     expect(stub.mock.calls.filter(([name]) => name === 'flash_sheet_closed')).toHaveLength(1);
     expect(el.querySelector('[data-testid="flash-reopen-bar"]')).not.toBeNull();
+  });
+});
+
+describe('#238: flash_sheet_shown sends the whole 5-6 draw, and the store keeps it (AC1)', () => {
+  afterAll(closeEventStore);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('a seeded 6-restaurant draw sends all 6 slugs, in drawn order, matching the rows the sheet renders', async () => {
+    window.localStorage.setItem('parody.city', 'hcmc');
+    // 0.99 picks the larger size (6) and the last of the remaining pool each time.
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+
+    initHomePage(el, pillRoot(), window.localStorage, window.sessionStorage);
+
+    const draw = JSON.parse(window.sessionStorage.getItem('flashDeal:hcmc')!);
+    expect(draw.restaurants).toHaveLength(6);
+    const shown = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown').map(([, props]) => props);
+    expect(shown).toHaveLength(1);
+    const [props] = shown;
+    expect(props.restaurant_slugs).toHaveLength(6);
+    expect(props.restaurant_slugs).toEqual(draw.restaurants.map((restaurant: { slug: string }) => restaurant.slug));
+    expect(el.querySelectorAll('[data-testid^="flash-restaurant-"]')).toHaveLength(6);
+    for (const slug of props.restaurant_slugs) {
+      expect(el.querySelector(`[data-testid="flash-restaurant-${slug}"]`)).not.toBeNull();
+    }
+    expect(props).toEqual({ city: 'hcmc', amount_minor: draw.amountMinor, currency: 'VND', restaurant_slugs: props.restaurant_slugs });
+
+    await expect(storeWhatTheClientSends('flash_sheet_shown', props)).resolves.toEqual(props);
+  });
+
+  it('a 5-restaurant draw sends 5, and the store keeps it', async () => {
+    window.localStorage.setItem('parody.city', 'sf');
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const stub = vi.fn();
+    setTrack(stub);
+
+    initHomePage(root(), pillRoot(), window.localStorage, window.sessionStorage);
+
+    const [props] = stub.mock.calls.filter(([name]) => name === 'flash_sheet_shown').map(([, p]) => p);
+    expect(props.restaurant_slugs).toHaveLength(5);
+    await expect(storeWhatTheClientSends('flash_sheet_shown', props)).resolves.toEqual(props);
   });
 });
