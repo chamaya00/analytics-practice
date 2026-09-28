@@ -239,13 +239,13 @@ Every item below shares its restaurant's cuisine-level search from #80's
 | `public/images/dishes/venice-boardwalk-bowls-green-smoothie.svg` | "green smoothie spinach" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/sawtelle-tonkotsu-bar-tonkotsu-ramen.svg` | "tonkotsu ramen chashu egg" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/sawtelle-tonkotsu-bar-spicy-miso-ramen.svg` | "spicy miso ramen" | Pending fetch (#231, batch 3) |
-| `public/images/dishes/sawtelle-tonkotsu-bar-tsukemen.svg` | "tsukemen dipping noodles" | Pending fetch (#231, batch 3) |
+| `public/images/dishes/sawtelle-tonkotsu-bar-tsukemen.svg` | "japanese cold noodles dipping" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/sawtelle-tonkotsu-bar-gyoza.svg` | "gyoza pan fried dumplings" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/sawtelle-tonkotsu-bar-chashu-rice-bowl.svg` | "chashu pork rice bowl" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/temple-street-filipino-kitchen-chicken-adobo.svg` | "chicken adobo rice" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/temple-street-filipino-kitchen-pork-sisig.svg` | "pork sisig sizzling plate" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/temple-street-filipino-kitchen-pancit-bihon.svg` | "pancit bihon noodles" | Pending fetch (#231, batch 3) |
-| `public/images/dishes/temple-street-filipino-kitchen-lumpia-shanghai.svg` | "lumpia spring rolls" | Pending fetch (#231, batch 3) |
+| `public/images/dishes/temple-street-filipino-kitchen-lumpia-shanghai.svg` | "fried spring rolls sauce" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/temple-street-filipino-kitchen-ube-halo-halo.svg` | "halo halo ube dessert" | Pending fetch (#231, batch 3) |
 | `public/images/dishes/silver-lake-poke-counter-classic-ahi-poke-bowl.svg` | "ahi tuna poke bowl" | Pending fetch (#231, batch 3) |
 
