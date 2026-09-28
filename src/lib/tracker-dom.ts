@@ -40,7 +40,8 @@ import { openRatingSheet, type RatingSheetOptions } from './rating-sheet-dom';
 import { openConfirmDialog } from './confirm-dialog-dom';
 import { renderDemoDisclosure } from './demo-disclosure';
 import { formatCountdown } from './vouchers';
-import { formatMoney } from './money';
+import { formatMoney, type City } from './money';
+import { unlockThanksVoucher, type ThanksVoucherUnlock } from './thanks-voucher';
 import { getRestaurant, type Restaurant } from './restaurants';
 import { formatReviewCount } from './reviews';
 import { createVehicleIcon } from './vehicle-icon';
@@ -726,12 +727,26 @@ export function initTrackerPage(
    * `rating_submitted` still fires at most once per `order_id` however the
    * sheet was reached. */
   function ratingSheetCallbacks(orderId: string): Omit<RatingSheetOptions, 'order'> {
+    // #166: "the first step submitted for an order unlocks one" — neither
+    // half rated yet is exactly "the first step," whichever of driver/
+    // restaurant it turns out to be. A second step for this same order, or a
+    // later history rating, finds one half already set and unlocks nothing
+    // more (docs/design/162-*, "The thanks voucher").
+    let thanksVoucherUnlock: ThanksVoucherUnlock | null = null;
+    function maybeUnlockThanksVoucher(): void {
+      const target = findOrder(storage, orderId);
+      if (!target || target.rating !== null || target.driverRating !== null) return;
+      const city: City = target.currency === 'VND' ? 'hcmc' : 'sf';
+      thanksVoucherUnlock = unlockThanksVoucher(storage, city, orderId, Date.now());
+    }
     return {
       onSubmitDriverRating: (stars) => {
+        maybeUnlockThanksVoucher();
         submitDriverRating(storage, orderId, stars);
         render();
       },
       onSubmitRestaurant: (stars, tags) => {
+        maybeUnlockThanksVoucher();
         const updated = submitRating(storage, orderId, stars, tags);
         if (!updated) return;
         track('rating_submitted', { order_id: orderId, stars, tags });
@@ -741,6 +756,7 @@ export function initTrackerPage(
         ratingSheetOpen = false;
         render();
       },
+      getThanksVoucherUnlock: () => thanksVoucherUnlock,
     };
   }
 

@@ -22,7 +22,8 @@
 import type { PlacedOrder } from './order-store';
 import { RATING_TAGS, type RatingTag } from './tracking';
 import { getRestaurant } from './restaurants';
-import { formatMoney } from './money';
+import { CITY_NAMES, formatMoney, formatMoneyForCity } from './money';
+import { formatThanksVoucherExpiry, type ThanksVoucherUnlock } from './thanks-voucher';
 import type { ConfettiFn } from 'canvas-confetti';
 
 const STAR_ICON =
@@ -66,6 +67,14 @@ export interface RatingSheetOptions {
   onSubmitRestaurant: (stars: number, tags: RatingTag[]) => void;
   /** Called once, however the sheet ends: Done, ×, scrim, or Escape. */
   onClose?: () => void;
+  /** Read once, at the win screen — whatever the caller's own unlock check
+   * (order-store.ts's rating/driverRating, tracker-dom.ts) produced for this
+   * order's first submitted step, or `null` for a second step / a later
+   * history rating (#166, docs/design/162-*, "The thanks voucher": "That is
+   * once per order"). This module still never touches order-store.ts or
+   * tracking.ts directly — the caller resolves the unlock and hands back
+   * only its result. */
+  getThanksVoucherUnlock?: () => ThanksVoucherUnlock | null;
   /** Where focus returns on close — `null`/omitted for the sheet's usual
    * case, auto-opening with nothing to return to. */
   returnFocusTo?: HTMLElement | null;
@@ -111,6 +120,24 @@ function starRow(
   }
 
   return { row, word };
+}
+
+/** The win's reward-slot ticket (#166, docs/design/162-*, "Win": "Unlocked ·
+ * 30.000 ₫ off · Thanks voucher · For your next Ho Chi Minh City order over
+ * 150.000 ₫. Applies by itself at checkout. · Expires 4 Oct · one per
+ * city"). `role="status"` so a screen reader hears the unlock, same as the
+ * summary line above it. */
+function renderThanksVoucherTicket(unlock: ThanksVoucherUnlock, doc: Document): HTMLElement {
+  const { voucher, toppedUp, city } = unlock;
+  const ticket = doc.createElement('p');
+  ticket.className = 'rating-sheet-reward-ticket';
+  ticket.setAttribute('data-testid', 'rating-sheet-reward-ticket');
+  ticket.setAttribute('role', 'status');
+  ticket.textContent =
+    `${toppedUp ? 'Topped up' : 'Unlocked'} · ${formatMoneyForCity(voucher.amountMinor, city)} off · Thanks voucher · ` +
+    `For your next ${CITY_NAMES[city]} order over ${formatMoneyForCity(voucher.minimumSpendMinor, city)}. ` +
+    `Applies by itself at checkout. · Expires ${formatThanksVoucherExpiry(voucher.expiresAt)} · one per city`;
+  return ticket;
 }
 
 export function openRatingSheet(options: RatingSheetOptions, doc: Document = document): RatingSheetHandle {
@@ -407,13 +434,17 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
     summary.textContent = parts.join(' · ');
     winEl.append(summary);
 
-    // #166's reward unlock (the thanks voucher, the VIP nudge) mounts here —
-    // deliberately empty until that issue ships (docs/design/162-*, "For the
-    // engineers": #163 "leaves a clearly marked slot for #166's reward
-    // unlock").
+    // #166's reward unlock: the thanks voucher ticket, when this order's
+    // first submitted step unlocked (or topped up) one. The VIP nudge the
+    // same slot was drawn for in #162's mock is #174's, not this issue's.
     const rewardSlot = doc.createElement('div');
     rewardSlot.setAttribute('data-testid', 'rating-sheet-reward-slot');
-    rewardSlot.setAttribute('aria-hidden', 'true');
+    const unlock = options.getThanksVoucherUnlock?.() ?? null;
+    if (unlock) {
+      rewardSlot.append(renderThanksVoucherTicket(unlock, doc));
+    } else {
+      rewardSlot.setAttribute('aria-hidden', 'true');
+    }
     winEl.append(rewardSlot);
 
     const done = doc.createElement('button');

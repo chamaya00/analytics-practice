@@ -111,6 +111,7 @@ describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
       serviceFeeMinor: 150,
       discountAmountMinor: 0,
       savedAmountMinor: 0,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 2599,
       currency: 'USD',
     });
@@ -125,6 +126,7 @@ describe('computeCheckoutBreakdown — no voucher applied (AC1, AC3)', () => {
       serviceFeeMinor: 20000,
       discountAmountMinor: 0,
       savedAmountMinor: 0,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 285000,
       currency: 'VND',
     });
@@ -150,6 +152,7 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
       serviceFeeMinor: 20000,
       discountAmountMinor: 25000,
       savedAmountMinor: 40000,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 245000,
       currency: 'VND',
     });
@@ -169,6 +172,7 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
       serviceFeeMinor: 150,
       discountAmountMinor: 200,
       savedAmountMinor: 499,
+      thanksVoucherAmountMinor: 0,
       totalMinor: 2100,
       currency: 'USD',
     });
@@ -184,6 +188,39 @@ describe('computeCheckoutBreakdown — #87\'s worked examples with vouchers appl
     expect(breakdown!.deliveryFeeMinor).toBe(5000);
     expect(breakdown!.deliveryFeeOriginalMinor).toBe(15000);
     expect(breakdown!.savedAmountMinor).toBe(0);
+  });
+});
+
+describe('computeCheckoutBreakdown — the thanks voucher (#166)', () => {
+  it('subtracts thanksVoucherAmountMinor from the total, and keeps it out of savedAmountMinor (the catalogue-only figure order_placed sends)', () => {
+    const lines = [{ ...LINE, currency: 'VND' as const, amountMinor: 250000, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 15000, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 25000,
+      flashDeliveryFeeMinor: null,
+      thanksVoucherAmountMinor: 30000,
+    });
+    expect(breakdown).toEqual({
+      subtotalMinor: 250000,
+      deliveryFeeMinor: 15000,
+      deliveryFeeOriginalMinor: null,
+      serviceFeeMinor: 20000,
+      discountAmountMinor: 25000,
+      savedAmountMinor: 25000,
+      thanksVoucherAmountMinor: 30000,
+      totalMinor: 230000,
+      currency: 'VND',
+    });
+  });
+
+  it('defaults to 0 when the caller omits it, same as every other applied-voucher field', () => {
+    const lines = [{ ...LINE, amountMinor: 2150, quantity: 1 }];
+    const breakdown = computeCheckoutBreakdown(lines, 299, {
+      deliveryVoucherApplied: false,
+      discountAmountMinor: 0,
+      flashDeliveryFeeMinor: null,
+    });
+    expect(breakdown!.thanksVoucherAmountMinor).toBe(0);
   });
 });
 
@@ -668,6 +705,62 @@ describe('placeOrder — walletPaid (#165 AC1)', () => {
   });
 });
 
+describe('placeOrder — thanksVoucherMinor (#166)', () => {
+  it('defaults to 0 when the caller passes nothing', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+    });
+
+    expect(order.thanksVoucherMinor).toBe(0);
+  });
+
+  it('records the amount the caller passes', () => {
+    addToCart(window.localStorage, LINE);
+
+    const order = placeOrder(window.localStorage, {
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      thanksVoucherMinor: 300,
+    });
+
+    expect(order.thanksVoucherMinor).toBe(300);
+  });
+
+  it('reads as 0 for an order already stored under ORDERS_KEY from before the field existed', () => {
+    const stored = {
+      orderId: 'pre-166-order',
+      placedAt: new Date().toISOString(),
+      etaMinutes: 15,
+      deliveryMs: 5 * 60_000,
+      items: [{ ...LINE, quantity: 1 }],
+      itemCount: 1,
+      amountMinor: 1400,
+      totalMinor: 1400,
+      currency: 'USD',
+      driver: DRIVERS_BY_CITY.sf[0],
+      dropOffPreset: 'home',
+      deliveryInstructions: 'hand_to_me',
+      utensils: true,
+      appliedVoucherIds: [],
+      savedAmountMinor: 0,
+      viewCount: 0,
+      deliveredEventFired: false,
+      rating: null,
+      driverRating: null,
+      ratingPromptedAt: null,
+      walletPaid: false,
+    };
+    window.localStorage.setItem(ORDERS_KEY, JSON.stringify([stored]));
+
+    expect(getLatestOrder(window.localStorage)?.thanksVoucherMinor).toBe(0);
+  });
+});
+
 describe('order history cap (AC5)', () => {
   function storedOrder(overrides: Partial<PlacedOrder> & { orderId: string; placedAt: string }): PlacedOrder {
     return {
@@ -690,6 +783,7 @@ describe('order history cap (AC5)', () => {
       driverRating: null,
       ratingPromptedAt: null,
       walletPaid: false,
+      thanksVoucherMinor: 0,
       ...overrides,
     };
   }

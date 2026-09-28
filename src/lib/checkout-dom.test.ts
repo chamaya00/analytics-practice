@@ -4,6 +4,7 @@ import { setFlashDraw } from './flash-deal';
 import { addToCart, getCart, getLatestOrder, getVisitorId } from './order-store';
 import { estimateEtaMinutes } from './eta';
 import { resetTrack, setTrack } from './tracking';
+import { getThanksVoucher, unlockThanksVoucher } from './thanks-voucher';
 import type { SupabaseAuthLike } from './auth-client';
 
 // North Beach Pizzeria's own deliveryFeeMinor (restaurants.ts) is 299 — the
@@ -272,6 +273,79 @@ describe('initCheckoutPage — a cart too small to qualify for any voucher (AC1,
     const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
     expect(props.applied_voucher_ids).toEqual([]);
     expect(props.saved_amount_minor).toBe(0);
+  });
+});
+
+describe('initCheckoutPage — the thanks voucher (#166)', () => {
+  beforeEach(() => {
+    addToCart(window.localStorage, LINE); // SF, $21.50 — already auto-qualifies for sf-discount-t1 + free delivery
+  });
+
+  it('applies by itself alongside the catalogue vouchers: its own breakdown row, and folded into the total and "You saved"', () => {
+    unlockThanksVoucher(window.localStorage, 'sf', 'source-order', Date.now());
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="breakdown-thanks-voucher"]')?.textContent).toContain('$3.00');
+    // subtotal 21.50 + service 1.50 + delivery 0 (free) − discount 2.00 − thanks 3.00 = 18.00
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$18.00');
+    // catalogue saving 4.99 (delivery 2.99 + discount 2.00) + thanks 3.00
+    expect(el.querySelector('[data-testid="breakdown-saved"]')?.textContent).toContain('$7.99');
+  });
+
+  it('order_placed keeps applied_voucher_ids/saved_amount_minor catalogue-only; the order itself records thanksVoucherMinor, and the voucher is consumed', () => {
+    unlockThanksVoucher(window.localStorage, 'sf', 'source-order', Date.now());
+    const stub = vi.fn();
+    setTrack(stub);
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+
+    const [, props] = stub.mock.calls.find(([name]) => name === 'order_placed')!;
+    expect(props.applied_voucher_ids).toEqual(['sf-discount-t1', 'sf-delivery-entry']);
+    expect(props.saved_amount_minor).toBe(499);
+
+    const order = getLatestOrder(window.localStorage);
+    expect(order?.thanksVoucherMinor).toBe(300);
+    expect(order?.totalMinor).toBe(1800);
+    expect(getThanksVoucher(window.localStorage, 'sf', Date.now())).toBeNull();
+  });
+
+  it('is not offered in the other city', () => {
+    unlockThanksVoucher(window.localStorage, 'hcmc', 'source-order', Date.now());
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="breakdown-thanks-voucher"]')).toBeNull();
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
+  });
+
+  it('is not offered once expired (an already-past expiresAt)', () => {
+    window.localStorage.setItem(
+      'parody.thanksVoucher',
+      JSON.stringify({
+        sf: { amountMinor: 300, minimumSpendMinor: 1500, expiresAt: new Date(Date.now() - 1000).toISOString(), sourceOrderId: 'old-order' },
+      }),
+    );
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="breakdown-thanks-voucher"]')).toBeNull();
+    expect(el.querySelector('[data-testid="breakdown-total"]')?.textContent).toContain('$21.00');
+  });
+
+  it('does not apply below its own minimum spend, even while held', () => {
+    window.localStorage.clear();
+    addToCart(window.localStorage, { ...LINE, amountMinor: 500 }); // below the $15.00 SF minimum
+    unlockThanksVoucher(window.localStorage, 'sf', 'source-order', Date.now());
+    const el = root();
+    initCheckoutPage(el, window.localStorage, vi.fn());
+
+    expect(el.querySelector('[data-testid="breakdown-thanks-voucher"]')).toBeNull();
+    // Consumption never runs for a voucher that never applied.
+    el.querySelector<HTMLButtonElement>('[data-testid="place-order"]')?.click();
+    expect(getThanksVoucher(window.localStorage, 'sf', Date.now())).not.toBeNull();
   });
 });
 

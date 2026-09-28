@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isValidEventProps, resetTrack, setTrack, track } from './tracking';
+import { VOUCHER_IDS, isValidEventProps, resetTrack, setTrack, track } from './tracking';
 
 const ORDER_ID = '11111111-2222-4333-8444-555555555555';
 
@@ -234,6 +234,23 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
   });
 });
 
+describe('VOUCHER_IDS pins the ten catalogue ids (#166: the thanks voucher must never widen this list)', () => {
+  it('deep-equals the literal ten ids, in vouchers.ts\'s own order', () => {
+    expect(VOUCHER_IDS).toEqual([
+      'hcmc-delivery-entry',
+      'hcmc-discount-t1',
+      'hcmc-discount-t2',
+      'hcmc-discount-t3',
+      'hcmc-flash',
+      'sf-delivery-entry',
+      'sf-discount-t1',
+      'sf-discount-t2',
+      'sf-discount-t3',
+      'sf-flash',
+    ]);
+  });
+});
+
 describe('isValidEventProps — order_placed with real vouchers (AC3, AC4, AC6)', () => {
   it('accepts up to 2 known catalogue voucher ids with a nonzero saved_amount_minor', () => {
     expect(
@@ -250,6 +267,12 @@ describe('isValidEventProps — order_placed with real vouchers (AC3, AC4, AC6)'
   it('rejects a typed free-text string standing in for a voucher id', () => {
     expect(
       isValidEventProps('order_placed', { ...VALID_ORDER_PLACED, applied_voucher_ids: ['SAVE10'] }),
+    ).toBe(false);
+  });
+
+  it('rejects the thanks voucher id (#166: it is not a catalogue voucher and must never validate here)', () => {
+    expect(
+      isValidEventProps('order_placed', { ...VALID_ORDER_PLACED, applied_voucher_ids: ['thanks-voucher'] }),
     ).toBe(false);
   });
 

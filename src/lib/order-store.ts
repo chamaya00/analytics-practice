@@ -89,6 +89,12 @@ export interface PlacedOrder {
    * exactly the set of orders the server would refuse a tip against (D14),
    * which is what #171's tippable check reads this for. */
   walletPaid: boolean;
+  /** The thanks voucher's amount applied to this order, in minor units — 0
+   * when none applied. Written only inside `placeOrder`'s own success path
+   * (#166, docs/design/162-*, "The thanks voucher": "Consumed when the
+   * order is written... If placing fails ... it is not consumed"), so a
+   * failed write never reaches a caller that would clear it from storage. */
+  thanksVoucherMinor: number;
 }
 
 /** A fresh id in `placeOrder`'s own shape (#149: created before the wallet debit, so the debit and the order it pays for share one idempotency key — ADR 0008, "Source of truth"). */
@@ -226,8 +232,17 @@ export interface CheckoutBreakdown {
   serviceFeeMinor: number;
   /** The discount-group voucher's amount — 0 when none is applied (no Discount line then, #87). */
   discountAmountMinor: number;
-  /** Sum of every applied voucher's saving — 0 when nothing is applied (no "You saved" line then, #87). */
+  /** Sum of every applied *catalogue* voucher's saving — 0 when nothing is
+   * applied (no "You saved" line then, #87). Deliberately excludes the
+   * thanks voucher below: this is also `order_placed.saved_amount_minor`
+   * (contract §7), which only ever names a catalogue id (#166, docs/design/
+   * 162-*, "Events"). The screen's own "You saved" line adds
+   * `thanksVoucherAmountMinor` to this on top (checkout-dom.ts). */
   savedAmountMinor: number;
+  /** The thanks voucher's amount actually applied — 0 when none is held, it
+   * doesn't qualify at this subtotal, or it has expired (#166). Never part
+   * of `savedAmountMinor` above; see that field's own note. */
+  thanksVoucherAmountMinor: number;
   totalMinor: number;
   currency: Currency;
 }
@@ -246,12 +261,15 @@ export interface AppliedVoucherEffect {
   discountAmountMinor: number;
   /** The restaurant's own flash-window fee, in minor units, when a live flash window applies to it (#87, "The effective delivery fee, in order," rule 2) — `null` when no flash window is live for this restaurant. */
   flashDeliveryFeeMinor: number | null;
+  /** The thanks voucher's amount, already resolved against the subtotal and expiry by the caller (`thanksVoucherDiscountMinor`, thanks-voucher.ts) — 0 when none applies. Kept out of the catalogue-shaped fields above on purpose: it is not a `VoucherId` (#166). */
+  thanksVoucherAmountMinor?: number;
 }
 
 export const NO_VOUCHERS_APPLIED: AppliedVoucherEffect = {
   deliveryVoucherApplied: false,
   discountAmountMinor: 0,
   flashDeliveryFeeMinor: null,
+  thanksVoucherAmountMinor: 0,
 };
 
 /** The fee that would apply absent the delivery voucher — the restaurant's live flash fee if one is live, else its normal fee (#87, "the effective delivery fee," rules 2–3). Exported so the Offers screen's own "You saved" footer (offers-dom.ts) computes the identical figure checkout will show. */
@@ -285,6 +303,7 @@ export function computeCheckoutBreakdown(
   const deliveryFeeOriginalMinor = deliveryFeeMinor < normalDeliveryFeeMinor ? normalDeliveryFeeMinor : null;
   const deliverySavedMinor = applied.deliveryVoucherApplied ? otherwiseFeeMinor : 0;
   const savedAmountMinor = deliverySavedMinor + applied.discountAmountMinor;
+  const thanksVoucherAmountMinor = applied.thanksVoucherAmountMinor ?? 0;
 
   return {
     subtotalMinor,
@@ -293,7 +312,8 @@ export function computeCheckoutBreakdown(
     serviceFeeMinor,
     discountAmountMinor: applied.discountAmountMinor,
     savedAmountMinor,
-    totalMinor: subtotalMinor + deliveryFeeMinor + serviceFeeMinor - applied.discountAmountMinor,
+    thanksVoucherAmountMinor,
+    totalMinor: subtotalMinor + deliveryFeeMinor + serviceFeeMinor - applied.discountAmountMinor - thanksVoucherAmountMinor,
     currency,
   };
 }
@@ -412,6 +432,7 @@ function withLegacyDefaults(order: PlacedOrder, storage: Storage, random: () => 
     driverRating: order.driverRating ?? null,
     ratingPromptedAt: order.ratingPromptedAt ?? null,
     walletPaid: order.walletPaid ?? false,
+    thanksVoucherMinor: order.thanksVoucherMinor ?? 0,
   };
 }
 
@@ -452,6 +473,7 @@ function withRatingDefaults(order: PlacedOrder): PlacedOrder {
     driverRating: order.driverRating ?? null,
     ratingPromptedAt: order.ratingPromptedAt ?? null,
     walletPaid: order.walletPaid ?? false,
+    thanksVoucherMinor: order.thanksVoucherMinor ?? 0,
   };
 }
 
@@ -515,6 +537,8 @@ export interface PlaceOrderFields {
    * order — defaults to `false`, which is right for the dark path, the D1
    * fallback, and every caller unconcerned with the wallet (#165). */
   walletPaid?: boolean;
+  /** The thanks voucher amount actually applied to this checkout, in minor units — defaults to 0, which is right for every caller not applying one (#166). */
+  thanksVoucherMinor?: number;
 }
 
 /**
@@ -586,6 +610,7 @@ export function placeOrder(
     driverRating: null,
     ratingPromptedAt: null,
     walletPaid: fields.walletPaid ?? false,
+    thanksVoucherMinor: fields.thanksVoucherMinor ?? 0,
   };
   const orders = getOrders(storage, random);
   orders.push(order);
