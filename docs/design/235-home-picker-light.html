@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>235: home intro — city picker, light</title>
+<style>
+  :root {
+    color-scheme: light;
+    --font-family-base: system-ui, 'Segoe UI Semibold', 'Helvetica Neue Condensed', 'Arial Narrow', Arial, sans-serif;
+    --font-size-h2: 1rem;
+    --font-size-nav-title: 0.9375rem;
+    --font-size-body: 0.9375rem;
+    --font-size-muted: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.875rem;
+    --space-lg: 1.25rem;
+    --space-xl: 1.75rem;
+    --space-xxl: 2.5rem;
+    --color-bg: #f1f4f1;
+    --color-surface: #ffffff;
+    --color-text: #0b0f0c;
+    --color-text-muted: #56665b;
+    --color-border: #dfe5e0;
+    --color-accent-a: #0f766e;
+    --color-tab-active-bg: #d7ede8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-family-base); font-size: var(--font-size-body); line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+  main { max-width: 40rem; margin: 0 auto; padding: var(--space-xl) var(--space-lg); padding-bottom: calc(56px + var(--space-xl)); }
+  h2 { font-size: var(--font-size-h2); font-weight: 700; margin: 0 0 var(--space-sm); }
+
+  .site-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; padding: var(--space-xs) var(--space-lg); border-bottom: 1px solid var(--color-border); }
+  .site-header-main { flex: 1; min-width: 0; }
+  .site-nav { display: flex; gap: var(--space-md); }
+  .site-nav a { min-height: 44px; display: inline-flex; align-items: center; color: var(--color-text); text-decoration: none; }
+  .site-nav a.current { text-decoration: underline; }
+  .site-name { margin: 0; display: flex; align-items: center; gap: var(--space-xs); font-size: var(--font-size-nav-title); }
+  .wordmark { font-weight: 500; }
+  .wordmark-strong { font-weight: 800; }
+  .wordmark-tail { position: relative; }
+  .wordmark-tail::after { content: ''; position: absolute; right: -3px; bottom: -2px; width: 6px; height: 6px; border-bottom: 2px solid var(--color-accent-a); border-right: 2px solid var(--color-accent-a); border-radius: 0 0 6px 0; }
+
+  .home-intro {
+    margin: 2px 0 0;
+    font-size: var(--font-size-muted);
+    line-height: 1.25;
+    color: var(--color-text-muted);
+    max-width: 30rem;
+  }
+  .home-intro strong { color: var(--color-text); }
+
+  .location-cards { display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-md); }
+  .location-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-xs); padding: var(--space-md); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; }
+  .location-card .photo { width: 96px; height: 64px; border-radius: 8px; }
+  .photo--sf { background: linear-gradient(135deg, #35506b, #7ea8c9); }
+  .photo--hcmc { background: linear-gradient(135deg, #6b3d1f, #d98b3e); }
+  .location-card-name { font-weight: 800; }
+  .location-card-currency { font-size: var(--font-size-muted); color: var(--color-text-muted); }
+
+  .site-footer { max-width: 40rem; margin: 0 auto; padding: 0 var(--space-lg) var(--space-xl); padding-bottom: calc(56px + var(--space-xl)); text-align: center; }
+  .site-footer a { color: var(--color-text-muted); font-size: var(--font-size-muted); letter-spacing: 0.05em; }
+
+  .tab-bar { display: none; }
+  @media (max-width: 480px) {
+    .site-header .site-nav { display: none; }
+    .tab-bar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex;
+      background: var(--color-surface); border-top: 1px solid var(--color-border); padding: var(--space-xs) var(--space-lg);
+    }
+  }
+  .tab-bar a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; color: var(--color-text-muted); text-decoration: none; font-size: var(--font-size-muted); }
+  .tab-bar a svg { width: 20px; height: 20px; }
+  .tab-bar a.current { color: var(--color-text); font-weight: 700; }
+  .tab-bar a.current .pill { display: inline-block; padding: 2px var(--space-md); background: var(--color-tab-active-bg); border-radius: 999px; }
+</style>
+</head>
+<body>
+  <div class="site-header">
+    <div class="site-header-main">
+      <p class="site-name">
+        <span class="wordmark"><span class="wordmark-strong">dont</span>dropthat<span>prom<span class="wordmark-tail">o</span></span></span>
+      </p>
+      <p class="home-intro" data-testid="home-intro">
+        <strong>A parody delivery app for practicing product analytics.</strong>
+        Every tap fires a real, anonymous event — nothing's charged, no food arrives. Pick a city and place a fake order.
+      </p>
+    </div>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/" class="current">Home</a>
+      <a href="/cart/">Cart</a>
+      <a href="/tracker/">Tracker</a>
+    </nav>
+  </div>
+  <main>
+    <h2>Choose your city</h2>
+    <div class="location-cards">
+      <button class="location-card" data-testid="location-card-sf">
+        <span class="photo photo--sf" aria-hidden="true"></span>
+        <span class="location-card-name">San Francisco</span>
+        <span class="location-card-currency">Prices in USD</span>
+      </button>
+      <button class="location-card" data-testid="location-card-hcmc">
+        <span class="photo photo--hcmc" aria-hidden="true"></span>
+        <span class="location-card-name">Ho Chi Minh City</span>
+        <span class="location-card-currency">Prices in VND</span>
+      </button>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <a href="/about/">What we log, and why</a>
+  </footer>
+  <nav class="tab-bar" aria-label="Primary">
+    <a href="/" class="current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11 12 4 20 11" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="pill">Home</span></a>
+    <a href="/cart/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8h12l-1 12H7L6 8Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg>Cart</a>
+    <a href="/tracker/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3.5"/><path d="M12 21c4-4.5 7-8 7-11a7 7 0 0 0-14 0c0 3 3 6.5 7 11Z"/></svg>Tracker</a>
+  </nav>
+</body>
+</html>
