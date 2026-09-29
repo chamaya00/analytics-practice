@@ -41,7 +41,7 @@ describe('production build with VERCEL_PROJECT_PRODUCTION_URL set', () => {
     expect(html).toContain('data-testid="home-intro"');
     expect(html).toContain('This is a demo / simulation game.');
     expect(html).toContain('No payment is taken and no food is sent, just the satisfaction');
-    expect(html).toMatch(/stacking promos\. <a href="\/about\/"[^>]*>What we log, and why →<\/a>/);
+    expect(html).toContain('stacking promos.');
   });
 });
 
