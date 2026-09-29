@@ -256,7 +256,7 @@ it. A subreddit or Discord only if the board outgrows itself.
 
 Suggested categories: **Announcements** (new snapshots, roadmap decisions),
 **Q&A** (questions about the data, with a marked answer), **Analyses** (show
-your work), **Recommendations** (one post per learner per round), and **Ask a
+your work), **Recommendations** (one post per recommendation, using the form template below), and **Ask a
 mentor**.
 
 ## Before learners can do this: getting the data to them
@@ -268,7 +268,7 @@ rows: `events_clean` (the owner's traffic already removed).
 
 | Option | How it works | For | Against |
 |---|---|---|---|
-| **1. Published snapshot files** | A scheduled job (a GitHub Action holding a read-only secret, or the owner by hand) exports `events_clean` to CSV and Parquet, daily or weekly. A **Data** tab on the site links the files, a data dictionary and the schema. | Simplest possible. Fixed snapshots give everyone the same numbers, which suits an exercise with a cut-off date. | Up to a day stale. The Action touches `.github/`, a protected path. |
+| **1. Published snapshot files** | A scheduled job (a GitHub Action holding a read-only secret, or the owner by hand) exports `events_clean` to CSV and Parquet, daily or weekly. A **Data** tab on the site links the files, a data dictionary and the schema. | Simplest possible. Dated snapshots let anyone re-run an analysis on exactly the data it used. | Up to a day stale. The Action touches `.github/`, a protected path. |
 | **2. Snapshot + SQL in the browser** | Option 1, plus DuckDB-WASM on the Data tab: learners write SQL against the Parquet file in the page, with the M1-M17 queries preloaded as examples. | Nothing to install, and SQL practice is the whole point. Runs entirely in the visitor's browser. | A few MB of WASM, loaded only on that tab. Some design and engineering work. |
 | **3. A read-only view on the Data API** | A `public` view over `events_clean`, with `select` granted to the public key. The Data tab reads it live. | Live data, no export job. | Opens a read path onto the store: rate limits and egress are now the owner's problem, and it changes ADR 0005's write-only rule. Row-level access is harder to take back than a file. |
 | **4. Mirror to a dataset host** | The snapshot is also published as a Kaggle or Hugging Face dataset. | Learners use their own tools (notebooks, pandas, Kaggle's own discussion board). | A second place to keep in sync. |
@@ -280,38 +280,67 @@ option 3 is not planned.
 ### How it works with the Supabase store
 
 ```
-Supabase Postgres                  GitHub Action (daily)                 Supabase Storage (public bucket)       Site: /data
-events_clean ──► learner_events ──► DuckDB CLI: read, re-key ids,  ──►  snapshots/2026-10-05/events.parquet ──► Download links
- (unchanged)     view, select-only   write Parquet + CSV + manifest       snapshots/2026-10-05/events.csv          DuckDB-WASM SQL console
-                 for one read-only                                        snapshots/latest.json                    with M1-M17 preloaded
-                 role                                                     
+Supabase Postgres                 GitHub Action (daily)              Supabase Storage (public bucket)         Site: /data
+learner schema: one view    ──►   list the learner views,     ──►   snapshots/2026-10-05/events.parquet  ──►  Download links
+per published table               filter to before today,           snapshots/2026-10-05/<table>.parquet       DuckDB-WASM SQL console,
+(events, and each new table)      re-key ids with one salt,         snapshots/2026-10-05/*.csv                 every table loaded,
+select-only for one role          write Parquet + CSV + manifest    snapshots/latest.json                      M1-M17 preloaded
 ```
 
-1. **In the database (one migration).**
-   - A view, `learner_events`, over `events_clean`. It keeps `visitor_id`,
-     `session_id`, `event_name`, `occurred_at`, `props` and `variant`. It
-     drops `id` (the client's retry key), `received_at` and `is_internal`
-     (always false once the owner's traffic is removed).
-   - A new login role, `snapshot_reader`, whose only grant is `select` on that
-     view. It cannot read the raw table, the wallet or `auth.users`, and cannot
-     write anything. It is not the service-role key.
+**It is built for several tables from the start.** The site will log to more
+than the one `events` table, so the pipeline treats "the tables learners may
+see" as a list the database owns, not something hard-coded in the job.
+
+1. **In the database: a `learner` schema, one view per published table.**
+   - Each table learners may see gets a view in `learner`: `learner.events`
+     over `events_clean`, and one per new table as it is added (for example
+     `learner.orders` or `learner.dim_restaurants`).
+   - **The view is the allow-list and the privacy filter.** It picks the
+     columns that are safe to publish and drops the rest. `learner.events`
+     keeps `visitor_id`, `session_id`, `event_name`, `occurred_at`, `props`
+     and `variant`, and drops `id` (the client's retry key), `received_at`
+     and `is_internal` (always false once the owner's traffic is removed).
+   - **Every view exposes one timestamp column, `ts`:** `occurred_at` for event
+     tables, `created_at` for dimension tables. The job filters on it without
+     knowing anything else about the table.
+   - A login role, `snapshot_reader`, gets `usage` on the `learner` schema and
+     `select` on its views, and nothing else. It cannot read the raw tables,
+     the wallet or `auth.users`, and cannot write. It is not the service-role
+     key.
+   - **Publishing a new table is one migration:** add its view and grant. The
+     job, the bucket and the Data tab pick it up with no change.
+   - **Never published:** wallet tables, `auth.users`, and anything keyed by an
+     account's user id. The #79 rule keeps accounts and events apart, and a
+     published table must not join them.
 2. **The export job: a scheduled GitHub Action, once a day.**
    - It connects as `snapshot_reader` through Supabase's connection pooler,
      because Actions runners need an IPv4 address. The connection string is a
      repository secret.
-   - It runs the DuckDB CLI with DuckDB's `postgres` extension: one command
-     reads the view and writes Parquet and CSV. It uses the same engine the
-     browser will run.
-   - **Re-keying happens here.** Each run makes a random salt, replaces every
-     id with `md5(id || salt)`, then discards the salt. Within one snapshot a
-     visitor is still one visitor across all their sessions, so retention (M3)
-     works. Across snapshots, and against the id in a visitor's own browser,
-     nothing matches.
-   - **Each snapshot is the full history**, not only the new rows, so every
-     file stands on its own and M3's "first seen" is always correct.
-   - It uploads the files and a `latest.json` manifest (version, cut-off
-     time, row count, checksum) using Supabase Storage's S3 access keys. Those
-     keys can only touch storage.
+   - It runs the DuckDB CLI with DuckDB's `postgres` extension. It lists the
+     views in `learner`, and for each one writes a Parquet and a CSV file. It
+     uses the same engine the browser will run.
+   - **What each snapshot holds: all history up to the start of today (UTC).**
+     Every row with `ts` before 00:00 UTC on the export day. There is no
+     cut-off date to choose: a learner states the window they analysed. The
+     store accepts an event up to a day after it happened (the contract's
+     rule R2), so yesterday can still gain a few late rows in the next
+     snapshot. The Data tab says so.
+   - **Full history, not a rolling window.** At soft-launch volume every table
+     together should be well under a few MB. If a snapshot passes about 50 MB
+     (the point where a browser tab starts to struggle), switch to one file
+     per month per table. DuckDB reads a folder of files as one table, so
+     queries don't change.
+   - **Re-keying, with one salt for the whole run.** Each run makes a random
+     salt and replaces every uuid column in every table with
+     `md5(value || salt)`, then discards the salt. Because every table shares
+     the salt, joins still work: `events.visitor_id` matches
+     `orders.visitor_id` in the same snapshot. Across snapshots, and against
+     the ids in a visitor's own browser, nothing matches. Non-uuid keys, such
+     as a restaurant's slug, stay as they are.
+   - It uploads the files and a `latest.json` manifest, using Supabase
+     Storage's S3 access keys, which can only touch storage. The manifest
+     lists, per table: the row count, the earliest and latest `ts`, and a
+     checksum.
    - **A side benefit:** a daily query keeps the free project from pausing
      after 7 idle days (ADR 0005). It is **not** a backup: the published files
      are re-keyed, and raw rows never leave the database this way. The owner's
@@ -323,18 +352,19 @@ events_clean ──► learner_events ──► DuckDB CLI: read, re-key ids,  �
    - The files are **not committed to git**: anything in a public repo's
      history stays there, so a snapshot could never be taken back. A bucket
      object can be deleted.
-   - Dated folders are kept, so an exercise round can pin its snapshot
-     ("Round 1 uses `2026-10-05`").
-   - At soft-launch volume a snapshot should be well under 1 MB, inside the
-     free plan's storage and egress.
+   - Each day's snapshot gets a dated folder. Keep the last 30, so an analysis
+     posted two weeks ago can still be re-run on exactly the data it used.
 4. **The Data tab (`/data`), a static Astro page.**
-   - The snapshot's version, cut-off and row count, taken from `latest.json`,
-     with a picker for pinned rounds.
-   - Download links for CSV and Parquet, and a data dictionary generated from
-     the event contract.
+   - The snapshot date, and for each table: row count, earliest and latest
+     timestamp, taken from `latest.json`. A picker for older dated snapshots.
+   - Download links per table (CSV and Parquet), and a data dictionary per
+     table: the event contract for `events`, and each new table's own
+     contract.
    - A SQL console. DuckDB-WASM is loaded **only on this page and only when
-     the console opens** (a few MB), and reads the chosen Parquet file.
-     Queries run in the learner's own browser, so the store takes no load.
+     the console opens** (a few MB), and registers every table in the chosen
+     snapshot under its own name, so `select * from orders join events ...`
+     just works. Queries run in the learner's own browser, so the store takes
+     no load.
    - M1-M17 preloaded as examples. They are written for Postgres, so they need
      porting to DuckDB's dialect (JSON access, time zones, date truncation),
      with a Vitest test that runs each port against a fixture file.
@@ -343,7 +373,26 @@ events_clean ──► learner_events ──► DuckDB CLI: read, re-key ids,  �
      site logs no free text. Whether the Data tab gets any events at all is a
      question for the readiness pass that follows (the #79 rule).
 
-**Owner-only steps:** create the `snapshot_reader` password, the storage
+**Catalogue dimensions may not need a database table at all.** Restaurants,
+menu items, vouchers and drivers are defined in code (`src/lib/catalogue-*.ts`
+and friends). The export job can write those out as dimension files straight
+from the repository, with a `created_at` kept in the code beside each row
+(for example, the day a city or restaurant launched). Only data the site *creates at runtime* needs a table in the store.
+
+**Dimensions that change.** A snapshot shows each dimension as it is at export
+time. If a dimension's rows can be edited (a restaurant's price or rating),
+an analysis of last month would join to this month's values. Keep dimension
+tables append-only, with `valid_from` and `valid_to` on each version of a row,
+so an analysis can join to the version that was true when the event happened.
+
+**Every analysis states its timeframe.** A submission names the snapshot date
+it used and the window it analysed (for example "snapshot 2026-10-20, events
+from 2026-10-06 to 2026-10-19"). The Recommendations category in Discussions
+gets a form template (`.github/DISCUSSION_TEMPLATE/`) with those two fields
+required, beside the recommendation, the metrics used and the counts behind
+them.
+
+**Owner-only steps:** set the `snapshot_reader` password, the storage
 bucket and its S3 keys; add the two repository secrets; enable Discussions in
 the repository settings.
 
@@ -361,5 +410,6 @@ the repository settings.
   the person who made it ("the one HCMC order from LinkedIn at 9:03 was mine").
   Nothing in a row identifies a person, but the About page should say so
   plainly.
-- **A cut-off date and a snapshot version,** so every analysis names which
-  data it used.
+- **A table contract for each new table,** like the event contract: what each
+  column means, which timestamp is `ts`, and why each column is safe to
+  publish.
