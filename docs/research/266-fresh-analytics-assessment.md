@@ -360,3 +360,207 @@ The parent asks for a decision at the model level, and #257 builds it.
 ### Interim recommendation (before reading #219)
 
 Adopt S1 (events as the only written truth, derived entity views, code-exported dimensions). Add `restaurant_slug`, `fee_modes`, `seq`, `build`, `drip_claimed` and `payment_path`, each as a privacy call. Redefine the metrics per browser, within 7 days, windowed on `received_at`. Drop completion as a guardrail. Defer F's plumbing behind a written traffic threshold, and read the flash draw as the site's first experiment now.
+
+---
+
+## Part 2: Reconciliation with #219 (written after reading it)
+
+**Read for Part 2:**
+
+- `docs/measurement/219-analytics-readiness-contract.md`, §1-§14.
+- `docs/measurement/219-launch-queries.sql`, checked for its time column, its deduplication and its units.
+- ADR 0012 and ADR 0013.
+
+Part 1 above is left as it was committed, so the order stays visible in `git log`. Where #219 changed a recommendation, the change is stated here rather than silently edited upstream.
+
+### Where #219 is better, and what that changes in Part 1
+
+1. **It keeps the tab-scoped session on purpose.** §5 argues that "the flash-deal draw (#87) is keyed to it. A different 'session' for analytics would split one flash draw across two sessions". Part 1 reached the same place for `session_id` and then proposed SQL-defined 30-minute sessions as the analytic session.
+   - Once M6b is read as a diagnostic (below), no roadmap metric needs a second session concept.
+   - **Changed:** SQL sessions become a *learner view* (`learner.sessions`, a teaching asset), not the basis of any M-number. M2 is relabelled "tab sessions".
+2. **`wallet_paid` already separates what D needs.**
+   - The wallet is switched on for everyone at once, by the build flag (ADR 0008, "D1, as a rule").
+   - While it is on, a signed-out visitor cannot place an order without signing in.
+   - So `wallet_paid = false` under a live wallet means only "the infrastructure did not answer", whether through a probe timeout or D1's fallback, and D treats both the same way: no wall was applied.
+   - The on and off periods are separable by date, and exactly by the proposed `build` column.
+   - **Withdrawn:** Part 1's `payment_path` field, and its privacy call.
+3. **An `entry` prop on `restaurant_opened` beats a carousel event.** §10 proposes `entry` (`carousel`/`tile`/`flash_sheet`/`other`) "if one is named". The roadmap has since named that decision (C).
+   - It records the outcome (a restaurant opened) with its source.
+   - It covers the tile grid and the flash sheet with the same field.
+   - It avoids §10's point that an auto-advancing "impression" is a timer tick.
+   - **Changed:** Part 1's `carousel_slide_tapped` is withdrawn in favour of `entry`, deferred until #204 merges (O4 on #265). An *ad* slide's tap leaves the site and opens no restaurant, so it needs its own outbound-click record. That is #204's follow-up to design, not this one's.
+4. **Unordered funnel steps are more robust to loss.** M4 counts each step as "distinct visitors in the cohort with ≥ 1 of that step's event in W, in any order", and says plainly that a step ratio can exceed 1.
+   - Part 1 proposed ordered steps within a time bound.
+   - Given finding 6 (silent loss at every layer), an ordered definition turns one lost intermediate event into a lost conversion. The unordered one does not.
+   - **Withdrawn:** Part 1's ordered-funnel definition.
+5. **Rules and guardrails Part 1 did not have, all adopted:**
+   - R4, the shape boundary: absent means "an older client", not `false`. It is exactly the instrumentation skill's "absent and empty are different".
+   - R7: order cohorts mature.
+   - G1-G5: the deploy-day guardrails, above all G4, the only signal today that the store is refusing rows.
+   - The failure case naming `<ref>.supabase.co`, `accounts.google.com` and `appleid.apple.com` as referrer hosts that mean "lost across sign-in".
+6. **§10's objection to drip claims is partly right.** It says "every wallet event is also one step from a balance field". That holds for a *signed-in browser's history*:
+   - a preload, plus drips multiplied by the fixed drip, minus order totals (which §9 already calls "derivable"), minus `tip_sent` amounts, approximates a balance.
+   - **Changed:** `drip_claimed` stays recommended, but only once A is shortlisted, and with **no props at all** (`{}`). Its reconstructability caveat goes to the driver as a privacy call. A drip count alone reveals no balance. The combination is what the driver is being asked about.
+
+### Where the assessment holds against #219
+
+1. **R2 should window on `received_at`, not `occurred_at`.**
+   - #219's reason for `occurred_at` is that the store "accepts `occurred_at` up to one day before `received_at`", so "read yesterday's numbers the day after".
+   - This client never uses that allowance. `buildEventRow` stamps `occurred_at` at send time (`tracking-transport.ts`), so the gap between the two columns is network latency plus the device's clock error.
+   - Windowing on the device clock moves a phone's evening events into the wrong UTC day whenever its clock is off. It also makes every day revisable for 24 hours.
+   - `received_at` is final at midnight UTC. Keep `occurred_at` for ordering within a browser.
+   - (The queries file uses `occurred_at` throughout: lines 11-15 state R2, and every window follows it.)
+2. **M3's "first seen before D, unwindowed" drifts and under-reads.**
+   - It rises mechanically as the store ages, because there is more history to have been seen in.
+   - Safari's ITP resets a browser after 7 idle days (Part 1, finding 5).
+   - #219's own text admits the second problem ("after clearing storage, is a new visitor") but not the first, and not that Safari does the clearing on a timer.
+3. **M7 cannot fail for the reason it names.** Every order is delivered by construction (finding 1), so M7 measures return-to-tracker. The roadmap lists it as a guardrail.
+4. **M9's wall-to-order and M11's recovery are session-scoped, but the behaviour they measure crosses tabs and hours.**
+   - A visitor blocked by a short balance who waits for the next drip window (up to 9 hours on the DST night, ADR 0008) will usually come back in a new tab. M11 counts them as not recovered. That is exactly the reading M11 exists for ("low recovery means the drip doesn't cover real baskets").
+   - The start and pass rates happen inside one tab by construction (§7), so they stay session-scoped.
+5. **M5's cohort misses city switches made from the header pill.**
+   - `home_viewed` fires on page load (`initHomePage`).
+   - The pill's picker re-renders the feed for the new city through `renderFeed` without firing it (`home-dom.ts`, the `locationBar` click handler).
+   - So a visitor who switches to LA and orders there has no `(visitor, la)` pair in C(W, la).
+   - §8 describes `home_viewed` as "every load of `/`", which is accurate: a pill switch is not a load. The *metric* is what misses it. The fix is in the query (count `location_selected` with `city = c` as cohort entry too), with no client change.
+6. **`order_placed` has no restaurant.** #219 never considered restaurant-level conversion, because the launch decision did not need it. E and C now do.
+7. **The flash draw is randomised, and its treatment is unlogged.** M16 reads the sheet's tap-through, but not whether free vs reduced delivery changes it. That one array makes it the site's first readable experiment.
+8. **Loss is only detectable at a cliff.** G4 catches a store refusing a whole shape, but not steady partial loss: the rate limit behind shared IPs, clock skew, bot false positives. `seq` measures that, and `build` makes G1 exact.
+9. **§9's #79 check stops one join short.** "`order_id` … is not a user id" is true. But `order_id` is also the primary key of `private.wallet_debits`, which carries `user_id`. The owner *can* join events to accounts. It needs saying, on About or in ADR 0008 (Part 1, finding 7).
+10. **The decision served has moved.** #219 serves "whether the launch works". The roadmap now asks learners to rank A-F, and this second pass serves that. Most of #219 serves both, which is why most verdicts below are *keep*.
+
+### What neither caught
+
+- **LinkedIn's in-app browser.** On iOS, a page opened in an app's embedded web view does not share `localStorage` with Safari ([Apple Developer Forums, thread 765680](https://developer.apple.com/forums/thread/765680)).
+  - Someone who taps the launch link inside LinkedIn and later opens the site in Safari is two browsers.
+  - The second is first-touch `(direct)` or `(none)`, so M6c under-credits LinkedIn and M1 over-counts people.
+  - Whether LinkedIn's iOS app uses such a view is **assumed**, not verified.
+  - **Cheapest check, no code:** the owner opens the launch link from the LinkedIn app, then opens the site in Safari, then counts the owner's own `visitor_id`s. Both browsers must be marked with `?internal=1` first.
+- **Ad blockers and `*.supabase.co`.** Neither document checked. The searches for it came back empty (Part 1, "Searches").
+
+### Every event in #219 §8: verdicts
+
+| Event | Verdict | One-line reason | Decision served, and ADR if changed |
+|---|---|---|---|
+| `session_started` | keep | First-touch source (M6c) is B's and E's read. Per-tab firing matches the tab keys that the flash draw and sign-in rely on. | - |
+| `location_selected` | keep | M17, and now also M5's cohort entry for pill switches. | - |
+| `home_viewed` | keep | Funnel S1. The pill-switch gap is fixed in M5's query, not by changing the event. | - |
+| `restaurant_opened` | change (deferred to #204's follow-up) | Add `entry`: `carousel`/`tile`/`flash_sheet`/`other`, #219 §10's own proposal. | C. A shapes ADR (like ADR 0012). |
+| `cart_viewed` | keep | S3 with `item_count ≥ 1`. The empty state is not progress, as #219 says. | - |
+| `checkout_viewed` | keep | S4. The sign-in double fire is harmless under distinct-browser counting. | - |
+| `flash_sheet_shown` | change | Add `fee_modes`, one of `free`/`reduced` per slug, in draw order. **Privacy call.** | Q5 and F (the site's first readable experiment), and C (what a promo is worth). The shapes ADR. |
+| `flash_sheet_closed` | keep | It is the flash experiment's outcome. | - |
+| `order_placed` | change | Add `restaurant_slug`. **Privacy call.** | E (restaurant and content conversion) and C (promo slide → order). The shapes ADR. |
+| `tracker_viewed` | keep | Its `view_number` is derivable, and it is also a per-order loss check. Retiring it costs a contract change for nothing. | - |
+| `order_delivered` | keep | The event is right. Only the metric built on it (M7) was misnamed. | - |
+| `rating_submitted` | keep | M8. The name is asymmetric with the driver event, and a learner view can alias it. Renaming costs history. | - |
+| `driver_rating_submitted` | keep | M8's driver half. #219's "driver above restaurant means people stop at step 2" reading is sound. | - |
+| `tip_sent` | keep | M12, and A's "do people spend coins beyond orders". | - |
+| `sign_in_prompt_shown` | keep | D's funnel base (M9). | - |
+| `sign_in_started` | keep | D's start rate. The keepalive send survives the redirect. | - |
+| `sign_in_completed` | keep | D's pass rate. The synchronous claim makes it exactly-once, and that argument holds. | - |
+| `wallet_short_shown` | keep | M11 and A. It carries no shortfall, correctly, per §9. | - |
+| `drip_claimed` (props `{}`) | add-new, conditional on A being shortlisted | A's demand signal: how often browsers come back for coins. **Privacy call**, with the reconstructability caveat above. | A. The shapes ADR. |
+| envelope `seq` (column) | add-new | Measures loss. It is a column for the same reason `is_internal` is (exact key match, §5). **Privacy call.** | Q7, and every metric's trust. An envelope ADR (like ADR 0013). |
+| envelope `build` (column) | add-new | Splits before and after by the code that produced an event. Makes G1 exact. **Privacy call.** | Judging any launch (roadmap, "How we will judge a launch"), E, D. The envelope ADR. |
+
+### Every metric M1-M17: verdicts
+
+Numbers are kept, not renumbered. The roadmap, the learner exercise and the queries all cite them (#264), so each change below is a redefinition in place, with its old reading stated. Every change is a query-time change over columns every historical row already has, so none needs a cut-over date. The new metrics that read new fields apply only to rows that carry the key (#219's R4), and they start on the deploy that adds it.
+
+| Metric | Verdict | One-line reason | Decision served, and ADR if changed |
+|---|---|---|---|
+| M1 visitors by day | keep | Volume. Distinct browsers per day, counted on `received_at` once R2 changes. Label it "browsers". | - |
+| M2 sessions by day | change: relabel "tab sessions by day", a diagnostic | A tab is not a visit (finding 4). No A-F decision reads it. | The launch read (it stops tabs being mistaken for visits). The metric-definitions ADR. |
+| M3 returning visitors | change: returning on D = active on D **and** active on some day in [D-7, D-1] | ITP-robust, and it does not drift with the store's age. | North star, A and B. The metric-definitions ADR. |
+| M4 home-to-order funnel | change: name only | Its S5/S1 becomes "home-to-order conversion". S5/S4 is added as "checkout-to-order conversion". Today the roadmap calls S5/S1 "checkout conversion". | D (which step it moves). The metric-definitions ADR, and a roadmap wording update. |
+| M5 funnel by city | change: C(W, c) also admits pairs with `location_selected` where `city = c` | Pill switches fire no `home_viewed`. | E. The metric-definitions ADR. |
+| M6 acquisition (a/b/c) | keep | M6c (first touch, per visitor) is the decision read. M6a and M6b are diagnostics. The in-app-browser caveat is added to its description. | - |
+| M7 completion rate | change: rename "tracker return rate", and drop it from the guardrails | Delivery is certain, so "completion" measures return-to-tracker. | The guardrail set for every launch. The metric-definitions ADR, plus the roadmap's guardrail list. |
+| M8 rating rates | keep | The delivered-seen denominator is right: the prompt exists only in the Delivered state. | - |
+| M9 sign-in wall | change: wall-to-order becomes browser-level, with an order within 24 h of the first prompt | Start and pass stay session-level (in-tab by construction). Ordering after a short-balance wait crosses tabs. | D. The metric-definitions ADR. |
+| M10 wallet-paid share | keep | With `build`, it also separates wallet-on from wallet-off periods. That is what makes `payment_path` unnecessary. | - |
+| M11 short-balance recovery | change: browser-level, recovered = an `order_placed` within 24 h | A drip window can be 9 hours, so recovery happens in a later tab. | A (drip sizing). The metric-definitions ADR. |
+| M12 tip rate | keep | Wallet-paid and delivered is the right eligible set (D14). | - |
+| M13 VIP mix | keep | A: whether a heavy-user group exists. | - |
+| M14 thanks-voucher use | keep | The input "orders per returning visitor" needs to know whether the come-back incentive is used. | - |
+| M15 voucher attachment | keep | C: what promotions are worth against an ad. | - |
+| M16 flash view-to-action | keep | The (session, city) unit is right for a per-tab draw. M19 splits it by treatment. | - |
+| M17 location switch rate | keep | E: whether visitors roam across cities. | - |
+| M18 loss rate | add-new | `sum(seq gaps) ÷ (rows + sum(seq gaps))` per day. It is also guardrail G6. | Q7. The envelope ADR. |
+| M19 flash tap-through by fee mode and amount | add-new | The randomised read that M16 cannot give. | F readiness and C. The shapes ADR. |
+| M20 restaurant conversion | add-new | Browsers with an `order_placed` for restaurant r ÷ browsers with `restaurant_opened` for r, in W. | E. The shapes ADR. |
+| M21 drip claims per claiming browser-week | add-new, conditional | Only if `drip_claimed` is approved. | A. The shapes ADR. |
+
+**Rules and guardrails.**
+
+- **R2: change** to `received_at` for windows, keeping `occurred_at` for ordering. The metric-definitions ADR.
+- **R6: change** "first seen, unwindowed" to the 7-day lookback M3 now uses. The metric-definitions ADR.
+- **R1, R3, R4, R5, R7, R8: keep**, each for the reason #219 gives. R3's currency fallback is still correct, because no old client can produce an LA basket.
+- **G1-G5: keep.** G1 becomes exact with `build`.
+- **G6: add-new.** M18 must not rise on a deploy.
+
+### ADRs these changes would need
+
+None is written here: the research recommends, and the analyst child decides (#264, "Split design from build"). Each would take the next free number, which #267 may also use.
+
+1. **A shapes ADR**, like ADR 0012. It covers:
+   - `order_placed.restaurant_slug`;
+   - `flash_sheet_shown.fee_modes`;
+   - `drip_claimed`, if approved;
+   - later, `restaurant_opened.entry`.
+
+   It keeps the strict-superset posture: old shapes are accepted indefinitely, and events are retired in the contract and client, never by the store refusing them.
+2. **An envelope ADR**, like ADR 0013: `seq` and `build` as columns, with defaults so an old tab still inserts.
+3. **A metric-definitions ADR under O3.** It covers R2, R6, M2, M3, M4 (naming), M5, M7, M9 and M11. The old→new table is the two tables above. There is no renumbering and no cut-over, because every change is query-time. It updates `docs/roadmap.md` and About in the same change.
+4. **Only if the spike succeeds:** a refusal-counting ADR (Part 1, "Data quality" item 2), behind its own engineer issue.
+
+### Privacy calls, final list
+
+These are for the driver under O2 on #265. Each is argued in Part 1's table, which also names each field and why it does not break the #79 rule.
+
+1. **`order_placed.restaurant_slug`.**
+2. **`flash_sheet_shown.fee_modes`.**
+3. **Envelope `seq`.**
+4. **Envelope `build`.**
+5. **`drip_claimed` with `{}` props (conditional).** Caveat: a browser's claim count plus its order subtotals and tips approximates a signed-in browser's balance.
+6. **Re-keying uuid-valued props in #257's snapshots.**
+7. **The owner-side `order_id` join to `private.wallet_debits`:** About's wording, or breaking the join in ADR 0008.
+
+Withdrawn: `payment_path`, point 2 of "Where #219 is better".
+
+## Recommendation
+
+**Keep #219's event set, its units for per-tab behaviour, R1/R3/R4/R5/R7/R8 and G1-G5. Change eight things:**
+
+1. Window on `received_at`.
+2. Give returning a 7-day lookback.
+3. Rename M7 and drop it as a guardrail.
+4. Move M9's wall-to-order and M11's recovery to the browser, with 24-hour horizons.
+5. Let M5's cohort admit pill switches.
+6. Add `restaurant_slug` to `order_placed` and `fee_modes` to `flash_sheet_shown`.
+7. Add `seq` and `build` to the envelope.
+8. Model entities as derived views over the one immutable table, with dimensions exported from code, and publish those to learners.
+
+Defer `entry` on `restaurant_opened` to #204's follow-up, `drip_claimed` to A's shortlisting, and F's plumbing to the written traffic threshold.
+
+**The strongest argument against, which I went looking for.**
+
+- The case is not that any change is wrong. It is that at launch volume the changes buy precision below the noise floor, and cost a migration the owner must apply by hand, with #217 already waiting on the same step.
+- #219 is already more instrumentation than a few hundred browsers a week can populate meaningfully. A second pass that adds four fields and redefines seven metrics can read as churn to a learner who has just learned M1-M17.
+- I searched for teams who regretted an events-only model, or derived entity views, at small scale, and found only generic event-sourcing cautions (eventual consistency of projections, [Microsoft, "Event Sourcing pattern"](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing)). None applies to a single-writer append-only table read by SQL views. So it is either a safe pick or an unexamined one at this scale.
+
+**The reply.**
+
+- Six of the eight changes are query-time and free.
+- The two store changes, `seq` with `build` and `restaurant_slug` with `fee_modes`, fit in one additive migration.
+- Two of those fields (`seq` and `fee_modes`) are the only way the site can ever tell loss from behaviour, or cause from correlation.
+
+**What would flip it:**
+
+- **Traffic arrives in the tens of thousands of browsers a week.** Build F now, and invest in session definitions, because per-arm analysis will use them.
+- **#267 moves collection to a vendor that owns sessions and identity** (for example GA4). The session and returning definitions then follow that tool's semantics, and R2's argument moves with them.
+- **Real traffic is overwhelmingly Chrome and Android.** ITP stops dominating, and the 7-day lookback can widen.
+- **The driver declines `seq`.** Loss stays visible only as G4-style cliffs, and every rate should carry a stated "unknown loss" caveat.
+- **The driver declines `drip_claimed`.** A is ranked on M11 and M3 alone.
+- **An ad-blocked browser's events turn out not to land.** ADR 0005's own flip condition applies: the function-in-front escalation becomes the first job, before any metric work.
