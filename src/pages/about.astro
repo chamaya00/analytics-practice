@@ -46,6 +46,11 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
       IDs such as <code>gclid</code> or <code>fbclid</code>.
     </li>
     <li>
+      <strong>A counter, and which version of the site sent it</strong> — every event carries a
+      number that counts the events in this browsing session, so lost events can be counted, and
+      which version of the site sent it. Neither says anything about you.
+    </li>
+    <li>
       <strong>Whether this is the site owner's own browser</strong> — a flag, <code>is_internal</code>,
       on every event. Visiting with <code>?internal=1</code> marks a browser as the owner's, so the
       owner's own clicking can be left out of the numbers, and <code>?internal=0</code> unmarks it. It is
@@ -64,7 +69,7 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
     </li>
     <li>
       <strong>The flash-deal sheet that sometimes opens on the home feed</strong> — <code>flash_sheet_shown</code> (which
-      five or six restaurants and what discount were randomly drawn for you this browsing session) and <code>flash_sheet_closed</code> (whether
+      five or six restaurants and what discount were randomly drawn for you this browsing session, and whether each restaurant's delivery was drawn free or reduced) and <code>flash_sheet_closed</code> (whether
       you tapped one of those restaurants, dismissed the sheet, or let its countdown run out). That draw is random,
       done in this browser, and tied to this one session — it isn't a promise the same deal is
       available to anyone else, or to you again later.
@@ -74,7 +79,7 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
       Front desk), your delivery instructions, whether you want utensils, and which real voucher or
       vouchers, if any, you applied, along with the city, whether the order was paid from your
       play-money wallet (yes or no, never the balance), your VIP level and what it saved you, and any
-      thanks voucher (<code>order_placed</code>). There is no name, address, phone
+      thanks voucher, and which restaurant the order was from (<code>order_placed</code>). There is no name, address, phone
       number, email, or payment field anywhere in this app for us to log, because we never ask for
       one, and no free-text field anywhere in this app, ever.
     </li>
@@ -115,8 +120,8 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
   <p>
     <strong>If you sign in to place an order:</strong> Google or Apple shares an email address with
     us, which Supabase Auth holds to keep your play-money wallet tied to your account. Your balance
-    is stored per account in our database — never in the events above, and never joined to the
-    random browser ID. It's still play money: no payment is ever taken.
+    is stored per account in our database — never in the events above, never joined by us, and never
+    published. It's still play money: no payment is ever taken.
   </p>
   )}
   <div class="demo-disclosure" data-testid="about-disclosure">

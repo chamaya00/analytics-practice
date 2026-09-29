@@ -1,3 +1,4 @@
+/* global process */
 import { defineConfig } from 'astro/config';
 
 // Static output, no adapter: this site has no backend (CLAUDE.md, ADR 0001).

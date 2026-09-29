@@ -439,6 +439,8 @@ export function resetTrack(): void {
 export const track: Track = (eventName, props) => {
   const seq = nextSeq();
   if (!isValidEventProps(eventName, props)) return;
-  assignSeq(props, seq);
-  currentTrack(eventName, props);
+  // A copy, so the seq's key is unique to this call even if a caller reuses one props object.
+  const forwarded = { ...props };
+  assignSeq(forwarded, seq);
+  currentTrack(eventName, forwarded);
 };
