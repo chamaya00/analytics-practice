@@ -531,13 +531,38 @@ export function openRatingSheet(options: RatingSheetOptions, doc: Document = doc
         .then((create) => {
           if (closed) return;
           const burst = create(canvas, { resize: true });
-          burst({ particleCount: 70, spread: 70, startVelocity: 38, ticks: 160, gravity: 1.1, disableForReducedMotion: true });
+          burst({
+            particleCount: 70,
+            spread: 70,
+            startVelocity: 38,
+            ticks: 160,
+            gravity: 1.1,
+            disableForReducedMotion: true,
+            ...burstOriginAtStamp(canvas, stamp),
+          });
         })
         .catch(() => {
           // A failed dynamic import (offline, blocked) never blocks the win
           // screen itself — the stamp, the summary and Done are already up.
         });
     }
+  }
+
+  // The canvas extends well above the win block (BaseLayout's
+  // .rating-sheet-confetti), so the library's default mid-canvas origin
+  // would sit nowhere in particular — fire from the stamp's centre instead.
+  // Omitted when nothing is laid out (a zero-height canvas), leaving the
+  // library's default.
+  function burstOriginAtStamp(canvasEl: HTMLCanvasElement, stampEl: HTMLElement): { origin?: { x: number; y: number } } {
+    const c = canvasEl.getBoundingClientRect();
+    const s = stampEl.getBoundingClientRect();
+    if (c.width === 0 || c.height === 0) return {};
+    return {
+      origin: {
+        x: (s.left + s.width / 2 - c.left) / c.width,
+        y: (s.top + s.height / 2 - c.top) / c.height,
+      },
+    };
   }
 
   if (step === 'driver') renderDriverStep();

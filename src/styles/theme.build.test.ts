@@ -479,3 +479,12 @@ describe('rating win confetti actually paints in front of the sheet, not behind 
     expect(confettiRule).toContain('z-index:-1');
   });
 });
+
+describe('rating win confetti rises past the top of the stamp, not level with it', () => {
+  it('.rating-sheet-confetti starts above the win block and is tall enough to still reach its bottom', () => {
+    const confettiRule = css.match(/\.rating-sheet-confetti\{[^}]*\}/)?.[0] ?? '';
+    expect(confettiRule).toMatch(/top:calc\(-1\s*\*\s*var\(--rating-confetti-headroom\)\)/);
+    expect(confettiRule).toMatch(/height:calc\(100%\s*\+\s*var\(--rating-confetti-headroom\)\)/);
+    expect(confettiRule).not.toContain('inset:0');
+  });
+});
