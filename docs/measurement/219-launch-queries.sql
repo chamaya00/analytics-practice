@@ -1,3 +1,7 @@
+-- SUPERSEDED by docs/measurement/270-metric-queries.sql (#270, #277); kept as
+-- history. The 270 file windows on received_at and reads the analytics views.
+-- Do not run these for new readings.
+--
 -- Launch-day queries for the analytics-readiness contract (#219, #226).
 --
 -- One named query per metric, M1 to M17, each implementing
