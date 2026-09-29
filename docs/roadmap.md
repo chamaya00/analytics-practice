@@ -81,9 +81,9 @@ guardrails in the contract's §12. See "How we will judge a launch" below.
 
 ## Candidate directions
 
-Five candidates. The first three are the owner's own ideas, already written up
-as issues. The last two were added in drafting because the existing data speaks
-to them directly. Each one says what it would target and what the current data
+Six candidates. The first three are the owner's own ideas, already written up
+as issues. D and E were added in drafting because the existing data speaks to
+them directly. F, an A/B testing system, is the owner's addition. Each one says what it would target and what the current data
 can and cannot tell you about it.
 
 ### A. Pro mode: a paid monthly subscription (#200)
@@ -167,9 +167,41 @@ can and cannot tell you about it.
 - **Question for learners:** did adding Los Angeles move anything other than
   LA's own row in M5?
 
+### F. An A/B testing system (added at the owner's request)
+
+- **What:** the ability to run a real experiment instead of a before-and-after
+  comparison. It has five parts:
+  - **Assignment.** A visitor is put in an arm by a deterministic hash of
+    `visitor_id` and the experiment's name, so they stay in the same arm
+    across visits. No server is needed.
+  - **An exposure event**, fired when the arm is decided, before the first
+    screen that differs between arms, whether or not the person does
+    anything. The contract's §1 already requires this, and ADR 0002 set the
+    same rule for the site's first poll.
+  - **The `variant` column**, which every event already carries and which is
+    `null` today. It gets filled in.
+  - **A contract revision per experiment**, naming the decision, the primary
+    metric, guardrails, sample size and the stop date before it starts.
+  - **Analysis queries:** a sample-ratio-mismatch check, the difference
+    between arms with a confidence interval, and guardrail reads.
+- **Targets:** none directly. This is infrastructure that makes every other
+  direction's result trustworthy. Before-and-after comparisons get confused by
+  whatever else changed that week: a new traffic source, a city launch, a
+  weekend.
+- **What the data can show now:** whether an experiment is even possible yet.
+  Take M4's checkout conversion as the baseline. At 20%, detecting a lift to
+  25% at the usual 5% significance and 80% power needs roughly 1,100 visitors
+  per arm. Compare that with M1's daily visitors and you have the number of
+  days a test would take.
+- **Cost:** medium. It is client code and SQL, with no new server. Each
+  experiment then costs a contract revision.
+- **Question for learners:** at launch traffic, which direction's metric could
+  be tested in under a month, and which would take a year? Should the system be
+  built before or after traffic grows?
+
 ## The learner exercise
 
-Recommend an order for A-E, and defend it with the data.
+Recommend an order for A-F, and defend it with the data.
 
 1. **Pull the numbers.** Start with M4 (the funnel), M3 (retention), M6
    (sources), M9 (sign-in) and M11 (short balance).
@@ -185,9 +217,9 @@ Recommend an order for A-E, and defend it with the data.
 5. **Pick one to go first,** with the metric it should move and the guardrail
    it must not break.
 
-Post your recommendation as a comment on the LinkedIn post, or open a GitHub
-issue in this repository. The direction that goes first gets built in public,
-and its results are published against your predictions.
+Post your recommendation in this repository's GitHub Discussions (see
+"Where learners collaborate" below). The direction that goes first gets built
+in public, and its results are published against your predictions.
 
 ## How we will judge a launch
 
@@ -204,13 +236,54 @@ and its results are published against your predictions.
 - **Later:** once traffic can support it, the first A/B test adds an exposure
   event and its own contract revision (see the contract's §1).
 
-## Before learners can do this
+## Where learners collaborate (proposal, owner to decide)
 
-- **Data access.** The store is write-only for browsers: the public key can
-  insert events and cannot read them (ADR 0005). Learners need a published
-  extract: a regular anonymised export of `events_clean`, or a read-only
-  dataset, plus the schema. This is the first thing to build for the
-  exercise.
-- **A data cut-off date,** so everyone analyses the same snapshot.
-- **A starter notebook or query pack,** probably
-  `docs/measurement/219-launch-queries.sql`, adapted to run on the extract.
+What it needs: lightweight for the owner, open to anyone, threaded, able to
+show SQL and charts, and a place where mentors can reply to a specific
+analysis.
+
+| Option | For | Against |
+|---|---|---|
+| **GitHub Discussions on this repo** (recommended home) | Free, nothing to host, and already next to the roadmap, specs and code. Markdown, SQL code blocks and images. Categories (e.g. "Recommendations", "Analyses", "Ask a mentor"), upvotes, and a marked answer. A thread can link to the issue or PR that acts on it. | Needs a GitHub account, which some beginners don't have. Less discoverable than Reddit. |
+| **A subreddit** (e.g. r/dontdropthatpromo) | Familiar, anonymous, voting pushes good analyses up, and people can find it outside LinkedIn. | A brand-new subreddit looks empty and needs moderating. Subreddits like r/analytics and r/datascience limit self-promotion. Reddit posts are far from the repo, so decisions don't link back to them. |
+| **Discord** | Real-time, good for mentoring and office hours. | Hard to search, answers get lost in scrollback, and moderation is heavier. Better as a second channel once there is a community. |
+| **LinkedIn comments only** | No extra step for anyone who saw the post. | Not threaded enough to collaborate on, and gone from view in a week. |
+
+**Proposal:** Discussions as the home, where recommendations are posted and
+the roadmap decision is recorded. LinkedIn and, where their rules allow, one
+post to r/analytics or r/ProductManagement link to it. A subreddit or Discord
+only if the Discussions board outgrows itself.
+
+## Before learners can do this: getting the data to them
+
+The store is write-only for browsers: the public key can insert events and
+cannot read them (ADR 0005). Learners need a read path. Every option below keeps
+the site static with no server of its own, and serves the same anonymised
+rows: `events_clean` (the owner's traffic already removed).
+
+| Option | How it works | For | Against |
+|---|---|---|---|
+| **1. Published snapshot files** | A scheduled job (a GitHub Action holding a read-only secret, or the owner by hand) exports `events_clean` to CSV and Parquet, daily or weekly. A **Data** tab on the site links the files, a data dictionary and the schema. | Simplest possible. Fixed snapshots give everyone the same numbers, which suits an exercise with a cut-off date. | Up to a day stale. The Action touches `.github/`, a protected path. |
+| **2. Snapshot + SQL in the browser** | Option 1, plus DuckDB-WASM on the Data tab: learners write SQL against the Parquet file in the page, with the M1-M17 queries preloaded as examples. | Nothing to install, and SQL practice is the whole point. Runs entirely in the visitor's browser. | A few MB of WASM, loaded only on that tab. Some design and engineering work. |
+| **3. A read-only view on the Data API** | A `public` view over `events_clean`, with `select` granted to the public key. The Data tab reads it live. | Live data, no export job. | Opens a read path onto the store: rate limits and egress are now the owner's problem, and it changes ADR 0005's write-only rule. Row-level access is harder to take back than a file. |
+| **4. Mirror to a dataset host** | The snapshot is also published as a Kaggle or Hugging Face dataset. | Learners use their own tools (notebooks, pandas, Kaggle's own discussion board). | A second place to keep in sync. |
+
+**Proposal:** option 1 first, then option 2 as the Data tab's real feature.
+Mirror to Kaggle (option 4) if people ask for notebooks. Leave option 3 alone
+unless snapshots prove too stale.
+
+**What any of these must settle first:**
+
+- **A decision record.** Publishing event rows changes a category: the About
+  page currently tells visitors their events go to a store only the owner
+  reads.
+- **About page copy** saying that anonymised event rows are published.
+- **Re-keyed ids.** Consider replacing `visitor_id` and `session_id` with new
+  random ids in each snapshot, so a published id never matches the one in a
+  visitor's own browser.
+- **Small numbers.** At launch traffic, a single row can be recognisable to
+  the person who made it ("the one HCMC order from LinkedIn at 9:03 was mine").
+  Nothing in a row identifies a person, but the About page should say so
+  plainly.
+- **A cut-off date and a snapshot version,** so every analysis names which
+  data it used.
