@@ -3393,13 +3393,21 @@ const imageUrl = origin ? `${origin}/og-image.png` : undefined;
 
   /* Behind the sheet's own content (docs/design/162-*, "Where the confetti
      draws") — a negative z-index paints below this stacking context's
-     normal-flow siblings (the stamp, heading, summary), never above them. */
+     normal-flow siblings (the stamp, heading, summary), never above them.
+     The canvas reaches --rating-confetti-headroom above the win block, whose
+     top edge is the stamp's own top, so the burst rises past the stamp
+     instead of being cut off level with it; the panel's overflow clips it
+     at the sheet's edge. Only upward: a negative side inset would give the
+     panel a horizontal scrollbar. Height is explicit because a canvas is a
+     replaced element and ignores top/bottom for its size. */
   .rating-sheet-confetti {
+    --rating-confetti-headroom: 40vh;
     position: absolute;
-    inset: 0;
+    top: calc(-1 * var(--rating-confetti-headroom));
+    left: 0;
     z-index: -1;
     width: 100%;
-    height: 100%;
+    height: calc(100% + var(--rating-confetti-headroom));
   }
 
   .rating-sheet-stamp {
