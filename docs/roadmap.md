@@ -1,8 +1,11 @@
 # Roadmap: what to build next, and how the data should decide
 
-**Status:** draft for the soft launch (2026-09-29). Nothing below is committed.
-The point of this page is that the order is **not decided yet**. Learners are
-invited to read the site's data and argue for one.
+**Status:** agreed with the owner for the soft launch (2026-09-29), tracked on
+#253. The build order of the candidate directions is **not decided yet**, on
+purpose: learners are invited to read the site's data and argue for one. What
+is decided (where learners collaborate, and how they get the data) is marked
+"Decided" below, and "Objectives to file from this page" at the end lists the
+work it turns into.
 
 ## Why this page exists
 
@@ -413,3 +416,32 @@ the repository settings.
 - **A table contract for each new table,** like the event contract: what each
   column means, which timestamp is `ts`, and why each column is safe to
   publish.
+
+## Objectives to file from this page
+
+None is filed yet. Each is filed with `/objective` when the owner is ready,
+using the sections above as its brief. In rough order:
+
+1. **Learner data access: snapshots and the Data tab.** Needed before the
+   LinkedIn post invites anyone to analyse the data. Likely children:
+   - an ADR (publishing re-keyed rows, amending ADR 0005 step 7) plus the
+     migration for the `learner` schema, `learner.events` and the
+     `snapshot_reader` role;
+   - the daily export Action (DuckDB, one salt per run, all history before
+     today, `latest.json`, 30 dated folders in the `snapshots` bucket);
+   - a designer spec for `/data`;
+   - an engineer child for `/data`: downloads, dictionary, the DuckDB-WASM
+     console with M1-M17 ported, and the About page copy.
+
+   Owner-only steps: the role's password, the bucket and its S3 keys, and the
+   two repository secrets.
+2. **Discussions setup.** Small, and possibly done by hand: enable
+   Discussions, create the five categories, and add the Recommendations form
+   template (`.github/DISCUSSION_TEMPLATE/`) with the snapshot date and the
+   analysis window as required fields.
+3. **A/B testing system (F).** Assignment, exposure event, the `variant`
+   column, per-experiment contract revisions, SRM and interval queries.
+4. **The direction learners' analysis puts first** (A-E), filed once the
+   recommendations are in. Its analytics-readiness pass follows it (the #79
+   rule), and each new table it adds gets a view in `learner` and a table
+   contract.
