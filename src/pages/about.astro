@@ -9,15 +9,28 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
 
 <BaseLayout title="What we log, and why — Dontdropthatpromo">
   <h1>What we log, and why</h1>
-  <p data-testid="about-builder-credit">
-    Dontdropthatpromo is a solo project by Charles Amaya, built as a hands-on way to practice
-    product analytics — the querying, event design, and metric judgment the job actually needs,
-    against a real dataset instead of a toy one. <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
+  <h2>Why this exists</h2>
+  <p>Dontdropthatpromo is two things at once.</p>
+  <p>
+    <strong>A food delivery app simulation that's genuinely fun to use.</strong> Think farming
+    simulator or slots app. Browse restaurants, discover dishes, stack promos and chase limited time
+    deals. Our app lets you place an order and track your delivery, but nothing is charged and
+    nothing arrives.
   </p>
   <p>
-    Every screen in this app fires a real event at a hosted database, so there's an actual
-    aggregate to look at, not a simulated one. Here's exactly what that means, event family by
-    event family:
+    <strong>A place to practice real product work.</strong> Every screen fires a real event at a
+    hosted database, so there's an actual dataset to query, not a simulated one. That makes our app a
+    sandbox for practicing product design and product analytics, with real stakes. We will continue
+    developing this site in the open. What ships next is decided by what the data says people
+    actually do here, and designs for the site will be open for outside submissions.
+  </p>
+  <p data-testid="about-builder-credit">
+    Dontdropthatpromo is a solo project by Charles Amaya, so far.{' '}
+    <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
+  </p>
+  <h2>What we log</h2>
+  <p>
+    Here's exactly what your visit sends to that database, event family by event family:
   </p>
   <ul>
     <li>

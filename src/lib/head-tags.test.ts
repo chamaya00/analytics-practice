@@ -39,8 +39,9 @@ describe('production build with VERCEL_PROJECT_PRODUCTION_URL set', () => {
 
   it('AC1: raw index.html carries the intro copy without running any script', () => {
     expect(html).toContain('data-testid="home-intro"');
-    expect(html).toContain('A parody delivery app for practicing product analytics.');
-    expect(html).toContain('Pick a city and place a fake order.');
+    expect(html).toContain('This is a demo / simulation game.');
+    expect(html).toContain('No payment is taken and no food is sent, just the satisfaction');
+    expect(html).toContain('stacking promos.');
   });
 });
 
