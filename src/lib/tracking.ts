@@ -30,6 +30,7 @@
 
 import { isValidReferrerHost, isValidUtmValue } from './acquisition';
 import { CITIES } from './money';
+import { getSessionId } from './order-store';
 import { LA_VOUCHER_IDS as CATALOGUE_LA_VOUCHER_IDS, VOUCHER_IDS as CATALOGUE_VOUCHER_IDS } from './vouchers';
 
 export type EventName =
@@ -55,6 +56,23 @@ export type EventName =
 export type EventProps = Record<string, string | number | boolean | string[]>;
 
 export type Track = (eventName: EventName, props: EventProps) => void;
+
+/**
+ * `seq` is the call's number from the per-tab-session counter (#270 §5.2),
+ * fixed when `track()` was called and carried beside the call, keyed by its
+ * props object, so it survives the #245 queue and `Track` stays two-argument.
+ * Only `track()` and `startSessionOnce` assign it; the sender reads it.
+ * `null` (or no entry) means the counter could not be read or written.
+ */
+const seqByProps = new WeakMap<EventProps, number | null>();
+
+export function assignSeq(props: EventProps, seq: number | null): void {
+  seqByProps.set(props, seq);
+}
+
+export function seqOf(props: EventProps): number | null {
+  return seqByProps.get(props) ?? null;
+}
 
 export const DROP_OFF_PRESETS = ['home', 'office', 'front_desk'] as const;
 export type DropOffPreset = (typeof DROP_OFF_PRESETS)[number];
@@ -95,6 +113,8 @@ export const TIP_PRESETS_MINOR = { USD: [100, 200, 300], VND: [10000, 20000, 300
 /** `flash_sheet_shown.restaurant_slugs` length (§8): the sheet's actual draw. */
 const FLASH_SLUGS_MIN = 5;
 const FLASH_SLUGS_MAX = 6;
+
+const FEE_MODES = ['free', 'reduced'] as const;
 
 const FLASH_OUTCOMES = ['restaurant_tapped', 'dismissed', 'expired'] as const;
 
@@ -150,6 +170,20 @@ function isValidRestaurantSlugs(value: unknown): value is string[] {
     value.length <= FLASH_SLUGS_MAX &&
     new Set(value).size === value.length &&
     value.every((slug) => typeof slug === 'string' && slug.length >= 1 && slug.length <= 60 && SLUG_RE.test(slug))
+  );
+}
+
+function isValidSlug(value: unknown): value is string {
+  return typeof value === 'string' && value.length >= 1 && value.length <= 60 && SLUG_RE.test(value);
+}
+
+/** `fee_modes`: one `free`/`reduced` per drawn restaurant, aligned by index (#270 contract §4.3). */
+function isValidFeeModes(value: unknown, slugs: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    Array.isArray(slugs) &&
+    value.length === slugs.length &&
+    value.every((mode) => isOneOf(mode, FEE_MODES))
   );
 }
 
@@ -210,11 +244,12 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
       );
     case 'flash_sheet_shown':
       return (
-        hasOnly(['city', 'amount_minor', 'currency', 'restaurant_slugs']) &&
+        hasOnly(['city', 'amount_minor', 'currency', 'restaurant_slugs', 'fee_modes']) &&
         isOneOf(props.city, EVENT_CITIES) &&
         isOneOf(props.currency, ['USD', 'VND']) &&
         isFlashAmountInRange(props.amount_minor, props.currency) &&
-        isValidRestaurantSlugs(props.restaurant_slugs)
+        isValidRestaurantSlugs(props.restaurant_slugs) &&
+        isValidFeeModes(props.fee_modes, props.restaurant_slugs)
       );
     case 'flash_sheet_closed':
       return (
@@ -241,6 +276,7 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
           'drop_off_preset',
           'item_count',
           'order_id',
+          'restaurant_slug',
           'saved_amount_minor',
           'thanks_voucher_amount_minor',
           'utensils',
@@ -249,6 +285,7 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
           'wallet_paid',
         ]) &&
         isOneOf(props.city, EVENT_CITIES) &&
+        isValidSlug(props.restaurant_slug) &&
         isOneOf(props.vip_level, VIP_LEVELS) &&
         isAmountMinorInBounds(props.vip_saved_amount_minor, props.currency, true) &&
         isAmountMinorInBounds(props.thanks_voucher_amount_minor, props.currency, true) &&
@@ -324,6 +361,38 @@ export function isValidEventProps(eventName: EventName, props: EventProps): bool
   }
 }
 
+/** #270 §5.2: the `sessionStorage` key of the counter, a JSON object with `session_id` and `last`. */
+export const SEQ_KEY = 'parody.seq';
+const SEQ_MAX = 100000;
+
+/**
+ * Issues the next `seq` for this tab session, or `null` when storage throws
+ * or the counter is spent. Never resets, so a number is never issued twice.
+ * Called before validation: a dropped call still consumes a number.
+ */
+export function nextSeq(storage?: Storage): number | null {
+  try {
+    const store = storage ?? window.sessionStorage;
+    const sessionId = getSessionId(store);
+    let last = 0;
+    try {
+      const parsed: unknown = JSON.parse(store.getItem(SEQ_KEY) ?? 'null');
+      if (parsed && typeof parsed === 'object') {
+        const rec = parsed as { session_id?: unknown; last?: unknown };
+        if (rec.session_id === sessionId && isIntInRange(rec.last, 0, SEQ_MAX)) last = rec.last;
+      }
+    } catch {
+      last = 0;
+    }
+    if (last >= SEQ_MAX) return null;
+    const next = last + 1;
+    store.setItem(SEQ_KEY, JSON.stringify({ session_id: sessionId, last: next }));
+    return next;
+  } catch {
+    return null;
+  }
+}
+
 export const noopTrack: Track = () => {};
 
 /**
@@ -368,6 +437,10 @@ export function resetTrack(): void {
  * malformed data should never reach the injected sender, stub or real.
  */
 export const track: Track = (eventName, props) => {
+  const seq = nextSeq();
   if (!isValidEventProps(eventName, props)) return;
-  currentTrack(eventName, props);
+  // A copy, so the seq's key is unique to this call even if a caller reuses one props object.
+  const forwarded = { ...props };
+  assignSeq(forwarded, seq);
+  currentTrack(eventName, forwarded);
 };

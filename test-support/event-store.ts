@@ -5,7 +5,7 @@
 // through the real sender in tracking-transport.ts, so what is inserted is
 // the parsed body of the POST the browser would make, and that row is
 // inserted as `anon` into a PGlite database (ADR 0006) carrying every
-// migration up to and including #225's, in order.
+// migration up to and including #273's, in order.
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
@@ -16,8 +16,8 @@ import type { EventName, EventProps } from '../src/lib/tracking';
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'supabase/migrations');
 
-/** The last migration the #219 client shapes depend on (#225). */
-const LAST_MIGRATION = '20261002000000_session_started_and_is_internal.sql';
+/** The last migration the client shapes depend on (#273: the second-pass shapes and envelope columns). */
+const LAST_MIGRATION = '20261003000000_second_pass_readiness.sql';
 
 /** Every migration file up to `LAST_MIGRATION`, in the order Supabase applies them. */
 export function migrationFiles(): string[] {
@@ -96,6 +96,8 @@ export interface SentRow {
   occurred_at: string;
   variant: null;
   is_internal: boolean;
+  seq: number | null;
+  build: string;
   props: EventProps;
 }
 
@@ -137,8 +139,8 @@ export async function storeWhatTheClientSends(eventName: EventName, props: Event
   await db.exec('set role anon;');
   try {
     await db.query(
-      'insert into public.events (id, visitor_id, session_id, event_name, occurred_at, props, variant, is_internal) values ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [row.id, row.visitor_id, row.session_id, row.event_name, row.occurred_at, JSON.stringify(row.props), row.variant, row.is_internal],
+      'insert into public.events (id, visitor_id, session_id, event_name, occurred_at, props, variant, is_internal, seq, build) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+      [row.id, row.visitor_id, row.session_id, row.event_name, row.occurred_at, JSON.stringify(row.props), row.variant, row.is_internal, row.seq, row.build],
     );
   } finally {
     await db.exec('reset role;');

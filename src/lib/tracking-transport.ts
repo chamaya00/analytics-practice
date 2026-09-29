@@ -16,7 +16,8 @@
 
 import { applyInternalMarking, readIsInternal, sessionStartedProps, SESSION_STARTED_KEY } from './acquisition';
 import { getSessionId, getVisitorId } from './order-store';
-import { isValidEventProps, noopTrack, setTrack, type EventName, type EventProps, type Track } from './tracking';
+import { BUILD } from './build-stamp';
+import { assignSeq, isValidEventProps, nextSeq, noopTrack, seqOf, setTrack, type EventName, type EventProps, type Track } from './tracking';
 
 const EVENTS_PATH = '/rest/v1/events';
 
@@ -54,7 +55,7 @@ export interface SupabaseSenderConfig {
 export function buildEventRow(
   eventName: EventName,
   props: EventProps,
-  ids: { visitorId: string; sessionId: string; isInternal: boolean },
+  ids: { visitorId: string; sessionId: string; isInternal: boolean; seq?: number | null },
 ): Record<string, unknown> {
   return {
     id: crypto.randomUUID(),
@@ -64,6 +65,8 @@ export function buildEventRow(
     session_id: ids.sessionId,
     variant: null,
     is_internal: ids.isInternal,
+    seq: ids.seq ?? null,
+    build: BUILD,
     props,
   };
 }
@@ -90,6 +93,7 @@ export function createSupabaseSender(config: SupabaseSenderConfig): Track {
       visitorId: getVisitorId(localStorage),
       sessionId: getSessionId(sessionStorage),
       isInternal: readIsInternal(localStorage),
+      seq: seqOf(props),
     });
 
     fetchImpl(`${config.url}${EVENTS_PATH}`, {
@@ -132,7 +136,9 @@ export function startSessionOnce(page: PageContext, send: Track): void {
   } catch {
     return;
   }
-  send('session_started', sessionStartedProps(page.search, page.referrer, page.origin));
+  const props = sessionStartedProps(page.search, page.referrer, page.origin);
+  assignSeq(props, nextSeq(storage));
+  send('session_started', props);
 }
 
 /**

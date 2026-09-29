@@ -220,7 +220,29 @@ describe('#238: the new client events, in plain words (AC4)', () => {
   it("says what order_placed now adds: the city, whether the wallet paid, the VIP level and saving, and any thanks voucher", () => {
     const text = readAbout().body.textContent ?? '';
     expect(text).toContain(
-      'which real voucher or vouchers, if any, you applied, along with the city, whether the order was paid from your play-money wallet (yes or no, never the balance), your VIP level and what it saved you, and any thanks voucher (order_placed).',
+      'which real voucher or vouchers, if any, you applied, along with the city, whether the order was paid from your play-money wallet (yes or no, never the balance), your VIP level and what it saved you, and any thanks voucher, and which restaurant the order was from (order_placed).',
     );
+  });
+
+  // #275, contract #270 §13 B4.
+  it('says the order records its restaurant, and the flash sheet records each restaurant’s free or reduced draw', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain('and which restaurant the order was from (order_placed)');
+    expect(text).toContain("and whether each restaurant's delivery was drawn free or reduced) and flash_sheet_closed");
+  });
+
+  it('says every event carries a counter within the browsing session, and which version of the site sent it', () => {
+    const text = readAbout().body.textContent ?? '';
+    expect(text).toContain(
+      'every event carries a number that counts the events in this browsing session, so lost events can be counted, and which version of the site sent it.',
+    );
+  });
+
+  // The wallet paragraph renders only when PUBLIC_WALLET_ENABLED is set, which
+  // this suite's build never sets - so this reads the page source for it.
+  it('the wallet paragraph says never joined by us, and never published, not "never joined to the random browser ID"', () => {
+    const source = readFileSync(path.join(root, 'src/pages/about.astro'), 'utf-8').replace(/\s+/g, ' ');
+    expect(source).toContain('never in the events above, never joined by us, and never published.');
+    expect(source).not.toContain('never joined to the random browser ID');
   });
 });
