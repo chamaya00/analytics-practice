@@ -154,8 +154,9 @@ can and cannot tell you about it.
   or the second order.
 - **Targets:** home-to-order conversion (M4), the primary metric.
 - **What the data can show now:** almost everything. M9 measures, for each
-  session that saw the sign-in sheet, the share that started signing in, the
-  share that finished, and the share that then ordered. M4 shows how big the
+  tab session that saw the sign-in sheet, the share that started signing in
+  and the share that finished, and, for each browser that saw it, the share
+  that ordered within 24 hours. M4 shows how big the
   checkout-to-order drop is next to every other step.
 - **Cost:** medium. It touches the wallet's rules (ADR 0008), but needs no new
   server.
