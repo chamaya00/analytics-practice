@@ -699,13 +699,15 @@ export function renderCheckout(
       // reaches this line, so the voucher is not spent then).
       if (breakdown!.thanksVoucherAmountMinor > 0) consumeThanksVoucher(storage, city);
 
-      // #219 contract §8's 14 keys. `vip_level` is the level this checkout
-      // perked against, so it always agrees with `vip_saved_amount_minor`.
+      // #270 contract §4.2's 15 keys (#219's 14 plus `restaurant_slug`).
+      // `vip_level` is the level this checkout perked against, so it always
+      // agrees with `vip_saved_amount_minor`.
       track('order_placed', {
         order_id: order.orderId,
         item_count: order.itemCount,
         amount_minor: order.amountMinor,
         city,
+        restaurant_slug: restaurantSlug,
         currency: order.currency,
         drop_off_preset: order.dropOffPreset,
         delivery_instructions: order.deliveryInstructions,

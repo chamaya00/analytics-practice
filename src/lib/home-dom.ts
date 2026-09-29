@@ -766,6 +766,8 @@ function renderFeed(root: HTMLElement, pillRoot: HTMLElement, city: City, sessio
       amount_minor: draw.amountMinor,
       currency: CITY_CURRENCY[city],
       restaurant_slugs: draw.restaurants.map((restaurant) => restaurant.slug),
+      // #270 §4.3: same `draw`, so `fee_modes[i]` belongs to `restaurant_slugs[i]`.
+      fee_modes: draw.restaurants.map((restaurant) => restaurant.feeMode),
     });
     openSheet();
   } else if (draw.collapsed) {

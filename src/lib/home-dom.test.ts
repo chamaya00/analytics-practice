@@ -678,6 +678,7 @@ describe('the flash-deal sheet on the home feed (AC4, AC6)', () => {
           amount_minor: draw.amountMinor,
           currency: 'USD',
           restaurant_slugs: draw.restaurants.map((restaurant: { slug: string }) => restaurant.slug),
+          fee_modes: draw.restaurants.map((restaurant: { feeMode: string }) => restaurant.feeMode),
         },
       ],
     ]);
@@ -832,7 +833,18 @@ describe('#238: flash_sheet_shown sends the whole 5-6 draw, and the store keeps 
     for (const slug of props.restaurant_slugs) {
       expect(el.querySelector(`[data-testid="flash-restaurant-${slug}"]`)).not.toBeNull();
     }
-    expect(props).toEqual({ city: 'hcmc', amount_minor: draw.amountMinor, currency: 'VND', restaurant_slugs: props.restaurant_slugs });
+    // §4.3: `fee_modes[i]` is the mode drawn for `restaurant_slugs[i]`, all 6.
+    expect(props.fee_modes).toHaveLength(6);
+    draw.restaurants.forEach((restaurant: { feeMode: string }, i: number) => {
+      expect(props.fee_modes[i]).toBe(restaurant.feeMode);
+    });
+    expect(props).toEqual({
+      city: 'hcmc',
+      amount_minor: draw.amountMinor,
+      currency: 'VND',
+      restaurant_slugs: props.restaurant_slugs,
+      fee_modes: draw.restaurants.map((restaurant: { feeMode: string }) => restaurant.feeMode),
+    });
 
     await expect(storeWhatTheClientSends('flash_sheet_shown', props)).resolves.toEqual(props);
   });

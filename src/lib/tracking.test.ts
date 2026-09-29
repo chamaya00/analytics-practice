@@ -14,6 +14,7 @@ const VALID_ORDER_PLACED = {
   utensils: true,
   applied_voucher_ids: [],
   saved_amount_minor: 0,
+  restaurant_slug: 'north-beach-pizzeria',
   city: 'sf',
   thanks_voucher_amount_minor: 0,
   vip_level: 'none',
@@ -24,7 +25,7 @@ const VALID_ORDER_PLACED = {
 /** #81's 9-key shape: the store still takes it (§13), but the client never sends it again (§14). */
 const OLD_ORDER_PLACED = Object.fromEntries(
   Object.entries(VALID_ORDER_PLACED).filter(
-    ([key]) => !['city', 'thanks_voucher_amount_minor', 'vip_level', 'vip_saved_amount_minor', 'wallet_paid'].includes(key),
+    ([key]) => !['city', 'restaurant_slug', 'thanks_voucher_amount_minor', 'vip_level', 'vip_saved_amount_minor', 'wallet_paid'].includes(key),
   ),
 ) as EventProps;
 
@@ -167,6 +168,7 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
         amount_minor: 15000,
         currency: 'VND',
         restaurant_slugs: SIX_HCMC_SLUGS,
+        fee_modes: SIX_HCMC_SLUGS.map(() => 'free'),
       }),
     ).toBe(true);
     expect(
@@ -175,6 +177,7 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
         amount_minor: 400,
         currency: 'USD',
         restaurant_slugs: ['la-one', 'la-two', 'la-three', 'la-four', 'la-five'],
+        fee_modes: ['free', 'reduced', 'free', 'free', 'reduced'],
       }),
     ).toBe(true);
   });
@@ -192,7 +195,13 @@ describe('isValidEventProps — flash_sheet_shown / flash_sheet_closed (AC6)', (
 
   it('takes 5-6 distinct restaurant_slugs, and refuses 2, 4, 7 or a duplicate (#219 §8, §13 item 5)', () => {
     const flash = (restaurant_slugs: string[]) =>
-      isValidEventProps('flash_sheet_shown', { city: 'hcmc', amount_minor: 15000, currency: 'VND', restaurant_slugs });
+      isValidEventProps('flash_sheet_shown', {
+        city: 'hcmc',
+        amount_minor: 15000,
+        currency: 'VND',
+        restaurant_slugs,
+        fee_modes: restaurant_slugs.map(() => 'free'),
+      });
     expect(flash(SIX_HCMC_SLUGS.slice(0, 5))).toBe(true);
     expect(flash(SIX_HCMC_SLUGS)).toBe(true);
     expect(flash(SIX_HCMC_SLUGS.slice(0, 2))).toBe(false);

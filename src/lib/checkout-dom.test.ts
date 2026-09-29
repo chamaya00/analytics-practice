@@ -212,6 +212,7 @@ describe('initCheckoutPage — populated cart (AC1, AC2, AC3)', () => {
       applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
       saved_amount_minor: 499,
       city: 'sf',
+      restaurant_slug: 'north-beach-pizzeria',
       thanks_voucher_amount_minor: 0,
       vip_level: 'none',
       vip_saved_amount_minor: 0,
@@ -688,6 +689,7 @@ describe('initCheckoutPage — wallet dark because a probe fails at Place order 
       applied_voucher_ids: ['sf-discount-t1', 'sf-delivery-entry'],
       saved_amount_minor: 499,
       city: 'sf',
+      restaurant_slug: 'north-beach-pizzeria',
       thanks_voucher_amount_minor: 0,
       vip_level: 'none',
       vip_saved_amount_minor: 0,
@@ -1226,7 +1228,7 @@ describe('#238: checkout_viewed and order_placed carry the #219 §8 props, and t
     await expect(storeWhatTheClientSends('checkout_viewed', props as never)).resolves.toEqual(props);
   });
 
-  it('a dark-wallet order sends all 14 §8 keys, wallet_paid false, and the store keeps that object', async () => {
+  it('a dark-wallet order sends all 15 §4.2 keys, wallet_paid false, and the store keeps that object', async () => {
     const stub = vi.fn();
     setTrack(stub);
     const el = root();
@@ -1240,6 +1242,7 @@ describe('#238: checkout_viewed and order_placed carry the #219 §8 props, and t
         item_count: 1,
         amount_minor: 2150,
         city: 'sf',
+        restaurant_slug: 'north-beach-pizzeria',
         currency: 'USD',
         drop_off_preset: 'home',
         delivery_instructions: 'leave_at_door',
