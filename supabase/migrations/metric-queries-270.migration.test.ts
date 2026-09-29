@@ -505,6 +505,36 @@ describe('the 20 queries, run against the seed (C-Q1)', () => {
   });
 });
 
+describe('the roadmap and ADR 0005 (AC3)', () => {
+  const roadmap = read('docs/roadmap.md');
+
+  it('carries §9\'s names in the metric table and cites the queries file', () => {
+    expect(roadmap).toContain('M1 browsers per day');
+    expect(roadmap).toContain('M2 tab sessions per day');
+    expect(roadmap).toContain('M4 home-to-order funnel');
+    expect(roadmap).toContain('home-to-order conversion');
+    expect(roadmap).toContain('M7 tracker return rate');
+    expect(roadmap).toMatch(/M18 loss rate[^|]*M19[^|]*M20/);
+    expect(roadmap).toContain('docs/measurement/270-metric-queries.sql');
+  });
+
+  it('lists home-to-order conversion, G6 and the #79 rule as the guardrails, with no M7, and "place an order" as the north star', () => {
+    const guardrails = roadmap.split('- **Guardrails**')[1].split('\n\n')[0];
+    expect(guardrails).toContain('home-to-order conversion');
+    expect(guardrails).toContain('G6');
+    expect(guardrails).toContain('#79 rule');
+    expect(guardrails).not.toContain('M7');
+    expect(roadmap).toContain('North star: weekly browsers who place an order');
+  });
+
+  it('gives ADR 0005 step 7 its reason in terms of M6c and analytics.visitors, not M3', () => {
+    const step7 = read('docs/decisions/0005-hosted-event-store.md').split('7. **Export the raw events')[1].split('## Alternatives rejected')[0];
+    expect(step7).toContain('M6c');
+    expect(step7).toContain('analytics.visitors');
+    expect(step7).not.toContain('Contract M3');
+  });
+});
+
 describe('the boundaries (C-Q2)', () => {
   it('M3: D-7 counts as returning and D-8 does not (one of the two browsers, the D-7 one, is returning on D)', async () => {
     const seen = await db.query<{ v: string; day: string }>(

@@ -247,12 +247,13 @@ every SQL statement below — nothing here duplicates it, only sequences it.
      `events-YYYY-MM-DD.csv`. Never the repository: the rows carry
      `visitor_id` and `session_id`.
    - **Never delete exported rows from the store.** Do not trim, truncate or
-     `delete` old events after exporting them. Contract M3 defines a
-     returning visitor by a first-seen day taken from *all* their rows, so
-     removing old rows makes returning visitors look new, and the launch
-     queries in `docs/measurement/219-launch-queries.sql` (M3 above all)
-     silently understate returning share. The export is a copy, not a
-     transfer.
+     `delete` old events after exporting them. Contract M6c and
+     `analytics.visitors` take a browser's first-touch source and first-seen
+     time from *all* their rows, so removing old rows moves them forward:
+     browsers look newer than they are, and the first-touch conversion by
+     source in `docs/measurement/270-metric-queries.sql` (M6c) silently
+     changes. (M3 no longer depends on this: it reads a 7-day lookback.) The
+     export is a copy, not a transfer.
 
 ## Alternatives rejected
 

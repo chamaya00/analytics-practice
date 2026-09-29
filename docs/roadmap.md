@@ -44,18 +44,22 @@ The whole loop, in three cities (San Francisco, Los Angeles, Ho Chi Minh City):
 
 ## What we can measure
 
-The event contract is `docs/measurement/219-analytics-readiness-contract.md`.
-The queries are `docs/measurement/219-launch-queries.sql`, one per metric:
+The event contracts are `docs/measurement/219-analytics-readiness-contract.md`
+and its second pass, `docs/measurement/270-analytics-readiness-second-pass.md`
+(§9 defines M1-M20). The queries are `docs/measurement/270-metric-queries.sql`,
+one per metric. It supersedes `219-launch-queries.sql`, which is kept as
+history. Days and windows are on `received_at`, the server's clock.
 
 | Area | Metric | What it tells you |
 |---|---|---|
-| Traffic | M1 visitors per day, M2 sessions per day | Volume. Never compare cities or sources on raw counts. |
-| Retention | M3 returning visitors | Does anyone come back? |
-| Conversion | **M4 home-to-order funnel** (the primary metric is checkout conversion), M5 the same funnel by city | Where people drop off. |
+| Traffic | M1 browsers per day, M2 tab sessions per day (a diagnostic: a tab is not a visit) | Volume. Never compare cities or sources on raw counts. |
+| Retention | M3 returning browsers (seen in the previous 7 days) | Does anyone come back? |
+| Conversion | **M4 home-to-order funnel** (the primary metric is home-to-order conversion; checkout-to-order conversion is its last step), M5 the same funnel by city | Where people drop off. |
 | Acquisition | M6 by source (e.g. LinkedIn), including first-touch conversion | Which channel brings people who order. |
-| Fulfilment | M7 completion, M8 rating rates | Do orders reach the end of the loop? |
+| Fulfilment | M7 tracker return rate (an engagement metric, not a guardrail), M8 rating rates | Do people come back to the tracker and finish the loop? |
 | Sign-in and wallet | M9 sign-in wall, M10 wallet-paid share, M11 short-balance recovery | What the sign-in step and the wallet cost in orders. |
 | Engagement features | M12 tips, M13 VIP mix, M14 thanks voucher, M15 vouchers, M16 flash deal, M17 city switching | Whether each feature gets used. |
+| Data quality and treatments | M18 loss rate (guardrail G6), M19 flash tap-through by fee mode and amount, M20 restaurant conversion | Whether events are being dropped, and which flash treatment and restaurant convert. |
 
 **Not measured, on purpose.** The contract's §10 lists these: carousel slides,
 scrolling, add-to-cart taps, opening the wallet sheet, and more. For each one
@@ -68,19 +72,20 @@ guardrails in the contract's §12. See "How we will judge a launch" below.
 
 ## North star and target metrics
 
-- **North star: weekly visitors who complete an order.** It combines the three
-  things a direction can move: reach (M1, M6), conversion (M4), and coming back
-  (M3).
+- **North star: weekly browsers who place an order.** That is distinct
+  browsers with an `order_placed` received in the ISO week. It combines the
+  three things a direction can move: reach (M1, M6), conversion (M4), and
+  coming back (M3).
 - **Input metrics a direction can target:**
-  - checkout conversion (M4);
+  - home-to-order conversion (M4);
   - returning share (M3);
   - first-touch conversion by source (M6c);
   - orders per returning visitor.
 - **Business metric**, for the directions that earn money: revenue per 1,000
   visitors. This is new, and needs its own events (see each direction).
-- **Guardrails**, which must not get worse: checkout conversion, completion
-  (M7), and the privacy rule that no email, account or wallet field ever
-  enters an event (ADR 0008, the #79 rule).
+- **Guardrails**, which must not get worse: home-to-order conversion (M4), the
+  loss rate (G6, M18), and the privacy rule that no email, account or wallet
+  field ever enters an event (ADR 0008, the #79 rule).
 
 ## Candidate directions
 
@@ -147,7 +152,7 @@ can and cannot tell you about it.
 - **What:** let people place their first order before signing in, for example
   with a guest wallet, and ask for an account at a later moment such as tipping
   or the second order.
-- **Targets:** checkout conversion (M4), the primary metric.
+- **Targets:** home-to-order conversion (M4), the primary metric.
 - **What the data can show now:** almost everything. M9 measures, for each
   session that saw the sign-in sheet, the share that started signing in, the
   share that finished, and the share that then ordered. M4 shows how big the
@@ -192,7 +197,7 @@ can and cannot tell you about it.
   whatever else changed that week: a new traffic source, a city launch, a
   weekend.
 - **What the data can show now:** whether an experiment is even possible yet.
-  Take M4's checkout conversion as the baseline. At 20%, detecting a lift to
+  Take M4's home-to-order conversion as the baseline. At 20%, detecting a lift to
   25% at the usual 5% significance and 80% power needs roughly 1,100 visitors
   per arm. Compare that with M1's daily visitors and you have the number of
   days a test would take.
