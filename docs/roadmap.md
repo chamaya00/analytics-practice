@@ -83,7 +83,7 @@ guardrails in the contract's §12. See "How we will judge a launch" below.
 
 Six candidates. The first three are the owner's own ideas, already written up
 as issues. D and E were added in drafting because the existing data speaks to
-them directly. F, an A/B testing system, is the owner's addition. Each one says what it would target and what the current data
+them directly, and the owner kept them. F, an A/B testing system, is the owner's addition. Each one says what it would target and what the current data
 can and cannot tell you about it.
 
 ### A. Pro mode: a paid monthly subscription (#200)
@@ -236,7 +236,7 @@ in public, and its results are published against your predictions.
 - **Later:** once traffic can support it, the first A/B test adds an exposure
   event and its own contract revision (see the contract's §1).
 
-## Where learners collaborate (proposal, owner to decide)
+## Where learners collaborate (decided: GitHub Discussions)
 
 What it needs: lightweight for the owner, open to anyone, threaded, able to
 show SQL and charts, and a place where mentors can reply to a specific
@@ -249,10 +249,15 @@ analysis.
 | **Discord** | Real-time, good for mentoring and office hours. | Hard to search, answers get lost in scrollback, and moderation is heavier. Better as a second channel once there is a community. |
 | **LinkedIn comments only** | No extra step for anyone who saw the post. | Not threaded enough to collaborate on, and gone from view in a week. |
 
-**Proposal:** Discussions as the home, where recommendations are posted and
-the roadmap decision is recorded. LinkedIn and, where their rules allow, one
-post to r/analytics or r/ProductManagement link to it. A subreddit or Discord
-only if the Discussions board outgrows itself.
+**Decided (owner, 2026-09-29):** GitHub Discussions on this repository is the
+home for questions, collaboration and submitted recommendations. LinkedIn and,
+where their rules allow, posts on r/analytics or r/ProductManagement link to
+it. A subreddit or Discord only if the board outgrows itself.
+
+Suggested categories: **Announcements** (new snapshots, roadmap decisions),
+**Q&A** (questions about the data, with a marked answer), **Analyses** (show
+your work), **Recommendations** (one post per learner per round), and **Ask a
+mentor**.
 
 ## Before learners can do this: getting the data to them
 
@@ -268,19 +273,90 @@ rows: `events_clean` (the owner's traffic already removed).
 | **3. A read-only view on the Data API** | A `public` view over `events_clean`, with `select` granted to the public key. The Data tab reads it live. | Live data, no export job. | Opens a read path onto the store: rate limits and egress are now the owner's problem, and it changes ADR 0005's write-only rule. Row-level access is harder to take back than a file. |
 | **4. Mirror to a dataset host** | The snapshot is also published as a Kaggle or Hugging Face dataset. | Learners use their own tools (notebooks, pandas, Kaggle's own discussion board). | A second place to keep in sync. |
 
-**Proposal:** option 1 first, then option 2 as the Data tab's real feature.
-Mirror to Kaggle (option 4) if people ask for notebooks. Leave option 3 alone
-unless snapshots prove too stale.
+**Decided (owner, 2026-09-29):** option 1 (downloadable snapshots) and
+option 2 (SQL in the browser on a Data tab). Option 4 stays possible later;
+option 3 is not planned.
 
-**What any of these must settle first:**
+### How it works with the Supabase store
+
+```
+Supabase Postgres                  GitHub Action (daily)                 Supabase Storage (public bucket)       Site: /data
+events_clean ──► learner_events ──► DuckDB CLI: read, re-key ids,  ──►  snapshots/2026-10-05/events.parquet ──► Download links
+ (unchanged)     view, select-only   write Parquet + CSV + manifest       snapshots/2026-10-05/events.csv          DuckDB-WASM SQL console
+                 for one read-only                                        snapshots/latest.json                    with M1-M17 preloaded
+                 role                                                     
+```
+
+1. **In the database (one migration).**
+   - A view, `learner_events`, over `events_clean`. It keeps `visitor_id`,
+     `session_id`, `event_name`, `occurred_at`, `props` and `variant`. It
+     drops `id` (the client's retry key), `received_at` and `is_internal`
+     (always false once the owner's traffic is removed).
+   - A new login role, `snapshot_reader`, whose only grant is `select` on that
+     view. It cannot read the raw table, the wallet or `auth.users`, and cannot
+     write anything. It is not the service-role key.
+2. **The export job: a scheduled GitHub Action, once a day.**
+   - It connects as `snapshot_reader` through Supabase's connection pooler,
+     because Actions runners need an IPv4 address. The connection string is a
+     repository secret.
+   - It runs the DuckDB CLI with DuckDB's `postgres` extension: one command
+     reads the view and writes Parquet and CSV. It uses the same engine the
+     browser will run.
+   - **Re-keying happens here.** Each run makes a random salt, replaces every
+     id with `md5(id || salt)`, then discards the salt. Within one snapshot a
+     visitor is still one visitor across all their sessions, so retention (M3)
+     works. Across snapshots, and against the id in a visitor's own browser,
+     nothing matches.
+   - **Each snapshot is the full history**, not only the new rows, so every
+     file stands on its own and M3's "first seen" is always correct.
+   - It uploads the files and a `latest.json` manifest (version, cut-off
+     time, row count, checksum) using Supabase Storage's S3 access keys. Those
+     keys can only touch storage.
+   - **A side benefit:** a daily query keeps the free project from pausing
+     after 7 idle days (ADR 0005). It is **not** a backup: the published files
+     are re-keyed, and raw rows never leave the database this way. The owner's
+     manual export (ADR 0005, checklist step 7) still stands.
+3. **Where the files live: a public Supabase Storage bucket, `snapshots`.**
+   - It sends CORS headers and supports range requests, which DuckDB-WASM
+     needs to read Parquet from another origin. GitHub release assets don't
+     allow cross-origin fetches.
+   - The files are **not committed to git**: anything in a public repo's
+     history stays there, so a snapshot could never be taken back. A bucket
+     object can be deleted.
+   - Dated folders are kept, so an exercise round can pin its snapshot
+     ("Round 1 uses `2026-10-05`").
+   - At soft-launch volume a snapshot should be well under 1 MB, inside the
+     free plan's storage and egress.
+4. **The Data tab (`/data`), a static Astro page.**
+   - The snapshot's version, cut-off and row count, taken from `latest.json`,
+     with a picker for pinned rounds.
+   - Download links for CSV and Parquet, and a data dictionary generated from
+     the event contract.
+   - A SQL console. DuckDB-WASM is loaded **only on this page and only when
+     the console opens** (a few MB), and reads the chosen Parquet file.
+     Queries run in the learner's own browser, so the store takes no load.
+   - M1-M17 preloaded as examples. They are written for Postgres, so they need
+     porting to DuckDB's dialect (JSON access, time zones, date truncation),
+     with a Vitest test that runs each port against a fixture file.
+   - Results shown as a table, with a "download results as CSV" button.
+   - **Nothing typed in the console is ever logged.** It is free text, and the
+     site logs no free text. Whether the Data tab gets any events at all is a
+     question for the readiness pass that follows (the #79 rule).
+
+**Owner-only steps:** create the `snapshot_reader` password, the storage
+bucket and its S3 keys; add the two repository secrets; enable Discussions in
+the repository settings.
+
+**What this must settle first:**
 
 - **A decision record.** Publishing event rows changes a category: the About
   page currently tells visitors their events go to a store only the owner
   reads.
 - **About page copy** saying that anonymised event rows are published.
-- **Re-keyed ids.** Consider replacing `visitor_id` and `session_id` with new
-  random ids in each snapshot, so a published id never matches the one in a
-  visitor's own browser.
+- **Re-keyed ids** (designed above). ADR 0005's checklist step 7 keeps raw
+  exports out of the repository precisely because the rows carry
+  `visitor_id` and `session_id`. Published snapshots only ever carry the
+  re-keyed ids, and the ADR records that.
 - **Small numbers.** At launch traffic, a single row can be recognisable to
   the person who made it ("the one HCMC order from LinkedIn at 9:03 was mine").
   Nothing in a row identifies a person, but the About page should say so
