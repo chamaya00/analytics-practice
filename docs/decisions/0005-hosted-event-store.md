@@ -103,7 +103,7 @@ every SQL statement below — nothing here duplicates it, only sequences it.
    Project Settings → API page shows a Project URL
    (`https://<ref>.supabase.co`) and, under API keys, a publishable key
    (`sb_publishable_…`) — both are needed for step 3.
-2. **Apply exactly five migrations, in this order**, in the dashboard's SQL
+2. **Apply exactly six migrations, in this order**, in the dashboard's SQL
    Editor — paste each file's contents as its own run, and run each file
    **once**:
    1. `20260925000000_events.sql`
@@ -111,6 +111,7 @@ every SQL statement below — nothing here duplicates it, only sequences it.
    3. `20260930000000_rate_limit_search_path.sql` (#222)
    4. `20261001000000_analytics_readiness_event_contract.sql` (#224)
    5. `20261002000000_session_started_and_is_internal.sql` (#225)
+   6. `20261003000000_second_pass_readiness.sql` (#273)
 
    The three wallet migrations (`20260927000000_wallet.sql`,
    `20260928000000_wallet_tip.sql`,
@@ -161,6 +162,33 @@ every SQL statement below — nothing here duplicates it, only sequences it.
      select pg_get_functiondef('public.event_is_valid(text, jsonb)'::regprocedure)
        like '%session_started%';
      ```
+     Run this one before file 6. File 6 renames that function to
+     `event_is_valid_225`, so afterwards the same query returns `false`, and
+     `public.event_is_valid_225(text, jsonb)` returns `true` instead.
+   - After file 6 (step 2.6, contract
+     `docs/measurement/270-analytics-readiness-second-pass.md` §13 A4): run
+     the three queries below, each on its own, in the SQL Editor. Then tell
+     #264 that all three matched, because the client pull request (child B)
+     must not merge before that (contract §5.4: the new client's inserts
+     name columns and shapes the store would otherwise refuse, and Vercel
+     deploys on merge).
+     ```sql
+     select column_name, data_type, is_nullable, column_default
+     from information_schema.columns
+     where table_schema = 'public' and table_name = 'events'
+       and column_name in ('seq', 'build') order by 1;
+     ```
+     Expected: two rows, `build` / `text` / `YES` / `null` and
+     `seq` / `integer` / `YES` / `null`.
+     ```sql
+     select pg_get_functiondef('public.event_is_valid(text, jsonb)'::regprocedure) like '%fee_modes%';
+     ```
+     Expected: `true`.
+     ```sql
+     select has_table_privilege('anon', 'analytics.orders', 'select'),
+            (select count(*) from analytics.orders) >= 0;
+     ```
+     Expected: `false`, `true`.
 3. **Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY`** in the
    Vercel project's Environment Variables (Settings → Environment Variables),
    using the two values from step 1, for the Production environment at
