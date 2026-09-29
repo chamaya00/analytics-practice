@@ -16,3 +16,4 @@
   a defaulted store column, not in `props`: exact-match key sets mean a new
   prop key refuses every shape an already-open tab still sends, and sends
   fail silently (ADR 0005).
+- A new envelope column the client sends ships store-first: PostgREST refuses an insert naming an unknown column, so a client merged before the owner applies the migration loses every row (#270 §5.4).
