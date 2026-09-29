@@ -58,8 +58,8 @@ const TAB_ICON_PATHS: Record<string, string> = {
     isHome && (
       <div class="home-intro-row">
         <p class="home-intro" data-testid="home-intro">
-          <strong>A parody delivery app for practicing product analytics.</strong> Every tap fires a real,
-          anonymous event — nothing's charged, no food arrives. Pick a city and place a fake order.
+          <strong>This is a demo.</strong> No payment is taken and no food is sent.{' '}
+          <a href="/about/">What we log, and why →</a>
         </p>
       </div>
     )
@@ -189,6 +189,11 @@ const TAB_ICON_PATHS: Record<string, string> = {
   .home-intro strong {
     color: var(--color-text);
     font-weight: 700;
+  }
+
+  .home-intro a {
+    color: var(--color-text);
+    white-space: nowrap;
   }
 
   .site-nav a {

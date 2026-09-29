@@ -9,15 +9,33 @@ const walletEnabled = import.meta.env.PUBLIC_WALLET_ENABLED === 'true';
 
 <BaseLayout title="What we log, and why — Dontdropthatpromo">
   <h1>What we log, and why</h1>
-  <p data-testid="about-builder-credit">
-    Dontdropthatpromo is a solo project by Charles Amaya, built as a hands-on way to practice
-    product analytics — the querying, event design, and metric judgment the job actually needs,
-    against a real dataset instead of a toy one. <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
+  <h2>Why this exists</h2>
+  <p>Dontdropthatpromo is two things at once.</p>
+  <p>
+    <strong>A delivery app that's actually fun to use.</strong> Browse real restaurants, chase a
+    flash deal, place an order, and follow your driver to the door. Nothing is charged and nothing
+    arrives, but everything else is built to be worth a few minutes of your time — and worth coming
+    back to.
   </p>
   <p>
-    Every screen in this app fires a real event at a hosted database, so there's an actual
-    aggregate to look at, not a simulated one. Here's exactly what that means, event family by
-    event family:
+    <strong>A place to practice real product work.</strong> Every screen fires a real event at a
+    hosted database, so there's an actual dataset to query, not a simulated one. That makes it a
+    sandbox for the product design and product analytics skills the job actually needs: deciding
+    what's worth logging, defining a metric, reading a funnel, and making the case for a change
+    from the numbers.
+  </p>
+  <p>
+    <strong>We build it together, the way a real product team would.</strong> What ships next is
+    decided by what the data says people actually do here. Every tap you make is a row someone can
+    learn from, and a vote on what gets built next.
+  </p>
+  <p data-testid="about-builder-credit">
+    Dontdropthatpromo is a solo project by Charles Amaya, so far.{' '}
+    <a href="https://www.linkedin.com/in/charlesamaya">Find me on LinkedIn</a>.
+  </p>
+  <h2>What we log</h2>
+  <p>
+    Here's exactly what your visit sends to that database, event family by event family:
   </p>
   <ul>
     <li>

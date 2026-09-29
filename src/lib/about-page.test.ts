@@ -152,7 +152,7 @@ describe('"What we log, and why" disclosure at /about (AC5)', () => {
     expect(text).toContain('as delivered, and rating_submitted');
     expect(text).toContain('is kept for up to one hour');
     // #238: the two glued spots the driver found on main.
-    expect(text).toContain('instead of a toy one. Find me on LinkedIn');
+    expect(text).toContain('by Charles Amaya, so far. Find me on LinkedIn');
     expect(text).toContain('flash_sheet_shown (which five or six restaurants');
     expect(text).toContain('asks you to — sign_in_prompt_shown');
     expect(text).toContain('a tip — wallet_short_shown');
