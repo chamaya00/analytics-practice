@@ -57,9 +57,19 @@ const TAB_ICON_PATHS: Record<string, string> = {
   {
     isHome && (
       <div class="home-intro-row">
-        <p class="home-intro" data-testid="home-intro">
-          <strong>A parody delivery app for practicing product analytics.</strong> Every tap fires a real,
-          anonymous event — nothing's charged, no food arrives. Pick a city and place a fake order.
+        <p class="home-intro demo-disclosure" data-testid="home-intro">
+          <svg class="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+            ><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="11" x2="12" y2="16.5"></line><circle
+              cx="12"
+              cy="7.5"
+              r="1.2"
+              fill="currentColor"
+              stroke="none"></circle></svg
+          >
+          <span>
+            <strong>This is a demo / simulation game.</strong> No payment is taken and no food is sent, just the
+            satisfaction of finding things you’d like to eat and stacking promos.
+          </span>
         </p>
       </div>
     )
@@ -170,7 +180,9 @@ const TAB_ICON_PATHS: Record<string, string> = {
   }
 
   /* docs/design/235-first-screen-intro.md: home only, on its own line under
-     the wordmark row. The first sentence is full-contrast, the rest muted. */
+     the wordmark row. The first sentence is full-contrast, the rest muted.
+     Wears the checkout note's card (.demo-disclosure, BaseLayout) with its
+     info icon; the /about link is left to the sitewide footer. */
   /* The full-width row is its own element: a flex item's max-width caps the
      hypothetical size line-breaking uses, so `flex: 0 0 100%` plus max-width
      on the <p> itself let it sit beside the nav on desktop. */
@@ -180,7 +192,7 @@ const TAB_ICON_PATHS: Record<string, string> = {
 
   .home-intro {
     max-width: 30rem;
-    margin: 2px 0 0;
+    margin: var(--space-sm) 0 0;
     font-size: var(--font-size-muted);
     line-height: 1.25;
     color: var(--color-text-muted);
