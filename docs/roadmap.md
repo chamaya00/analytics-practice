@@ -419,10 +419,10 @@ the repository settings.
 
 ## Objectives to file from this page
 
-None is filed yet. Each is filed with `/objective` when the owner is ready,
-using the sections above as its brief. In rough order:
+Each is a `backlog` issue, indexed on #253. Run `/objective` on one when the
+owner is ready, using the sections above as its brief. In rough order:
 
-1. **Learner data access: snapshots and the Data tab.** Needed before the
+1. **Learner data access: snapshots and the Data tab (#257).** Needed before the
    LinkedIn post invites anyone to analyse the data. Likely children:
    - an ADR (publishing re-keyed rows, amending ADR 0005 step 7) plus the
      migration for the `learner` schema, `learner.events` and the
@@ -435,13 +435,14 @@ using the sections above as its brief. In rough order:
 
    Owner-only steps: the role's password, the bucket and its S3 keys, and the
    two repository secrets.
-2. **Discussions setup.** Small, and possibly done by hand: enable
+2. **Discussions setup (#258).** Small, and possibly done by hand: enable
    Discussions, create the five categories, and add the Recommendations form
    template (`.github/DISCUSSION_TEMPLATE/`) with the snapshot date and the
    analysis window as required fields.
-3. **A/B testing system (F).** Assignment, exposure event, the `variant`
+3. **A/B testing system (F, #259).** Assignment, exposure event, the `variant`
    column, per-experiment contract revisions, SRM and interval queries.
-4. **The direction learners' analysis puts first** (A-E), filed once the
+4. **The direction learners' analysis puts first** (A #200, B #201, C #204,
+   D #260, E #261), filed once the
    recommendations are in. Its analytics-readiness pass follows it (the #79
    rule), and each new table it adds gets a view in `learner` and a table
    contract.
