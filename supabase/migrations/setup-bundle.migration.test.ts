@@ -59,7 +59,7 @@ describe('supabase/setup bundles', () => {
 
   it('1-events.sql applies in one paste and every check passes', async () => {
     const checks = await runBundle(db, EVENTS);
-    expect(checks).toHaveLength(10);
+    expect(checks).toHaveLength(11);
     expect(checks.filter((row) => row.result !== 'PASS')).toEqual([]);
   }, 60_000);
 
