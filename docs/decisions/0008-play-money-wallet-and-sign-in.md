@@ -351,7 +351,7 @@ For the owner, in order. Each step is done once unless it says otherwise. You ne
 11. **Authentication → URL Configuration.**
     - **Site URL:** SITE.
     - **Redirect URLs:** add `SITE/**`. Add `http://localhost:4321/**` for local development. For preview deploys, optionally add `https://*-<your-vercel-team>.vercel.app/**`.
-12. **Apply the migration.** Once #145 has merged: Supabase → **SQL Editor** → New query → paste the whole of the new wallet file from `supabase/migrations/` (its name is in #145's pull request) → **Run**. It should finish with no error. Do not re-run the two older `events` migrations.
+12. **Apply the wallet migrations.** Supabase → **SQL Editor** → New query → paste the whole of `supabase/setup/2-wallet.sql` → **Run** once. It is the three wallet migrations in order (including #217's revoke) in one transaction, and its last result is four checks that should all read `PASS`. Run it after `supabase/setup/1-events.sql` (ADR 0005), never instead of it.
 
 **Switch it on (last)**
 
