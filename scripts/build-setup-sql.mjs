@@ -19,10 +19,16 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MIGRATIONS = path.join(ROOT, 'supabase/migrations');
 const SETUP = path.join(ROOT, 'supabase/setup');
 
+// ADR 0005's owner checklist quotes this same query as the confirm step for a
+// project that applies 20261004000000_cost_guard.sql on its own.
+export const COST_GUARD_CHECK = `exists (select 1 from pg_trigger where tgrelid = 'public.events'::regclass
+      and tgname = 'events_write_ceilings' and not tgisinternal)
+      and (select hourly_ceiling = 20000 and storage_ceiling_bytes = 314572800 from private.event_ceilings)`;
+
 export const BUNDLES = [
   {
     file: '1-events.sql',
-    title: 'Events store: the six event migrations (ADR 0005 owner setup, step 2)',
+    title: 'Events store: the seven event migrations (ADR 0005 owner setup, step 2)',
     migrations: [
       '20260925000000_events.sql',
       '20260926000000_two_city_event_contract.sql',
@@ -30,6 +36,7 @@ export const BUNDLES = [
       '20261001000000_analytics_readiness_event_contract.sql',
       '20261002000000_session_started_and_is_internal.sql',
       '20261003000000_second_pass_readiness.sql',
+      '20261004000000_cost_guard.sql',
     ],
     checks: [
       [
@@ -72,6 +79,10 @@ export const BUNDLES = [
       [
         'the public key cannot read raw events',
         `not has_table_privilege('anon', 'public.events', 'select')`,
+      ],
+      [
+        'the cost guard is on: ceiling trigger present, 20,000 an hour and 300 MB (#281)',
+        COST_GUARD_CHECK,
       ],
     ],
   },
