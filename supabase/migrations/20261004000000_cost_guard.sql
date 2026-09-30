@@ -21,6 +21,18 @@
 -- Same hardening as public.enforce_write_rate_limit(): security definer and a
 -- pinned search_path. anon and authenticated gain no grant on `private`.
 
+-- `authenticated` is created here, guarded, only so this migration is
+-- self-contained against a bare Postgres (the revokes at the bottom name it),
+-- as 20260925000000_events.sql does for `anon`. A real Supabase project
+-- already has it, so this is a no-op there.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+end
+$$;
+
 create table private.event_ceilings (
   id boolean primary key default true,
   hourly_ceiling bigint not null check (hourly_ceiling > 0),

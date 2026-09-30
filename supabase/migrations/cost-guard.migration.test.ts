@@ -30,8 +30,8 @@ async function insertEvent(ip: string = randomUUID()) {
   ]);
   return db.query(
     `insert into public.events (id, visitor_id, session_id, event_name, occurred_at, props, variant)
-     values ($1, $2, $3, 'restaurants_viewed', now(), '{}', null)`,
-    [randomUUID(), randomUUID(), randomUUID()],
+     values ($1, $2, $3, 'home_viewed', now(), $4, null)`,
+    [randomUUID(), randomUUID(), randomUUID(), JSON.stringify({ city: 'sf' })],
   );
 }
 
@@ -143,5 +143,52 @@ describe('AC5: headroom query', () => {
     await expect(db.query('select * from public.event_ceiling_headroom()')).rejects.toThrow(
       /permission denied/,
     );
+  });
+});
+
+describe('AC4: the wallet keeps working while a ceiling is tripped', () => {
+  it('wallet_get() succeeds as authenticated with the cost guard applied after the wallet migrations', async () => {
+    const wdb = new PGlite({ extensions: { pgcrypto } });
+    try {
+      // ADR 0008's auth fixture, as in wallet.migration.test.ts.
+      await wdb.exec(`
+        create schema auth;
+        create table auth.users (id uuid primary key);
+        create function auth.uid() returns uuid language sql stable as $$
+          select nullif(coalesce(current_setting('request.jwt.claim.sub', true), (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')), '')::uuid
+        $$;
+        create role authenticated nologin;
+      `);
+      for (const file of [
+        '20260925000000_events.sql',
+        '20260926000000_two_city_event_contract.sql',
+        '20260927000000_wallet.sql',
+        '20260928000000_wallet_tip.sql',
+        '20260929000000_wallet_revoke_anon_execute.sql',
+        '20261004000000_cost_guard.sql',
+      ]) {
+        await wdb.exec(sql(file));
+      }
+      await wdb.exec('update private.event_ceilings set hourly_ceiling = 1');
+      await wdb.exec("insert into private.event_write_buckets (bucket, n) values (date_trunc('minute', now()), 1)");
+
+      const userId = randomUUID();
+      await wdb.query('insert into auth.users (id) values ($1)', [userId]);
+      await wdb.query("select set_config('request.jwt.claims', $1, false)", [JSON.stringify({ sub: userId })]);
+      await wdb.query('set role authenticated');
+      const { rows } = await wdb.query<{ wallet_get: unknown }>('select public.wallet_get() as wallet_get');
+      expect(rows[0].wallet_get).not.toBeNull();
+
+      await wdb.query('reset role');
+      await expect(
+        wdb.query(
+          `insert into public.events (id, visitor_id, session_id, event_name, occurred_at, props, variant)
+           values ($1, $2, $3, 'restaurants_viewed', now(), '{}', null)`,
+          [randomUUID(), randomUUID(), randomUUID()],
+        ),
+      ).rejects.toThrow('global event ceiling exceeded');
+    } finally {
+      await wdb.close();
+    }
   });
 });
